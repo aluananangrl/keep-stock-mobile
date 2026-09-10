@@ -1,710 +1,281 @@
-
 // ============================================================
 // IMPORTAÇÕES
 // ============================================================
 
+import { useEffect, useState } from "react";
+
 import {
   View,
   Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
 } from "react-native";
 
-import { useState } from "react";
-
-import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
+
+
+// ============================================================
+// DADOS MOCADOS (troque pela chamada real da sua API)
+// ============================================================
+
+const PRODUTOS_DESTAQUE = [
+  {
+    id: "1",
+    nome: "Água Mineral 500ml",
+    estoque: 38,
+    status: "critico", // critico | baixo | normal
+  },
+  {
+    id: "2",
+    nome: "Salgadinho 100g",
+    estoque: 15,
+    status: "baixo",
+  },
+  {
+    id: "3",
+    nome: "Refrigerante 350ml",
+    estoque: 120,
+    status: "normal",
+  },
+];
+
+const STATUS_CONFIG = {
+  critico: { label: "CRÍTICO", bg: "#3a1f2b", color: "#ff7a94" },
+  baixo: { label: "BAIXO", bg: "#3a2f1f", color: "#ffc86b" },
+  normal: { label: "NORMAL", bg: "#1f3a2a", color: "#6bffa0" },
+};
 
 
 // ============================================================
 // COMPONENTE PRINCIPAL
 // ============================================================
 
-export default function Cadastro({ navigation }) {
+export default function HomeScreen({ navigation }) {
 
-  // Dados do usuário
-  const [user, setUser] = useState({
-    nome: "",
-    email: "",
-    senha: "",
-  });
+  // ==========================================================
+  // ESTADO DO USUÁRIO
+  // ==========================================================
 
-  // Confirmação da senha
-  const [confirmarSenha, setConfirmarSenha] = useState("");
-
-  // Termos
-  const [aceitouTermos, setAceitouTermos] = useState(false);
-
-  // Mostrar senha
-  const [mostrarSenha, setMostrarSenha] = useState(false);
-
-  // Mostrar confirmação da senha
-  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] =
-    useState(false);
+  const [usuario, setUsuario] = useState(null);
 
 
-  // ============================================================
-  // ALTERAR CAMPOS
-  // ============================================================
+  // ==========================================================
+  // USEEFFECT
+  // ==========================================================
 
-  function onChange(name, value) {
-    setUser({
-      ...user,
-      [name]: value,
-    });
-  }
+  useEffect(() => {
 
+    carregarUsuario();
 
-  // ============================================================
-  // FUNÇÃO DE CADASTRO
-  // ============================================================
-
-  async function cadastrar() {
-
-    // ==========================================================
-    // VALIDAÇÕES
-    // ==========================================================
-
-    if (!user.nome.trim()) {
-      Alert.alert(
-        "Erro",
-        "Digite seu nome." 
-      );
-      return;
-    }
-
-    if (!user.email.trim()) {
-      Alert.alert(
-        "Erro",
-        "Digite seu e-mail."
-      );
-      return;
-    }
-
-    // Validação simples do e-mail
-    const emailValido =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        user.email.trim()
-      );
-
-    if (!emailValido) {
-      Alert.alert(
-        "E-mail inválido",
-        "Digite um e-mail válido."
-      );
-      return;
-    }
-
-    if (!user.senha) {
-      Alert.alert(
-        "Erro",
-        "Digite sua senha."
-      );
-      return;
-    }
-
-    if (user.senha.length < 6) {
-      Alert.alert(
-        "Senha inválida",
-        "A senha deve possuir pelo menos 6 caracteres."
-      );
-      return;
-    }
-
-    if (user.senha !== confirmarSenha) {
-      Alert.alert(
-        "Erro",
-        "As senhas não coincidem."
-      );
-      return;
-    }
-
-    if (!aceitouTermos) {
-      Alert.alert(
-        "Atenção",
-        "Aceite os Termos e Condições para continuar."
-      );
-      return;
-    }
+  }, []);
 
 
-    // ==========================================================
-    // ENVIO PARA O BACKEND
-    // ==========================================================
+  // ==========================================================
+  // FUNÇÃO PARA CARREGAR O USUÁRIO
+  // ==========================================================
+
+  async function carregarUsuario() {
 
     try {
 
-      const dados = {
-        nome: user.nome.trim(),
-
-        email: user.email
-          .trim()
-          .toLowerCase(),
-
-        senha: user.senha,
-      };
-
+      const response = await api.me();
 
       console.log(
-        "================================"
-      );
-
-      console.log(
-        "ENVIANDO CADASTRO:",
-        dados
-      );
-
-
-      // Chamada para a API
-      const response =
-        await api.cadastrar(dados);
-
-
-      console.log(
-        "STATUS:",
-        response.status
-      );
-
-      console.log(
-        "DATA:",
+        "USUÁRIO LOGADO:",
         response.data
       );
 
-      console.log(
-        "================================"
-      );
-
-
-      // ========================================================
-      // CADASTRO REALIZADO
-      // ========================================================
-
-      Alert.alert(
-        "Cadastro realizado!",
-
-        response.data?.message ||
-          "Usuário cadastrado com sucesso.",
-
-        [
-          {
-            text: "OK",
-
-            onPress: () =>
-              navigation.navigate("Login"),
-          },
-        ]
-      );
+      setUsuario(response.data);
 
     } catch (error) {
 
-      // ========================================================
-      // INFORMAÇÕES DO ERRO
-      // ========================================================
-
       console.log(
-        "================================"
+        "ERRO AO BUSCAR USUÁRIO:",
+        error?.response?.data ||
+          error?.message
       );
 
-      console.log(
-        "STATUS:",
-        error?.response?.status
-      );
-
-      console.log(
-        "DATA:",
-        error?.response?.data
-      );
-
-      console.log(
-        "MESSAGE:",
-        error?.message
-      );
-
-      console.log(
-        "================================"
-      );
-
-
-      // ========================================================
-      // PEGA OS DADOS DO BACKEND
-      // ========================================================
-
-      const status =
-        error?.response?.status;
-
-      const errorData =
-        error?.response?.data?.error;
-
-      const code =
-        errorData?.code;
-
-      const message =
-        errorData?.message;
-
-
-      // ========================================================
-      // E-MAIL JÁ CADASTRADO
-      // ========================================================
-
-      if (
-        status === 409 &&
-        code === "DUPLICATE_EMAIL"
-      ) {
-
-        Alert.alert(
-          "E-mail já cadastrado",
-
-          message ||
-            "Já existe um usuário cadastrado com este e-mail.",
-
-          [
-            {
-              text: "Ir para Login",
-
-              onPress: () =>
-                navigation.navigate("Login"),
-            },
-
-            {
-              text: "OK",
-              style: "cancel",
-            },
-          ]
-        );
-
-        return;
-      }
-
-
-      // ========================================================
-      // OUTROS ERROS DO BACKEND
-      // ========================================================
-
-      if (message) {
-
-        Alert.alert(
-          "Erro no cadastro",
-          message
-        );
-
-        return;
-      }
-
-
-      // ========================================================
-      // ERRO DE CONEXÃO
-      // ========================================================
-
-      if (!error?.response) {
-
-        Alert.alert(
-          "Erro de conexão",
-
-          "Não foi possível conectar ao servidor. Verifique se o backend está funcionando e tente novamente."
-        );
-
-        return;
-      }
-
-
-      // ========================================================
-      // ERRO DESCONHECIDO
-      // ========================================================
-
-      Alert.alert(
-        "Erro no cadastro",
-
-        "Não foi possível realizar o cadastro. Tente novamente."
-      );
     }
   }
 
 
-  // ============================================================
+  // ==========================================================
+  // RENDER DE UM ITEM DE PRODUTO
+  // ==========================================================
+
+  function renderProduto(produto) {
+
+    const status = STATUS_CONFIG[produto.status];
+
+    return (
+      <View key={produto.id} style={styles.productRow}>
+
+        <View style={styles.productIconBox}>
+          <Feather name="package" size={18} color="#aaa8ff" />
+        </View>
+
+        <View style={styles.productInfo}>
+          <Text style={styles.productName}>{produto.nome}</Text>
+          <Text style={styles.productStock}>
+            Estoque: {produto.estoque} un.
+          </Text>
+        </View>
+
+        <View style={[styles.badge, { backgroundColor: status.bg }]}>
+          <Text style={[styles.badgeText, { color: status.color }]}>
+            {status.label}
+          </Text>
+        </View>
+
+      </View>
+    );
+  }
+
+
+  // ==========================================================
   // INTERFACE
-  // ============================================================
+  // ==========================================================
 
   return (
 
-    <KeyboardAvoidingView
-      style={styles.container}
+    <View style={styles.container}>
 
-      behavior={
-        Platform.OS === "ios"
-          ? "padding"
-          : undefined
-      }
-    >
+      {/* ===================== HEADER ===================== */}
+      <View style={styles.header}>
+
+        <TouchableOpacity>
+          <Feather name="menu" size={22} color="#e1e3f0" />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>KeepStock</Text>
+
+        <TouchableOpacity>
+          <Feather name="bell" size={20} color="#e1e3f0" />
+        </TouchableOpacity>
+
+      </View>
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
-
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-
-        keyboardShouldPersistTaps="handled"
       >
 
-        <View style={styles.card}>
+        {/* ===================== SAUDAÇÃO ===================== */}
+        <Text style={styles.greeting}>
+          Olá, {usuario?.nome || "Alex"}!
+        </Text>
+        <Text style={styles.subtitle}>
+          Aqui está o resumo do seu estoque.
+        </Text>
 
-          {/* ==================================================
-              LOGO
-          ================================================== */}
+        {/* ===================== BUSCA ===================== */}
+        <View style={styles.searchBox}>
+          <Feather name="search" size={16} color="#858b9f" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar produtos, códigos, locais..."
+            placeholderTextColor="#858b9f"
+          />
+        </View>
 
-          <View style={styles.logo}>
-
-            <Ionicons
-              name="file-tray"
-              size={25}
-              color="#c4c2ff"
-            />
-
+        {/* ===================== CARD DE ALERTA ===================== */}
+        <LinearGradient
+          colors={["#7775ff", "#aaa8ff"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.alertCard}
+        >
+          <View>
+            <Text style={styles.alertLabel}>PRODUTOS EM ALERTA</Text>
+            <Text style={styles.alertNumber}>12</Text>
+            <Text style={styles.alertDescription}>
+              Estoque baixo ou crítico
+            </Text>
           </View>
 
-
-          {/* ==================================================
-              TÍTULO
-          ================================================== */}
-
-          <Text style={styles.title}>
-            Criar Conta
-          </Text>
-
-
-          <Text style={styles.subtitle}>
-            Junte-se ao KeepStock Inventory para gestão
-          </Text>
-
-          <Text style={styles.subtitle}>
-            avançada.
-          </Text>
-
-
-          {/* ==================================================
-              NOME
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Nome Completo
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="person-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="Digite seu nome"
-
-              placeholderTextColor="#777d94"
-
-              value={user.nome}
-
-              onChangeText={(value) =>
-                onChange("nome", value)
-              }
-
-              autoCapitalize="words"
-            />
-
+          <View style={styles.alertIconCircle}>
+            <Feather name="alert-triangle" size={20} color="#29258a" />
           </View>
+        </LinearGradient>
 
+        {/* ===================== CARDS DE ESTATÍSTICA ===================== */}
+        <View style={styles.statsRow}>
 
-          {/* ==================================================
-              EMAIL
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Email
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="mail-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="nome@empresa.com"
-
-              placeholderTextColor="#777d94"
-
-              value={user.email}
-
-              onChangeText={(value) =>
-                onChange("email", value)
-              }
-
-              keyboardType="email-address"
-
-              autoCapitalize="none"
-
-              autoCorrect={false}
-            />
-
-          </View>
-
-
-          {/* ==================================================
-              SENHA
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Senha
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="lock-closed-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="••••••••"
-
-              placeholderTextColor="#777d94"
-
-              value={user.senha}
-
-              onChangeText={(value) =>
-                onChange("senha", value)
-              }
-
-              secureTextEntry={
-                !mostrarSenha
-              }
-
-              autoCapitalize="none"
-            />
-
-
-            <TouchableOpacity
-              onPress={() =>
-                setMostrarSenha(
-                  !mostrarSenha
-                )
-              }
-            >
-
-              <Ionicons
-                name={
-                  mostrarSenha
-                    ? "eye-outline"
-                    : "eye-off-outline"
-                }
-
-                size={17}
-
-                color="#9b9fbd"
-
-                style={styles.eye}
-              />
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          {/* ==================================================
-              CONFIRMAR SENHA
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Confirmar Senha
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="lock-closed-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="••••••••"
-
-              placeholderTextColor="#777d94"
-
-              value={confirmarSenha}
-
-              onChangeText={
-                setConfirmarSenha
-              }
-
-              secureTextEntry={
-                !mostrarConfirmarSenha
-              }
-
-              autoCapitalize="none"
-            />
-
-
-            <TouchableOpacity
-              onPress={() =>
-                setMostrarConfirmarSenha(
-                  !mostrarConfirmarSenha
-                )
-              }
-            >
-
-              <Ionicons
-                name={
-                  mostrarConfirmarSenha
-                    ? "eye-outline"
-                    : "eye-off-outline"
-                }
-
-                size={17}
-
-                color="#9b9fbd"
-
-                style={styles.eye}
-              />
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          {/* ==================================================
-              TERMOS
-          ================================================== */}
-
-          <TouchableOpacity
-            style={styles.terms}
-
-            onPress={() =>
-              setAceitouTermos(
-                !aceitouTermos
-              )
-            }
-          >
-
-            <View
-              style={[
-                styles.checkbox,
-
-                aceitouTermos &&
-                  styles.checkboxChecked,
-              ]}
-            >
-
-              {aceitouTermos && (
-
-                <Ionicons
-                  name="checkmark"
-                  size={12}
-                  color="#fff"
-                />
-
-              )}
-
+          <View style={styles.statCard}>
+            <View style={[styles.statIconBox, { backgroundColor: "#2a2450" }]}>
+              <Feather name="archive" size={16} color="#aaa8ff" />
             </View>
+            <Text style={styles.statNumber}>256</Text>
+            <Text style={styles.statLabel}>PRODUTOS</Text>
+          </View>
 
+          <View style={styles.statCard}>
+            <View style={[styles.statIconBox, { backgroundColor: "#233046" }]}>
+              <Feather name="activity" size={16} color="#7fb8ff" />
+            </View>
+            <Text style={styles.statNumber}>1.245</Text>
+            <Text style={styles.statLabel}>MOVIMENTOS</Text>
+          </View>
 
-            <Text style={styles.termsText}>
-              I agree to the Terms and Conditions
-            </Text>
-
-          </TouchableOpacity>
-
-
-          {/* ==================================================
-              BOTÃO CADASTRAR
-          ================================================== */}
-
-          <TouchableOpacity
-            style={styles.button}
-
-            onPress={cadastrar}
-
-            activeOpacity={0.8}
-          >
-
-            <Text style={styles.buttonText}>
-              Cadastrar
-            </Text>
-
-
-            <Ionicons
-              name="arrow-forward"
-              size={17}
-              color="#29258a"
-            />
-
-          </TouchableOpacity>
-
-
-          {/* ==================================================
-              DIVISOR
-          ================================================== */}
-
-          <View style={styles.divider} />
-
-
-          {/* ==================================================
-              LOGIN
-          ================================================== */}
-
-          <View style={styles.loginContainer}>
-
-            <Text style={styles.loginText}>
-              Already have an account?{" "}
-            </Text>
-
-
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("Login")
-              }
-            >
-
-              <Text style={styles.loginLink}>
-                Log in
-              </Text>
-
-            </TouchableOpacity>
-
+          <View style={styles.statCard}>
+            <View style={[styles.statIconBox, { backgroundColor: "#1f3a2a" }]}>
+              <Ionicons name="checkmark-circle" size={16} color="#6bffa0" />
+            </View>
+            <Text style={styles.statNumber}>98%</Text>
+            <Text style={styles.statLabel}>ACURÁCIA</Text>
           </View>
 
         </View>
 
+        {/* ===================== PRODUTOS EM DESTAQUE ===================== */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Produtos em destaque</Text>
+          <TouchableOpacity>
+            <Text style={styles.sectionLink}>Ver todos</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.productList}>
+          {PRODUTOS_DESTAQUE.map(renderProduto)}
+        </View>
+
       </ScrollView>
 
-    </KeyboardAvoidingView>
+      {/* ===================== TAB BAR ===================== */}
+      <View style={styles.tabBar}>
+
+        <TouchableOpacity style={styles.tabItem}>
+          <View style={[styles.tabIconBox, styles.tabIconBoxActiveGreen]}>
+            <Feather name="archive" size={18} color="#0f1d16" />
+          </View>
+          <Text style={styles.tabLabelActive}>Inventory</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.tabItemCenter}>
+          <LinearGradient
+            colors={["#7775ff", "#aaa8ff"]}
+            style={styles.scannerButton}
+          >
+            <Ionicons name="qr-code-outline" size={22} color="#ffffff" />
+          </LinearGradient>
+          <Text style={styles.tabLabel}>Scanner</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.tabItem}>
+          <Feather name="bell" size={20} color="#858b9f" />
+          <Text style={styles.tabLabel}>Alerts</Text>
+        </TouchableOpacity>
+
+      </View>
+
+    </View>
+
   );
 }
 
@@ -715,233 +286,297 @@ export default function Cadastro({ navigation }) {
 
 const styles = StyleSheet.create({
 
+  // ==========================================================
+  // CONTAINER / HEADER
+  // ==========================================================
+
   container: {
     flex: 1,
     backgroundColor: "#1b1b1d",
   },
 
-  scroll: {
-    flexGrow: 1,
-    width: "100%",
-    padding: 0,
-  },
-
-  card: {
-    flex: 1,
-    width: "100%",
-    minHeight: "100%",
-
-    backgroundColor: "#151d32",
-
-    paddingHorizontal: 28,
-    paddingTop: 35,
-    paddingBottom: 30,
-
-    justifyContent: "center",
-  },
-
-  // ==========================================================
-  // LOGO
-  // ==========================================================
-
-  logo: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-
-    backgroundColor: "#303568",
-
-    justifyContent: "center",
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    alignSelf: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 55,
+    paddingBottom: 16,
+  },
 
-    marginBottom: 18,
+  headerTitle: {
+    color: "#e1e3f0",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   // ==========================================================
-  // TÍTULO
+  // SCROLL
   // ==========================================================
 
-  title: {
-    color: "#e1e3f0",
+  scroll: {
+    flex: 1,
+  },
 
-    fontSize: 25,
-    fontWeight: "600",
+  scrollContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
 
-    textAlign: "center",
+  // ==========================================================
+  // SAUDAÇÃO
+  // ==========================================================
 
-    marginBottom: 9,
+  greeting: {
+    color: "#f2f3fa",
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 4,
   },
 
   subtitle: {
     color: "#858b9f",
-
-    fontSize: 12,
-
-    textAlign: "center",
-
-    lineHeight: 17,
-  },
-
-  // ==========================================================
-  // LABEL
-  // ==========================================================
-
-  label: {
-    color: "#d3d5df",
-
-    fontSize: 12,
-    fontWeight: "500",
-
-    marginTop: 18,
-    marginBottom: 7,
-  },
-
-  // ==========================================================
-  // INPUT
-  // ==========================================================
-
-  inputBox: {
-    height: 52,
-
-    width: "100%",
-
-    backgroundColor: "#20283b",
-
-    borderWidth: 1,
-    borderColor: "#303a55",
-
-    flexDirection: "row",
-    alignItems: "center",
-
-    borderRadius: 10,
-  },
-
-  icon: {
-    marginLeft: 13,
-  },
-
-  input: {
-    flex: 1,
-
-    height: "100%",
-
-    paddingHorizontal: 12,
-
     fontSize: 13,
-
-    color: "#e1e3f0",
-  },
-
-  eye: {
-    marginRight: 13,
-  },
-
-  // ==========================================================
-  // TERMOS
-  // ==========================================================
-
-  terms: {
-    flexDirection: "row",
-
-    alignItems: "center",
-
-    marginTop: 18,
     marginBottom: 20,
   },
 
-  checkbox: {
-    width: 18,
-    height: 18,
+  // ==========================================================
+  // BUSCA
+  // ==========================================================
 
-    borderRadius: 4,
-
-    borderWidth: 1,
-    borderColor: "#4c5369",
-
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 48,
     backgroundColor: "#20283b",
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    marginRight: 9,
+    borderWidth: 1,
+    borderColor: "#303a55",
+    borderRadius: 12,
+    marginBottom: 18,
+    paddingHorizontal: 14,
   },
 
-  checkboxChecked: {
-    backgroundColor: "#7775ff",
-    borderColor: "#7775ff",
+  searchIcon: {
+    marginRight: 10,
   },
 
-  termsText: {
-    color: "#9297aa",
-
-    fontSize: 11,
-  },
-
-  // ==========================================================
-  // BOTÃO
-  // ==========================================================
-
-  button: {
-    width: "100%",
-
-    height: 52,
-
-    borderRadius: 26,
-
-    backgroundColor: "#aaa8ff",
-
-    flexDirection: "row",
-
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  buttonText: {
-    color: "#29258a",
-
+  searchInput: {
+    flex: 1,
+    color: "#e1e3f0",
     fontSize: 13,
-
-    fontWeight: "600",
-
-    marginRight: 8,
   },
 
   // ==========================================================
-  // DIVISOR
+  // CARD DE ALERTA
   // ==========================================================
 
-  divider: {
-    height: 1,
-
-    backgroundColor: "#293146",
-
-    marginTop: 28,
-    marginBottom: 22,
-  },
-
-  // ==========================================================
-  // LOGIN
-  // ==========================================================
-
-  loginContainer: {
+  alertCard: {
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+  },
 
+  alertLabel: {
+    color: "#29258a",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+
+  alertNumber: {
+    color: "#1b1740",
+    fontSize: 30,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+
+  alertDescription: {
+    color: "#3a3480",
+    fontSize: 12,
+  },
+
+  alertIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255,255,255,0.35)",
     justifyContent: "center",
     alignItems: "center",
   },
 
-  loginText: {
-    color: "#858b9e",
+  // ==========================================================
+  // CARDS DE ESTATÍSTICA
+  // ==========================================================
 
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 26,
+  },
+
+  statCard: {
+    flex: 1,
+    backgroundColor: "#172035",
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+
+  statIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  statNumber: {
+    color: "#f2f3fa",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 3,
+  },
+
+  statLabel: {
+    color: "#7d8299",
+    fontSize: 9,
+    letterSpacing: 0.5,
+  },
+
+  // ==========================================================
+  // SEÇÃO / LISTA DE PRODUTOS
+  // ==========================================================
+
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  sectionTitle: {
+    color: "#e1e3f0",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  sectionLink: {
+    color: "#aaa8ff",
+    fontSize: 12,
+  },
+
+  productList: {
+    marginBottom: 10,
+  },
+
+  productRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#172035",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+
+  productIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "#20283b",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  productInfo: {
+    flex: 1,
+  },
+
+  productName: {
+    color: "#e1e3f0",
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+
+  productStock: {
+    color: "#858b9f",
     fontSize: 11,
   },
 
-  loginLink: {
-    color: "#aaa8ff",
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
 
-    fontSize: 11,
+  badgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+  },
 
+  // ==========================================================
+  // TAB BAR
+  // ==========================================================
+
+  tabBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "#151b2e",
+    borderTopWidth: 1,
+    borderTopColor: "#232a40",
+    paddingTop: 10,
+    paddingBottom: 22,
+  },
+
+  tabItem: {
+    alignItems: "center",
+  },
+
+  tabItemCenter: {
+    alignItems: "center",
+    marginTop: -26,
+  },
+
+  tabIconBox: {
+    width: 40,
+    height: 28,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  tabIconBoxActiveGreen: {
+    backgroundColor: "#6bffa0",
+  },
+
+  scannerButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 4,
+    borderWidth: 4,
+    borderColor: "#151b2e",
+  },
+
+  tabLabel: {
+    color: "#858b9f",
+    fontSize: 10,
+  },
+
+  tabLabelActive: {
+    color: "#6bffa0",
+    fontSize: 10,
     fontWeight: "600",
   },
 
