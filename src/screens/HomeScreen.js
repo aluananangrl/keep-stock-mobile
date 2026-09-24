@@ -257,7 +257,10 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.tabLabelActive}>Inventory</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItemCenter}>
+        <TouchableOpacity
+          style={styles.tabItemCenter}
+          onPress={() => navigation.navigate("CameraScanner")}
+        >
           <LinearGradient
             colors={["#7775ff", "#aaa8ff"]}
             style={styles.scannerButton}
