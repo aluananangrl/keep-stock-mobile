@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
+import { useTheme } from "../context/ThemeContext";
 
 
 // ============================================================
@@ -56,6 +57,34 @@ const STATUS_CONFIG = {
 // ============================================================
 
 export default function HomeScreen({ navigation }) {
+  const { theme } = useTheme();
+  const isDarkTheme = theme === "dark";
+
+  const palette = isDarkTheme
+    ? {
+        background: "#1b1b1d",
+        header: "#1b1b1d",
+        text: "#e1e3f0",
+        muted: "#858b9f",
+        card: "#172035",
+        cardSoft: "#20283b",
+        border: "#303a55",
+        tab: "#151b2e",
+        tabText: "#858b9f",
+        active: "#6bffa0",
+      }
+    : {
+        background: "#f5f7fb",
+        header: "#ffffff",
+        text: "#1d2433",
+        muted: "#60708a",
+        card: "#ffffff",
+        cardSoft: "#edf3ff",
+        border: "#dfe6f3",
+        tab: "#f1f4fb",
+        tabText: "#64748b",
+        active: "#2d6df6",
+      };
 
   // ==========================================================
   // ESTADO DO USUÁRIO
@@ -84,13 +113,14 @@ export default function HomeScreen({ navigation }) {
     try {
 
       const response = await api.me();
+      const dadosUsuario = response?.data?.user || response?.data || null;
 
       console.log(
         "USUÁRIO LOGADO:",
-        response.data
+        dadosUsuario
       );
 
-      setUsuario(response.data);
+      setUsuario(dadosUsuario);
 
     } catch (error) {
 
@@ -113,7 +143,12 @@ export default function HomeScreen({ navigation }) {
     const status = STATUS_CONFIG[produto.status];
 
     return (
-      <View key={produto.id} style={styles.productRow}>
+      <TouchableOpacity
+        key={produto.id}
+        style={styles.productRow}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate("DetalhesProduto", { produto })}
+      >
 
         <View style={styles.productIconBox}>
           <Feather name="package" size={18} color="#aaa8ff" />
@@ -132,7 +167,7 @@ export default function HomeScreen({ navigation }) {
           </Text>
         </View>
 
-      </View>
+      </TouchableOpacity>
     );
   }
 
@@ -143,19 +178,19 @@ export default function HomeScreen({ navigation }) {
 
   return (
 
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.background }]}>
 
       {/* ===================== HEADER ===================== */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: palette.header }]}>
 
-        <TouchableOpacity>
-          <Feather name="menu" size={22} color="#e1e3f0" />
+        <TouchableOpacity onPress={() => navigation.navigate("DetalhesProduto")}>
+          <Feather name="menu" size={22} color={palette.text} />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>KeepStock</Text>
+        <Text style={[styles.headerTitle, { color: palette.text }]}>KeepStock</Text>
 
-        <TouchableOpacity>
-          <Feather name="bell" size={20} color="#e1e3f0" />
+        <TouchableOpacity onPress={() => navigation.navigate("Notificacoes")}>
+          <Feather name="bell" size={20} color={palette.text} />
         </TouchableOpacity>
 
       </View>
@@ -167,20 +202,20 @@ export default function HomeScreen({ navigation }) {
       >
 
         {/* ===================== SAUDAÇÃO ===================== */}
-        <Text style={styles.greeting}>
-          Olá, {usuario?.nome || "Alex"}!
+        <Text style={[styles.greeting, { color: palette.text }]}>
+          Olá, {usuario?.nome || "Usuário"}!
         </Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.subtitle, { color: palette.muted }]}>
           Aqui está o resumo do seu estoque.
         </Text>
 
         {/* ===================== BUSCA ===================== */}
-        <View style={styles.searchBox}>
-          <Feather name="search" size={16} color="#858b9f" style={styles.searchIcon} />
+        <View style={[styles.searchBox, { backgroundColor: palette.cardSoft, borderColor: palette.border }]}>
+          <Feather name="search" size={16} color={palette.muted} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: palette.text }]}
             placeholder="Buscar produtos, códigos, locais..."
-            placeholderTextColor="#858b9f"
+            placeholderTextColor={palette.muted}
           />
         </View>
 
@@ -207,37 +242,37 @@ export default function HomeScreen({ navigation }) {
         {/* ===================== CARDS DE ESTATÍSTICA ===================== */}
         <View style={styles.statsRow}>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: "#2a2450" }]}>
-              <Feather name="archive" size={16} color="#aaa8ff" />
+          <View style={[styles.statCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
+            <View style={[styles.statIconBox, { backgroundColor: isDarkTheme ? "#2a2450" : "#e8edff" }]}>
+              <Feather name="archive" size={16} color={isDarkTheme ? "#aaa8ff" : "#3e5ef5"} />
             </View>
-            <Text style={styles.statNumber}>256</Text>
-            <Text style={styles.statLabel}>PRODUTOS</Text>
+            <Text style={[styles.statNumber, { color: palette.text }]}>256</Text>
+            <Text style={[styles.statLabel, { color: palette.muted }]}>PRODUTOS</Text>
           </View>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: "#233046" }]}>
-              <Feather name="activity" size={16} color="#7fb8ff" />
+          <View style={[styles.statCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
+            <View style={[styles.statIconBox, { backgroundColor: isDarkTheme ? "#233046" : "#eaf4ff" }]}>
+              <Feather name="activity" size={16} color={isDarkTheme ? "#7fb8ff" : "#2b6df6"} />
             </View>
-            <Text style={styles.statNumber}>1.245</Text>
-            <Text style={styles.statLabel}>MOVIMENTOS</Text>
+            <Text style={[styles.statNumber, { color: palette.text }]}>1.245</Text>
+            <Text style={[styles.statLabel, { color: palette.muted }]}>MOVIMENTOS</Text>
           </View>
 
-          <View style={styles.statCard}>
-            <View style={[styles.statIconBox, { backgroundColor: "#1f3a2a" }]}>
-              <Ionicons name="checkmark-circle" size={16} color="#6bffa0" />
+          <View style={[styles.statCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
+            <View style={[styles.statIconBox, { backgroundColor: isDarkTheme ? "#1f3a2a" : "#eafaf1" }]}>
+              <Ionicons name="checkmark-circle" size={16} color={isDarkTheme ? "#6bffa0" : "#1bb36a"} />
             </View>
-            <Text style={styles.statNumber}>98%</Text>
-            <Text style={styles.statLabel}>ACURÁCIA</Text>
+            <Text style={[styles.statNumber, { color: palette.text }]}>98%</Text>
+            <Text style={[styles.statLabel, { color: palette.muted }]}>ACURÁCIA</Text>
           </View>
 
         </View>
 
         {/* ===================== PRODUTOS EM DESTAQUE ===================== */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Produtos em destaque</Text>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Produtos em destaque</Text>
           <TouchableOpacity>
-            <Text style={styles.sectionLink}>Ver todos</Text>
+            <Text style={[styles.sectionLink, { color: isDarkTheme ? "#aaa8ff" : "#4f6cf5" }]}>Ver todos</Text>
           </TouchableOpacity>
         </View>
 
@@ -248,13 +283,13 @@ export default function HomeScreen({ navigation }) {
       </ScrollView>
 
       {/* ===================== TAB BAR ===================== */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: palette.tab, borderTopColor: palette.border }]}>
 
         <TouchableOpacity style={styles.tabItem}>
-          <View style={[styles.tabIconBox, styles.tabIconBoxActiveGreen]}>
-            <Feather name="archive" size={18} color="#0f1d16" />
+          <View style={[styles.tabIconBox, { backgroundColor: isDarkTheme ? "#6bffa0" : "#dfeeff" }]}>
+            <Feather name="archive" size={18} color={isDarkTheme ? "#0f1d16" : "#1f4baf"} />
           </View>
-          <Text style={styles.tabLabelActive}>Inventory</Text>
+          <Text style={[styles.tabLabelActive, { color: isDarkTheme ? "#6bffa0" : "#2b6df6" }]}>Inventory</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -267,12 +302,15 @@ export default function HomeScreen({ navigation }) {
           >
             <Ionicons name="qr-code-outline" size={22} color="#ffffff" />
           </LinearGradient>
-          <Text style={styles.tabLabel}>Scanner</Text>
+          <Text style={[styles.tabLabel, { color: palette.tabText }]}>Scanner</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.tabItem}>
-          <Feather name="bell" size={20} color="#858b9f" />
-          <Text style={styles.tabLabel}>Alerts</Text>
+        <TouchableOpacity
+          style={styles.tabItem}
+          onPress={() => navigation.navigate("Notificacoes")}
+        >
+          <Feather name="bell" size={20} color={palette.tabText} />
+          <Text style={[styles.tabLabel, { color: palette.tabText }]}>Alerts</Text>
         </TouchableOpacity>
 
       </View>

@@ -16,22 +16,26 @@ export default function CameraScannerScreen({ navigation }) {
   const handleBarCodeScanned = ({ data }) => {
     if (scanned) return;
 
-    setScanned(true);
-    setLastCode(data);
+    const codigo = (data || "").trim();
 
-    Alert.alert("QR Code lido", data, [
-      {
-        text: "Escanear outro",
-        onPress: () => {
-          setScanned(false);
-          setLastCode("");
-        },
+    setScanned(true);
+    setLastCode(codigo);
+
+    if (!codigo || !codigo.toUpperCase().includes("WHS") ) {
+      navigation.navigate("ErroScanner", { codigo: codigo || "Código inválido" });
+      return;
+    }
+
+    navigation.navigate("ResultadoLeitura", {
+      codigo,
+      produto: {
+        nome: "Água Mineral 500ml",
+        codigo,
+        local: "Setor A",
+        estoque: 38,
+        valor: "R$ 4,90",
       },
-      {
-        text: "Voltar",
-        onPress: () => navigation.goBack(),
-      },
-    ]);
+    });
   };
 
   if (!permission) {

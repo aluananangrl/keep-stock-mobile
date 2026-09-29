@@ -21,6 +21,7 @@ import * as SecureStore from "expo-secure-store";
 import { Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
+import { useTheme } from "../context/ThemeContext";
 
 
 // ============================================================
@@ -28,6 +29,36 @@ import api from "../services/api";
 // ============================================================
 
 export default function LoginScreen({ navigation }) {
+  const { theme } = useTheme();
+  const isDarkTheme = theme === "dark";
+
+  const palette = isDarkTheme
+    ? {
+        background: "#1b1b1d",
+        card: "#172035",
+        cardSoft: "#20283b",
+        border: "#303a55",
+        text: "#e1e3f0",
+        muted: "#858b9f",
+        input: "#20283b",
+        placeholder: "#777d98",
+        button: "#aaa8ff",
+        buttonText: "#29258a",
+        footer: "#73778a",
+      }
+    : {
+        background: "#f5f7fb",
+        card: "#ffffff",
+        cardSoft: "#edf3ff",
+        border: "#dfe6f3",
+        text: "#1d2433",
+        muted: "#60708a",
+        input: "#f3f6ff",
+        placeholder: "#7a88a8",
+        button: "#8d8df5",
+        buttonText: "#f4f5ff",
+        footer: "#69758d",
+      };
 
   // ==========================================================
   // ESTADOS
@@ -296,7 +327,7 @@ export default function LoginScreen({ navigation }) {
   return (
 
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: palette.background }]}
       behavior={
         Platform.OS === "ios"
           ? "padding"
@@ -314,7 +345,7 @@ export default function LoginScreen({ navigation }) {
             CARD PRINCIPAL
         ================================================== */}
 
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: palette.card }]}>
 
 
           {/* ==================================================
@@ -336,7 +367,7 @@ export default function LoginScreen({ navigation }) {
               color="#c4c2ff"
             />
 
-            <Text style={styles.logoText}>
+            <Text style={[styles.logoText, { color: isDarkTheme ? "#d7d8ff" : "#2e3858" }]}>
               KeepStock
             </Text>
 
@@ -347,11 +378,11 @@ export default function LoginScreen({ navigation }) {
               TÍTULO
           ================================================== */}
 
-          <Text style={styles.title}>
+          <Text style={[styles.title, { color: palette.text }]}>
             Bem-vindo de volta
           </Text>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: palette.muted }]}>
             Acesse o sistema de controle de inventário.
           </Text>
 
@@ -360,19 +391,19 @@ export default function LoginScreen({ navigation }) {
               E-MAIL
           ================================================== */}
 
-          <View style={styles.inputBox}>
+          <View style={[styles.inputBox, { backgroundColor: palette.input, borderColor: palette.border }]}>
 
             <Ionicons
               name="mail-outline"
               size={17}
-              color="#858ba7"
+              color={palette.muted}
               style={styles.icon}
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: palette.text }]}
               placeholder="Email corporativo"
-              placeholderTextColor="#777d98"
+              placeholderTextColor={palette.placeholder}
               value={form.email}
               onChangeText={(value) =>
                 handleChange(
@@ -392,19 +423,19 @@ export default function LoginScreen({ navigation }) {
               SENHA
           ================================================== */}
 
-          <View style={styles.inputBox}>
+          <View style={[styles.inputBox, { backgroundColor: palette.input, borderColor: palette.border }]}>
 
             <Ionicons
               name="lock-closed-outline"
               size={17}
-              color="#858ba7"
+              color={palette.muted}
               style={styles.icon}
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: palette.text }]}
               placeholder="Senha"
-              placeholderTextColor="#777d98"
+              placeholderTextColor={palette.placeholder}
               value={form.senha}
               onChangeText={(value) =>
                 handleChange(
@@ -434,7 +465,7 @@ export default function LoginScreen({ navigation }) {
                     : "eye-off-outline"
                 }
                 size={17}
-                color="#858ba7"
+                color={palette.muted}
                 style={styles.eye}
               />
 
@@ -479,7 +510,7 @@ export default function LoginScreen({ navigation }) {
 
               </View>
 
-              <Text style={styles.rememberText}>
+              <Text style={[styles.rememberText, { color: palette.muted }]}>
                 Lembrar-me
               </Text>
 
@@ -488,9 +519,11 @@ export default function LoginScreen({ navigation }) {
 
             {/* ESQUECEU A SENHA */}
 
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("RecuperarSenha")}
+            >
 
-              <Text style={styles.forgot}>
+              <Text style={[styles.forgot, { color: isDarkTheme ? "#aaa8ff" : "#4b5de0" }]}>
                 Esqueceu a senha?
               </Text>
 
@@ -506,16 +539,15 @@ export default function LoginScreen({ navigation }) {
           <TouchableOpacity
             style={[
               styles.button,
-
-              carregando &&
-                styles.buttonDisabled,
+              { backgroundColor: palette.button },
+              carregando && styles.buttonDisabled,
             ]}
             onPress={handleLogin}
             activeOpacity={0.8}
             disabled={carregando}
           >
 
-            <Text style={styles.buttonText}>
+            <Text style={[styles.buttonText, { color: palette.buttonText }]}>
 
               {carregando
                 ? "Entrando..."
@@ -537,13 +569,13 @@ export default function LoginScreen({ navigation }) {
               SUPORTE
           ================================================== */}
 
-          <Text style={styles.problem}>
+          <Text style={[styles.problem, { color: isDarkTheme ? "#a1a5b7" : "#5a6884" }]}>
             Problemas de acesso?
           </Text>
 
           <TouchableOpacity>
 
-            <Text style={styles.support}>
+            <Text style={[styles.support, { color: isDarkTheme ? "#aaa8ff" : "#4b5de0" }]}>
               Contatar Suporte de TI
             </Text>
 
@@ -556,7 +588,7 @@ export default function LoginScreen({ navigation }) {
 
           <View style={styles.register}>
 
-            <Text style={styles.registerText}>
+            <Text style={[styles.registerText, { color: palette.muted }]}>
               Não tem uma conta?{" "}
             </Text>
 
@@ -568,7 +600,7 @@ export default function LoginScreen({ navigation }) {
               }
             >
 
-              <Text style={styles.registerLink}>
+              <Text style={[styles.registerLink, { color: isDarkTheme ? "#aaa8ff" : "#4b5de0" }]}>
                 Cadastre-se
               </Text>
 
@@ -583,7 +615,7 @@ export default function LoginScreen({ navigation }) {
             RODAPÉ
         ================================================== */}
 
-        <Text style={styles.footer}>
+        <Text style={[styles.footer, { color: palette.footer }]}>
           © 2026 keepStock Tech. Sistema de uso restrito.
         </Text>
 
