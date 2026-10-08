@@ -18,6 +18,8 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
 import { useTheme } from "../context/ThemeContext";
+import SidebarModal from "../components/SidebarModal";
+import KeepStockBottomNav from "../components/KeepStockBottomNav";
 
 
 // ============================================================
@@ -87,10 +89,11 @@ export default function HomeScreen({ navigation }) {
       };
 
   // ==========================================================
-  // ESTADO DO USUÁRIO
+  // ESTADO DO USUÁRIO E MENU
   // ==========================================================
 
   const [usuario, setUsuario] = useState(null);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
 
 
   // ==========================================================
@@ -183,7 +186,7 @@ export default function HomeScreen({ navigation }) {
       {/* ===================== HEADER ===================== */}
       <View style={[styles.header, { backgroundColor: palette.header }]}>
 
-        <TouchableOpacity onPress={() => navigation.navigate("DetalhesProduto")}>
+        <TouchableOpacity onPress={() => setSidebarVisible(true)}>
           <Feather name="menu" size={22} color={palette.text} />
         </TouchableOpacity>
 
@@ -283,37 +286,15 @@ export default function HomeScreen({ navigation }) {
       </ScrollView>
 
       {/* ===================== TAB BAR ===================== */}
-      <View style={[styles.tabBar, { backgroundColor: palette.tab, borderTopColor: palette.border }]}>
+      <KeepStockBottomNav activeTab="inicio" navigation={navigation} />
 
-        <TouchableOpacity style={styles.tabItem}>
-          <View style={[styles.tabIconBox, { backgroundColor: isDarkTheme ? "#6bffa0" : "#dfeeff" }]}>
-            <Feather name="archive" size={18} color={isDarkTheme ? "#0f1d16" : "#1f4baf"} />
-          </View>
-          <Text style={[styles.tabLabelActive, { color: isDarkTheme ? "#6bffa0" : "#2b6df6" }]}>Inventory</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItemCenter}
-          onPress={() => navigation.navigate("CameraScanner")}
-        >
-          <LinearGradient
-            colors={["#7775ff", "#aaa8ff"]}
-            style={styles.scannerButton}
-          >
-            <Ionicons name="qr-code-outline" size={22} color="#ffffff" />
-          </LinearGradient>
-          <Text style={[styles.tabLabel, { color: palette.tabText }]}>Scanner</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.tabItem}
-          onPress={() => navigation.navigate("Notificacoes")}
-        >
-          <Feather name="bell" size={20} color={palette.tabText} />
-          <Text style={[styles.tabLabel, { color: palette.tabText }]}>Alerts</Text>
-        </TouchableOpacity>
-
-      </View>
+      {/* ===================== SIDEBAR DRAWER ===================== */}
+      <SidebarModal
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+        navigation={navigation}
+        currentScreen="Dashboard"
+      />
 
     </View>
 
