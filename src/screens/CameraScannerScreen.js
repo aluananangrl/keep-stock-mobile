@@ -10,6 +10,7 @@ import {
   Modal,
   ActivityIndicator,
   StatusBar,
+  Button,
 } from "react-native";
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -66,10 +67,7 @@ export default function CameraScannerScreen({ navigation, route }) {
       }
     } catch (error) {
       console.log("Erro ao capturar foto:", error);
-      Alert.alert(
-        "Erro",
-        "Não foi possível capturar a foto. Tente novamente."
-      );
+      Alert.alert("Erro", "Não foi possível capturar a foto.");
     } finally {
       setIsTakingPhoto(false);
     }
@@ -107,10 +105,7 @@ export default function CameraScannerScreen({ navigation, route }) {
       });
     } catch (error) {
       console.log("Erro na busca do produto:", error);
-      Alert.alert(
-        "Erro",
-        "Não foi possível carregar as informações do produto."
-      );
+      Alert.alert("Erro", "Não foi possível carregar o produto.");
     } finally {
       setIsSearching(false);
     }
@@ -150,6 +145,17 @@ export default function CameraScannerScreen({ navigation, route }) {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
   }
 
+  function handleGenerateQR() {
+    if (!produtoDetectado) {
+      Alert.alert("Atenção", "Leia ou selecione um produto primeiro.");
+      return;
+    }
+
+    navigation.navigate("QRCodeProduto", {
+      produto: produtoDetectado,
+    });
+  }
+
   function handleUsePhotoForProduct() {
     if (!capturedPhoto || !produtoDetectado) {
       Alert.alert(
@@ -186,8 +192,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 
     Alert.alert(
       "Erro na câmera",
-      error?.message ||
-        "Não foi possível iniciar a câmera. Verifique a permissão e tente novamente."
+      error?.message || "Não foi possível iniciar a câmera."
     );
   }
 
@@ -208,20 +213,14 @@ export default function CameraScannerScreen({ navigation, route }) {
 
         <View style={styles.permissionCard}>
           <View style={styles.permissionIconCircle}>
-            <MaterialIcons
-              name="no-photography"
-              size={48}
-              color="#ef4444"
-            />
+            <MaterialIcons name="no-photography" size={48} color="#ef4444" />
           </View>
 
-          <Text style={styles.permissionTitle}>
-            Permissão necessária
-          </Text>
+          <Text style={styles.permissionTitle}>Permissão necessária</Text>
 
           <Text style={styles.permissionDescription}>
-            Precisamos de acesso à câmera para ler códigos de barras,
-            identificar produtos e fotografar itens do estoque.
+            Precisamos de acesso à câmera para ler códigos e fotografar
+            produtos do estoque.
           </Text>
 
           <TouchableOpacity
@@ -276,10 +275,7 @@ export default function CameraScannerScreen({ navigation, route }) {
             "upc_e",
           ],
         }}
-        onCameraReady={() => {
-          console.log("Câmera pronta para exibição");
-          setCameraReady(true);
-        }}
+        onCameraReady={() => setCameraReady(true)}
         onMountError={handleCameraError}
         onBarcodeScanned={
           scanned || isSearching ? undefined : handleBarCodeScanned
@@ -299,7 +295,6 @@ export default function CameraScannerScreen({ navigation, route }) {
         <TouchableOpacity
           style={styles.headerIconBtn}
           onPress={() => navigation.goBack()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Feather name="arrow-left" size={22} color="#f8fafc" />
         </TouchableOpacity>
@@ -310,20 +305,14 @@ export default function CameraScannerScreen({ navigation, route }) {
           <TouchableOpacity
             style={[styles.headerIconBtn, { marginRight: 8 }]}
             onPress={toggleFacing}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <MaterialIcons
-              name="flip-camera-ios"
-              size={22}
-              color="#f8fafc"
-            />
+            <MaterialIcons name="flip-camera-ios" size={22} color="#f8fafc" />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.headerIconBtn}
             onPress={toggleTorch}
             disabled={facing !== "back"}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Feather
               name="zap"
@@ -349,12 +338,7 @@ export default function CameraScannerScreen({ navigation, route }) {
       )}
 
       <View style={styles.viewfinderContainer} pointerEvents="box-none">
-        <View
-          style={[
-            styles.reticleBox,
-            scanned && styles.reticleBoxScanned,
-          ]}
-        >
+        <View style={[styles.reticleBox, scanned && styles.reticleBoxScanned]}>
           <View style={[styles.corner, styles.cornerTL, scanned && styles.cornerScanned]} />
           <View style={[styles.corner, styles.cornerTR, scanned && styles.cornerScanned]} />
           <View style={[styles.corner, styles.cornerBL, scanned && styles.cornerScanned]} />
@@ -378,9 +362,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                 color="#ffffff"
                 style={{ marginRight: 6 }}
               />
-              <Text style={styles.scannedBadgeText}>
-                Ler outro código
-              </Text>
+              <Text style={styles.scannedBadgeText}>Ler outro código</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -502,13 +484,26 @@ export default function CameraScannerScreen({ navigation, route }) {
                 onPress={handleVerDetalhes}
                 activeOpacity={0.7}
               >
-                <Feather
-                  name="chevron-right"
-                  size={20}
-                  color="#94a3b8"
-                />
+                <Feather name="chevron-right" size={20} color="#94a3b8" />
               </TouchableOpacity>
             </View>
+
+            {/* BOTÃO QR CODE: fica na área do produto */}
+            <TouchableOpacity
+              style={styles.qrCodeButton}
+              onPress={handleGenerateQR}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons
+                name="qr-code-2"
+                size={22}
+                color="#ffffff"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.qrCodeButtonText}>
+                Gerar QR Code do produto
+              </Text>
+            </TouchableOpacity>
 
             <View style={styles.actionsGrid}>
               <TouchableOpacity
@@ -516,12 +511,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                 activeOpacity={0.8}
                 onPress={() => handleAcao("Entrada")}
               >
-                <View
-                  style={[
-                    styles.actionIconCircle,
-                    { backgroundColor: "rgba(52, 211, 153, 0.2)" },
-                  ]}
-                >
+                <View style={[styles.actionIconCircle, { backgroundColor: "rgba(52, 211, 153, 0.2)" }]}>
                   <Feather name="arrow-down" size={18} color="#34d399" />
                 </View>
                 <Text style={[styles.actionTitle, { color: "#34d399" }]}>
@@ -535,12 +525,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                 activeOpacity={0.8}
                 onPress={() => handleAcao("Saída")}
               >
-                <View
-                  style={[
-                    styles.actionIconCircle,
-                    { backgroundColor: "rgba(248, 113, 113, 0.2)" },
-                  ]}
-                >
+                <View style={[styles.actionIconCircle, { backgroundColor: "rgba(248, 113, 113, 0.2)" }]}>
                   <Feather name="arrow-up" size={18} color="#f87171" />
                 </View>
                 <Text style={[styles.actionTitle, { color: "#f87171" }]}>
@@ -554,12 +539,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                 activeOpacity={0.8}
                 onPress={() => handleAcao("Ajuste")}
               >
-                <View
-                  style={[
-                    styles.actionIconCircle,
-                    { backgroundColor: "rgba(129, 140, 248, 0.2)" },
-                  ]}
-                >
+                <View style={[styles.actionIconCircle, { backgroundColor: "rgba(129, 140, 248, 0.2)" }]}>
                   <Feather name="edit-2" size={16} color="#818cf8" />
                 </View>
                 <Text style={[styles.actionTitle, { color: "#818cf8" }]}>
@@ -590,16 +570,11 @@ export default function CameraScannerScreen({ navigation, route }) {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Foto capturada</Text>
-
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setOpen(false)}
                 >
-                  <MaterialIcons
-                    name="close"
-                    size={26}
-                    color="#f8fafc"
-                  />
+                  <MaterialIcons name="close" size={26} color="#f8fafc" />
                 </TouchableOpacity>
               </View>
 
@@ -614,9 +589,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                   style={styles.modalBtnSecondary}
                   onPress={() => setOpen(false)}
                 >
-                  <Text style={styles.modalBtnSecondaryText}>
-                    Descartar
-                  </Text>
+                  <Text style={styles.modalBtnSecondaryText}>Descartar</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -629,9 +602,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                     color="#ffffff"
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={styles.modalBtnPrimaryText}>
-                    Usar no produto
-                  </Text>
+                  <Text style={styles.modalBtnPrimaryText}>Usar no produto</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -643,10 +614,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#000000",
-  },
+  container: { flex: 1, backgroundColor: "#000000" },
   centerContent: {
     justifyContent: "center",
     alignItems: "center",
@@ -667,10 +635,6 @@ const styles = StyleSheet.create({
     maxWidth: 380,
     borderWidth: 1,
     borderColor: "#334155",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
     elevation: 8,
   },
   permissionIconCircle: {
@@ -707,25 +671,10 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 12,
   },
-  permissionButtonText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  permissionText: {
-    color: "#94a3b8",
-    fontSize: 15,
-    marginTop: 12,
-  },
-  backButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  backButtonText: {
-    color: "#64748b",
-    fontSize: 14,
-    fontWeight: "600",
-  },
+  permissionButtonText: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
+  permissionText: { color: "#94a3b8", fontSize: 15, marginTop: 12 },
+  backButton: { paddingVertical: 10, paddingHorizontal: 20 },
+  backButtonText: { color: "#64748b", fontSize: 14, fontWeight: "600" },
   cameraLoading: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1,
@@ -733,11 +682,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#000000",
   },
-  cameraLoadingText: {
-    color: "#94a3b8",
-    fontSize: 13,
-    marginTop: 10,
-  },
+  cameraLoadingText: { color: "#94a3b8", fontSize: 13, marginTop: 10 },
   header: {
     position: "absolute",
     top: 0,
@@ -751,10 +696,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     zIndex: 10,
   },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  headerActions: { flexDirection: "row", alignItems: "center" },
   headerIconBtn: {
     width: 42,
     height: 42,
@@ -765,11 +707,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.12)",
   },
-  headerTitle: {
-    color: "#f8fafc",
-    fontSize: 17,
-    fontWeight: "700",
-  },
+  headerTitle: { color: "#f8fafc", fontSize: 17, fontWeight: "700" },
   toastContainer: {
     position: "absolute",
     top: 110,
@@ -784,17 +722,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(52, 211, 153, 0.4)",
     zIndex: 20,
     maxWidth: "85%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
     elevation: 6,
   },
-  toastText: {
-    color: "#f8fafc",
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  toastText: { color: "#f8fafc", fontSize: 13, fontWeight: "600" },
   viewfinderContainer: {
     flex: 1,
     justifyContent: "center",
@@ -808,18 +738,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  reticleBoxScanned: {
-    borderColor: "#10b981",
-  },
+  reticleBoxScanned: { borderColor: "#10b981" },
   corner: {
     position: "absolute",
     width: 38,
     height: 38,
     borderColor: "#38bdf8",
   },
-  cornerScanned: {
-    borderColor: "#10b981",
-  },
+  cornerScanned: { borderColor: "#10b981" },
   cornerTL: {
     top: 0,
     left: 0,
@@ -852,16 +778,9 @@ const styles = StyleSheet.create({
     width: "88%",
     height: 2,
     backgroundColor: "#38bdf8",
-    shadowColor: "#0284c7",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 6,
     elevation: 4,
   },
-  laserScanned: {
-    backgroundColor: "#10b981",
-    shadowColor: "#059669",
-  },
+  laserScanned: { backgroundColor: "#10b981" },
   scannedBadge: {
     position: "absolute",
     bottom: 12,
@@ -871,17 +790,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 16,
     borderRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
     elevation: 5,
   },
-  scannedBadgeText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  scannedBadgeText: { color: "#ffffff", fontSize: 12, fontWeight: "700" },
   captureContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -896,10 +807,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 3,
     borderColor: "#ffffff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
     elevation: 6,
   },
   buttonTakeInner: {
@@ -925,10 +832,6 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     borderTopWidth: 1,
     borderTopColor: "#25334d",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
     elevation: 16,
     zIndex: 5,
   },
@@ -965,11 +868,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  tagSuccessText: {
-    color: "#34d399",
-    fontSize: 11,
-    fontWeight: "700",
-  },
+  tagSuccessText: { color: "#34d399", fontSize: 11, fontWeight: "700" },
   tagLocation: {
     flexDirection: "row",
     alignItems: "center",
@@ -978,15 +877,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  tagLocationText: {
-    color: "#cbd5e1",
-    fontSize: 11,
-    fontWeight: "500",
-  },
+  tagLocationText: { color: "#cbd5e1", fontSize: 11, fontWeight: "500" },
   productRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 14,
     backgroundColor: "rgba(30, 41, 59, 0.7)",
     borderRadius: 18,
     padding: 12,
@@ -1000,13 +895,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f172a",
     marginRight: 12,
   },
-  imagePlaceholder: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  productDetails: {
-    flex: 1,
-  },
+  imagePlaceholder: { justifyContent: "center", alignItems: "center" },
+  productDetails: { flex: 1 },
   productTitle: {
     color: "#f8fafc",
     fontSize: 15,
@@ -1020,11 +910,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     flexWrap: "wrap",
   },
-  productCode: {
-    color: "#cbd5e1",
-    fontSize: 11,
-    fontWeight: "600",
-  },
+  productCode: { color: "#cbd5e1", fontSize: 11, fontWeight: "600" },
   categoryBadge: {
     color: "#38bdf8",
     fontSize: 11,
@@ -1037,19 +923,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginRight: 6,
   },
-  stockText: {
-    color: "#94a3b8",
-    fontSize: 12,
-  },
-  stockHighlight: {
-    color: "#f8fafc",
-    fontWeight: "700",
-  },
-  priceText: {
-    color: "#34d399",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+  stockText: { color: "#94a3b8", fontSize: 12 },
+  stockHighlight: { color: "#f8fafc", fontWeight: "700" },
+  priceText: { color: "#34d399", fontSize: 12, fontWeight: "700" },
   detailsBtn: {
     width: 32,
     height: 32,
@@ -1058,6 +934,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 4,
+  },
+  qrCodeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0284c7",
+    paddingVertical: 13,
+    borderRadius: 13,
+    marginBottom: 14,
+  },
+  qrCodeButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
   },
   actionsGrid: {
     flexDirection: "row",
@@ -1091,15 +981,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  actionTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  actionSubtitle: {
-    color: "#64748b",
-    fontSize: 10,
-  },
+  actionTitle: { fontSize: 12, fontWeight: "700", marginBottom: 2 },
+  actionSubtitle: { color: "#64748b", fontSize: 10 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.88)",
@@ -1116,10 +999,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#334155",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
     elevation: 10,
   },
   modalHeader: {
@@ -1129,11 +1008,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  modalTitle: {
-    color: "#f8fafc",
-    fontSize: 18,
-    fontWeight: "700",
-  },
+  modalTitle: { color: "#f8fafc", fontSize: 18, fontWeight: "700" },
   closeButton: {
     width: 36,
     height: 36,
@@ -1149,11 +1024,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0f172a",
     marginBottom: 20,
   },
-  modalActions: {
-    flexDirection: "row",
-    width: "100%",
-    gap: 12,
-  },
+  modalActions: { flexDirection: "row", width: "100%", gap: 12 },
   modalBtnSecondary: {
     flex: 1,
     paddingVertical: 13,

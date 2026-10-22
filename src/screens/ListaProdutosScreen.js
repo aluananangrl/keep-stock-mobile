@@ -1,9 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -69,15 +64,15 @@ export default function ListaProdutosScreen({ navigation }) {
         setErro(
           getErrorMessage(
             error,
-            "Não foi possível carregar os produtos. Confira a conexão com a API."
-          )
+            "Não foi possível carregar os produtos. Confira a conexão com a API.",
+          ),
         );
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    [busca]
+    [busca],
   );
 
   useEffect(() => {
@@ -86,19 +81,14 @@ export default function ListaProdutosScreen({ navigation }) {
 
   // Filtra os produtos pelo nome, código ou categoria
   const filtrados = useMemo(() => {
-    const termo = busca
-      .trim()
-      .toLocaleLowerCase("pt-BR");
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
 
     if (!termo) {
       return produtos;
     }
 
     return produtos.filter((produto) => {
-      const categoria =
-        produto?.categoria?.nome ||
-        produto?.categoria ||
-        "";
+      const categoria = produto?.categoria?.nome || produto?.categoria || "";
 
       const texto = `
         ${getProductName(produto)}
@@ -112,9 +102,23 @@ export default function ListaProdutosScreen({ navigation }) {
 
   // Abre os detalhes do produto selecionado
   const abrirProduto = (produto) => {
+    const produtoId =
+      produto?.id ??
+      produto?.produto_id ??
+      produto?.produtoId ??
+      produto?.id_produto ??
+      produto?._id;
+
+    if (produtoId == null || String(produtoId).trim() === "") {
+      console.log("Produto sem ID recebido da API:", produto);
+      return;
+    }
+
     navigation.navigate("DetalhesProduto", {
+      produtoId,
       produto: {
         ...produto,
+        id: produtoId,
         nome: getProductName(produto),
         codigo: getProductCode(produto),
         estoque: getStock(produto),
@@ -131,45 +135,27 @@ export default function ListaProdutosScreen({ navigation }) {
           onPress={() => navigation.goBack()}
           accessibilityLabel="Voltar"
         >
-          <Feather
-            name="arrow-left"
-            size={20}
-            color={COLORS.text}
-          />
+          <Feather name="arrow-left" size={20} color={COLORS.text} />
         </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>
-            CATÁLOGO
-          </Text>
+          <Text style={styles.eyebrow}>CATÁLOGO</Text>
 
-          <Text style={styles.title}>
-            Produtos
-          </Text>
+          <Text style={styles.title}>Produtos</Text>
         </View>
 
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={() =>
-            navigation.navigate("Notificacoes")
-          }
+          onPress={() => navigation.navigate("Notificacoes")}
           accessibilityLabel="Notificações"
         >
-          <Feather
-            name="bell"
-            size={19}
-            color={COLORS.text}
-          />
+          <Feather name="bell" size={19} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
       {/* Campo de busca */}
       <View style={styles.search}>
-        <Feather
-          name="search"
-          size={18}
-          color={COLORS.muted}
-        />
+        <Feather name="search" size={18} color={COLORS.muted} />
 
         <TextInput
           value={busca}
@@ -183,80 +169,48 @@ export default function ListaProdutosScreen({ navigation }) {
 
       {/* Quantidade e atualização */}
       <View style={styles.metaRow}>
-        <Text style={styles.metaText}>
-          {filtrados.length} produto(s)
-        </Text>
+        <Text style={styles.metaText}>{filtrados.length} produto(s)</Text>
 
-        <TouchableOpacity
-          onPress={() => carregar(true)}
-          style={styles.refresh}
-        >
-          <Feather
-            name="refresh-cw"
-            size={14}
-            color={COLORS.accent}
-          />
+        <TouchableOpacity onPress={() => carregar(true)} style={styles.refresh}>
+          <Feather name="refresh-cw" size={14} color={COLORS.accent} />
 
-          <Text style={styles.refreshText}>
-            Atualizar
-          </Text>
+          <Text style={styles.refreshText}>Atualizar</Text>
         </TouchableOpacity>
       </View>
 
       {/* Carregamento */}
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator
-            color={COLORS.accent}
-            size="large"
-          />
+          <ActivityIndicator color={COLORS.accent} size="large" />
 
-          <Text style={styles.muted}>
-            Carregando produtos...
-          </Text>
+          <Text style={styles.muted}>Carregando produtos...</Text>
         </View>
       ) : erro ? (
         /* Mensagem de erro */
         <View style={styles.stateCard}>
-          <Feather
-            name="wifi-off"
-            size={25}
-            color={COLORS.warning}
-          />
+          <Feather name="wifi-off" size={25} color={COLORS.warning} />
 
-          <Text style={styles.stateTitle}>
-            Não foi possível carregar
-          </Text>
+          <Text style={styles.stateTitle}>Não foi possível carregar</Text>
 
-          <Text style={styles.muted}>
-            {erro}
-          </Text>
+          <Text style={styles.muted}>{erro}</Text>
 
           <TouchableOpacity
             style={styles.primaryButton}
             onPress={() => carregar()}
           >
-            <Text style={styles.primaryButtonText}>
-              Tentar novamente
-            </Text>
+            <Text style={styles.primaryButtonText}>Tentar novamente</Text>
           </TouchableOpacity>
         </View>
       ) : filtrados.length === 0 ? (
         /* Lista vazia */
         <View style={styles.center}>
-          <Feather
-            name="package"
-            size={30}
-            color={COLORS.muted}
-          />
+          <Feather name="package" size={30} color={COLORS.muted} />
 
-          <Text style={styles.stateTitle}>
-            Nenhum produto encontrado
-          </Text>
+          <Text style={styles.stateTitle}>Nenhum produto encontrado</Text>
 
           <Text style={styles.muted}>
-            Tente mudar a busca ou cadastre um produto
-            pela versão administrativa.
+            Tente mudar a busca ou cadastre um produto pela versão
+            administrativa.
           </Text>
         </View>
       ) : (
@@ -275,8 +229,7 @@ export default function ListaProdutosScreen({ navigation }) {
             const stock = getStock(produto);
             const minimum = getMinimumStock(produto);
 
-            const low =
-              minimum > 0 && stock <= minimum;
+            const low = minimum > 0 && stock <= minimum;
 
             const categoria =
               typeof produto?.categoria === "object"
@@ -284,10 +237,7 @@ export default function ListaProdutosScreen({ navigation }) {
                 : produto?.categoria;
 
             const chave = String(
-              produto.id ??
-                produto._id ??
-                getProductCode(produto) ??
-                index
+              produto.id ?? produto._id ?? getProductCode(produto) ?? index,
             );
 
             return (
@@ -299,19 +249,12 @@ export default function ListaProdutosScreen({ navigation }) {
               >
                 {/* Ícone do produto */}
                 <View style={styles.productIcon}>
-                  <Feather
-                    name="package"
-                    size={20}
-                    color={COLORS.accent}
-                  />
+                  <Feather name="package" size={20} color={COLORS.accent} />
                 </View>
 
                 {/* Informações */}
                 <View style={styles.productInfo}>
-                  <Text
-                    style={styles.productName}
-                    numberOfLines={2}
-                  >
+                  <Text style={styles.productName} numberOfLines={2}>
                     {getProductName(produto)}
                   </Text>
 
@@ -337,9 +280,7 @@ export default function ListaProdutosScreen({ navigation }) {
                     {stock}
                   </Text>
 
-                  <Text style={styles.unit}>
-                    unidades
-                  </Text>
+                  <Text style={styles.unit}>unidades</Text>
 
                   <Feather
                     name="chevron-right"

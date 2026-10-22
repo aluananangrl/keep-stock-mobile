@@ -37,26 +37,58 @@ const C = {
   red: "#fb7185",
 };
 
-// Obtém o identificador do produto.
-const getId = (produto) =>
-  produto?.id ??
-  produto?._id ??
-  produto?.produto_id ??
-  produto?.id_produto;
+// Procura o ID nos formatos comuns retornados pela API.
+const getId = (produto) => {
+  if (!produto || typeof produto !== "object") {
+    return null;
+  }
 
-// Obtém o identificador do produto em uma movimentação.
+  const id =
+    produto.id ??
+    produto.produto_id ??
+    produto.produtoId ??
+    produto.id_produto ??
+    produto._id;
+
+  return id !== undefined && id !== null && String(id).trim() !== ""
+    ? id
+    : null;
+};
+
+// Extrai o produto recebido pela navegação.
+const getInitialProduct = (params) => {
+  if (!params || typeof params !== "object") {
+    return null;
+  }
+
+  const recebido =
+    params.produto ??
+    params.product ??
+    params.item ??
+    params;
+
+  if (!recebido || typeof recebido !== "object") {
+    return null;
+  }
+
+  return (
+    recebido.produto ??
+    recebido.data?.produto ??
+    recebido.data ??
+    recebido
+  );
+};
+
 const getMovementProductId = (movimentacao) =>
   movimentacao?.produto_id ??
   movimentacao?.produtoId ??
+  movimentacao?.id_produto ??
   movimentacao?.produto?.id ??
   movimentacao?.produto?._id ??
-  movimentacao?.id_produto;
+  null;
 
-// Formata a data para o padrão brasileiro.
 const dateText = (value) => {
-  if (!value) {
-    return "Data não informada";
-  }
+  if (!value) return "Data não informada";
 
   const data = new Date(value);
 
@@ -69,42 +101,49 @@ export default function DetalhesProdutoScreen({
   navigation,
   route,
 }) {
-  const [produto, setProduto] = useState(
-    route?.params?.produto || null
-  );
+  const params = route?.params || {};
 
+  const produtoInicial = getInitialProduct(params);
+
+  const idRecebido =
+    params.produtoId ??
+    params.productId ??
+    getId(produtoInicial);
+
+  const [produto, setProduto] = useState(produtoInicial);
   const [movimentacoes, setMovimentacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [aba, setAba] = useState("Resumo");
 
-  const produtoId = getId(route?.params?.produto);
+  const produtoId = idRecebido;
 
-  // Carrega os detalhes do produto e seu histórico.
   const carregar = useCallback(async () => {
     setLoading(true);
     setErro("");
 
     try {
-      if (!produtoId) {
+      if (
+        produtoId === undefined ||
+        produtoId === null ||
+        String(produtoId).trim() === ""
+      ) {
         throw new Error(
-          "O produto recebido não possui um identificador válido da API."
+          "Não foi recebido o ID do produto. Volte à lista e abra os detalhes novamente."
         );
       }
 
-      const [
-        produtoResponse,
-        movimentosResponse,
-      ] = await Promise.all([
-        api.obterProduto(produtoId),
+      const [produtoResponse, movimentosResponse] =
+        await Promise.all([
+          api.obterProduto(produtoId),
 
-        api
-          .listarMovimentacoes({
-            produto_id: produtoId,
-            limit: 100,
-          })
-          .catch(() => null),
-      ]);
+          api
+            .listarMovimentacoes({
+              produto_id: produtoId,
+              limit: 100,
+            })
+            .catch(() => null),
+        ]);
 
       const data = produtoResponse?.data;
 
@@ -120,21 +159,22 @@ export default function DetalhesProdutoScreen({
         Array.isArray(atualizado)
       ) {
         throw new Error(
-          "A API não retornou os dados esperados do produto."
+          "A API não retornou um produto válido."
         );
       }
 
       setProduto(atualizado);
 
-      const todasMovimentacoes = movimentosResponse
+      const lista = movimentosResponse
         ? extractList(movimentosResponse)
         : [];
 
       setMovimentacoes(
-        todasMovimentacoes.filter((movimentacao) => {
+        lista.filter((movimentacao) => {
           const idMovimentacao =
             getMovementProductId(movimentacao);
 
+          // Se a API não retornar o produto_id, mantém o registro.
           return (
             idMovimentacao == null ||
             String(idMovimentacao) === String(produtoId)
@@ -157,17 +197,19 @@ export default function DetalhesProdutoScreen({
     carregar();
   }, [carregar]);
 
-  // Dados calculados do produto.
   const nome = getProductName(produto || {});
   const codigo = getProductCode(produto || {});
   const estoque = getStock(produto || {});
   const minimo = getMinimumStock(produto || {});
 
-  const estoqueBaixo =
-    minimo > 0 && estoque <= minimo;
+  const estoqueBaixo = minimo > 0 && estoque <= minimo;
 
-  // Abre a tela para registrar uma entrada ou saída.
   const iniciarMovimento = (tipo) => {
+    if (!produtoId) {
+      setErro("Não foi possível identificar o produto.");
+      return;
+    }
+
     navigation.navigate("ConfirmacaoMovimento", {
       produto: {
         ...produto,
@@ -178,12 +220,30 @@ export default function DetalhesProdutoScreen({
         quantidade_atual: estoque,
         tipo,
       },
+      produtoId,
+      tipo,
     });
   };
 
+  const categoria =
+    typeof produto?.categoria === "object"
+      ? produto?.categoria?.nome
+      : produto?.categoria ??
+        produto?.categoria_nome ??
+        "Não informada";
+
+  const fornecedor =
+    typeof produto?.fornecedor === "object"
+      ? produto?.fornecedor?.nome
+      : produto?.fornecedor ??
+        produto?.fornecedor_nome ??
+        "Não informado";
+
+  const preco =
+    produto?.preco ?? produto?.preco_unitario;
+
   return (
     <View style={s.container}>
-      {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
           style={s.iconButton}
@@ -220,20 +280,17 @@ export default function DetalhesProdutoScreen({
         </TouchableOpacity>
       </View>
 
-      {/* Carregamento inicial */}
       {loading && !produto ? (
         <View style={s.center}>
           <ActivityIndicator
             color={C.green}
             size="large"
           />
-
           <Text style={s.muted}>
             Carregando dados do produto...
           </Text>
         </View>
       ) : erro && !produto ? (
-        /* Erro sem dados do produto */
         <View style={s.center}>
           <Feather
             name="alert-circle"
@@ -253,6 +310,15 @@ export default function DetalhesProdutoScreen({
               Tentar novamente
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={s.secondary}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={s.secondaryText}>
+              Voltar à lista
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
@@ -265,7 +331,6 @@ export default function DetalhesProdutoScreen({
             />
           }
         >
-          {/* Aviso de erro durante a atualização */}
           {erro ? (
             <View style={s.warning}>
               <Feather
@@ -273,14 +338,12 @@ export default function DetalhesProdutoScreen({
                 size={17}
                 color={C.amber}
               />
-
               <Text style={s.warningText}>
                 {erro}
               </Text>
             </View>
           ) : null}
 
-          {/* Informações principais do produto */}
           <View style={s.productCard}>
             <View style={s.productIcon}>
               <Feather
@@ -292,11 +355,11 @@ export default function DetalhesProdutoScreen({
 
             <View style={{ flex: 1 }}>
               <Text style={s.productName}>
-                {nome}
+                {nome || "Produto sem nome"}
               </Text>
 
               <Text style={s.muted}>
-                Código: {codigo}
+                Código: {codigo || "Não informado"}
               </Text>
 
               <View
@@ -326,17 +389,14 @@ export default function DetalhesProdutoScreen({
             </View>
           </View>
 
-          {/* Indicadores de estoque */}
           <View style={s.metrics}>
             <View style={s.metric}>
               <Text style={s.metricLabel}>
                 Saldo atual
               </Text>
-
               <Text style={s.metricValue}>
                 {estoque}
               </Text>
-
               <Text style={s.metricUnit}>
                 unidades
               </Text>
@@ -346,7 +406,6 @@ export default function DetalhesProdutoScreen({
               <Text style={s.metricLabel}>
                 Estoque mínimo
               </Text>
-
               <Text
                 style={[
                   s.metricValue,
@@ -359,27 +418,22 @@ export default function DetalhesProdutoScreen({
               >
                 {minimo}
               </Text>
-
               <Text style={s.metricUnit}>
                 unidades
               </Text>
             </View>
           </View>
 
-          {/* Ações de movimentação */}
           <View style={s.actions}>
             <TouchableOpacity
               style={s.entryButton}
-              onPress={() =>
-                iniciarMovimento("ENTRADA")
-              }
+              onPress={() => iniciarMovimento("ENTRADA")}
             >
               <Feather
                 name="plus-circle"
                 size={17}
                 color="#082016"
               />
-
               <Text style={s.actionText}>
                 Registrar entrada
               </Text>
@@ -387,23 +441,19 @@ export default function DetalhesProdutoScreen({
 
             <TouchableOpacity
               style={s.exitButton}
-              onPress={() =>
-                iniciarMovimento("SAIDA")
-              }
+              onPress={() => iniciarMovimento("SAIDA")}
             >
               <Feather
                 name="minus-circle"
                 size={17}
                 color={C.red}
               />
-
               <Text style={s.exitText}>
                 Registrar saída
               </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Abas */}
           <View style={s.tabs}>
             {["Resumo", "Histórico"].map((item) => (
               <TouchableOpacity
@@ -426,50 +476,30 @@ export default function DetalhesProdutoScreen({
             ))}
           </View>
 
-          {/* Conteúdo da aba selecionada */}
           {aba === "Resumo" ? (
             <View style={s.infoCard}>
               <Info
                 label="Categoria"
-                value={
-                  typeof produto?.categoria === "object"
-                    ? produto?.categoria?.nome
-                    : produto?.categoria ??
-                      produto?.categoria_nome ??
-                      "Não informada"
-                }
+                value={categoria}
               />
 
               <Info
                 label="Fornecedor"
-                value={
-                  typeof produto?.fornecedor === "object"
-                    ? produto?.fornecedor?.nome
-                    : produto?.fornecedor ??
-                      produto?.fornecedor_nome ??
-                      "Não informado"
-                }
+                value={fornecedor}
               />
 
               <Info
                 label="Preço unitário"
                 value={
-                  produto?.preco != null
-                    ? Number(produto.preco).toLocaleString(
+                  preco != null
+                    ? Number(preco).toLocaleString(
                         "pt-BR",
                         {
                           style: "currency",
                           currency: "BRL",
                         }
                       )
-                    : produto?.preco_unitario != null
-                      ? Number(
-                          produto.preco_unitario
-                        ).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })
-                      : "Não informado"
+                    : "Não informado"
                 }
               />
 
@@ -480,9 +510,13 @@ export default function DetalhesProdutoScreen({
                   "Sem descrição cadastrada"
                 }
               />
+
+              <Info
+                label="ID do produto"
+                value={String(produtoId)}
+              />
             </View>
           ) : (
-            /* Histórico de movimentações */
             <View style={s.infoCard}>
               {movimentacoes.length === 0 ? (
                 <View style={s.empty}>
@@ -491,98 +525,88 @@ export default function DetalhesProdutoScreen({
                     size={24}
                     color={C.muted}
                   />
-
                   <Text style={s.muted}>
                     Nenhuma movimentação encontrada
                     para este produto.
                   </Text>
                 </View>
               ) : (
-                movimentacoes.map(
-                  (movimentacao, index) => {
-                    const tipo = String(
-                      movimentacao?.tipo ??
-                        movimentacao?.tipo_movimentacao ??
-                        "Movimentação"
-                    );
+                movimentacoes.map((movimentacao, index) => {
+                  const tipo = String(
+                    movimentacao?.tipo ??
+                      movimentacao?.tipo_movimentacao ??
+                      "Movimentação"
+                  );
 
-                    const quantidade = Number(
-                      movimentacao?.quantidade ?? 0
-                    );
+                  const quantidade = Number(
+                    movimentacao?.quantidade ?? 0
+                  );
 
-                    const entrada =
-                      tipo.toLowerCase().includes("entr") ||
-                      tipo.toUpperCase() === "AJUSTE";
+                  const entrada =
+                    tipo.toUpperCase() === "ENTRADA";
 
-                    return (
+                  return (
+                    <View
+                      key={String(
+                        movimentacao?.id ??
+                          movimentacao?._id ??
+                          index
+                      )}
+                      style={[
+                        s.movement,
+                        index < movimentacoes.length - 1 &&
+                          s.movementBorder,
+                      ]}
+                    >
                       <View
-                        key={String(
-                          movimentacao?.id ??
-                            movimentacao?._id ??
-                            index
-                        )}
                         style={[
-                          s.movement,
-                          index <
-                            movimentacoes.length - 1 &&
-                            s.movementBorder,
+                          s.movementIcon,
+                          {
+                            backgroundColor: entrada
+                              ? "#18332b"
+                              : "#3a2029",
+                          },
                         ]}
                       >
-                        <View
-                          style={[
-                            s.movementIcon,
-                            {
-                              backgroundColor: entrada
-                                ? "#18332b"
-                                : "#3a2029",
-                            },
-                          ]}
-                        >
-                          <Feather
-                            name={
-                              entrada
-                                ? "arrow-down-left"
-                                : "arrow-up-right"
-                            }
-                            size={17}
-                            color={
-                              entrada ? C.green : C.red
-                            }
-                          />
-                        </View>
+                        <Feather
+                          name={
+                            entrada
+                              ? "arrow-down-left"
+                              : "arrow-up-right"
+                          }
+                          size={17}
+                          color={entrada ? C.green : C.red}
+                        />
+                      </View>
 
-                        <View style={{ flex: 1 }}>
-                          <Text style={s.movementTitle}>
-                            {tipo}
-                          </Text>
-
-                          <Text style={s.muted}>
-                            {dateText(
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.movementTitle}>
+                          {tipo}
+                        </Text>
+                        <Text style={s.muted}>
+                          {dateText(
+                            movimentacao?.data_hora ??
                               movimentacao?.data ??
-                                movimentacao?.created_at ??
-                                movimentacao?.createdAt ??
-                                movimentacao?.data_hora
-                            )}
-                          </Text>
-                        </View>
-
-                        <Text
-                          style={[
-                            s.movementQty,
-                            {
-                              color: entrada
-                                ? C.green
-                                : C.red,
-                            },
-                          ]}
-                        >
-                          {entrada ? "+" : "−"}
-                          {Math.abs(quantidade)}
+                              movimentacao?.created_at ??
+                              movimentacao?.createdAt
+                          )}
                         </Text>
                       </View>
-                    );
-                  }
-                )
+
+                      <Text
+                        style={[
+                          s.movementQty,
+                          {
+                            color: entrada ? C.green : C.red,
+                          },
+                        ]}
+                      >
+                        {entrada ? "+" : "−"}
+                        {Math.abs(quantidade)}
+                      </Text>
+                    </View>
+                  );
+                })
               )}
             </View>
           )}
@@ -592,29 +616,25 @@ export default function DetalhesProdutoScreen({
   );
 }
 
-// Componente reutilizável para exibir informações.
 function Info({ label, value }) {
   return (
     <View style={s.infoRow}>
       <Text style={s.infoLabel}>
         {label}
       </Text>
-
       <Text style={s.infoValue}>
-        {String(value)}
+        {String(value ?? "Não informado")}
       </Text>
     </View>
   );
 }
 
-// Estilos da tela.
 const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
     paddingTop: 52,
   },
-
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -622,7 +642,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
-
   iconButton: {
     width: 42,
     height: 42,
@@ -632,26 +651,22 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   kicker: {
     color: C.green,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.3,
   },
-
   title: {
     color: C.text,
     fontSize: 21,
     fontWeight: "700",
     marginTop: 3,
   },
-
   content: {
     paddingHorizontal: 20,
     paddingBottom: 35,
   },
-
   productCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -662,7 +677,6 @@ const s = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 18,
   },
-
   productIcon: {
     width: 58,
     height: 58,
@@ -671,20 +685,17 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   productName: {
     color: C.text,
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 5,
   },
-
   muted: {
     color: C.muted,
     fontSize: 12,
     lineHeight: 18,
   },
-
   badge: {
     alignSelf: "flex-start",
     paddingHorizontal: 9,
@@ -692,13 +703,11 @@ const s = StyleSheet.create({
     borderRadius: 7,
     marginTop: 9,
   },
-
   metrics: {
     flexDirection: "row",
     gap: 12,
     marginTop: 12,
   },
-
   metric: {
     flex: 1,
     backgroundColor: C.panel,
@@ -707,30 +716,25 @@ const s = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
   },
-
   metricLabel: {
     color: C.muted,
     fontSize: 11,
   },
-
   metricValue: {
     color: C.text,
     fontSize: 29,
     fontWeight: "800",
     marginTop: 8,
   },
-
   metricUnit: {
     color: C.muted,
     fontSize: 10,
     marginTop: 1,
   },
-
   actions: {
     gap: 10,
     marginTop: 14,
   },
-
   entryButton: {
     backgroundColor: C.green,
     borderRadius: 12,
@@ -740,13 +744,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-
   actionText: {
     color: "#082016",
     fontSize: 13,
     fontWeight: "800",
   },
-
   exitButton: {
     borderWidth: 1,
     borderColor: "#63303b",
@@ -758,13 +760,11 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-
   exitText: {
     color: C.red,
     fontSize: 13,
     fontWeight: "800",
   },
-
   tabs: {
     flexDirection: "row",
     marginTop: 24,
@@ -772,28 +772,23 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
-
   tab: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginRight: 8,
   },
-
   activeTab: {
     borderBottomWidth: 2,
     borderBottomColor: C.green,
   },
-
   tabText: {
     color: C.muted,
     fontSize: 13,
     fontWeight: "600",
   },
-
   activeTabText: {
     color: C.green,
   },
-
   infoCard: {
     backgroundColor: C.panel,
     borderWidth: 1,
@@ -801,37 +796,31 @@ const s = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
   },
-
   infoRow: {
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
-
   infoLabel: {
     color: C.muted,
     fontSize: 11,
     marginBottom: 6,
   },
-
   infoValue: {
     color: C.text,
     fontSize: 13,
     lineHeight: 19,
   },
-
   movement: {
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
     paddingVertical: 14,
   },
-
   movementBorder: {
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
-
   movementIcon: {
     width: 36,
     height: 36,
@@ -839,25 +828,21 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   movementTitle: {
     color: C.text,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: 4,
   },
-
   movementQty: {
     fontSize: 16,
     fontWeight: "800",
   },
-
   empty: {
     alignItems: "center",
     paddingVertical: 24,
     gap: 10,
   },
-
   center: {
     flex: 1,
     alignItems: "center",
@@ -865,14 +850,12 @@ const s = StyleSheet.create({
     padding: 28,
     gap: 12,
   },
-
   errorText: {
     color: C.red,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 19,
   },
-
   warning: {
     flexDirection: "row",
     gap: 8,
@@ -881,23 +864,31 @@ const s = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
   },
-
   warningText: {
     flex: 1,
     color: C.amber,
     fontSize: 12,
     lineHeight: 18,
   },
-
   primary: {
     backgroundColor: C.green,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 10,
   },
-
   primaryText: {
     color: "#082016",
     fontWeight: "800",
+  },
+  secondary: {
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  secondaryText: {
+    color: C.text,
+    fontWeight: "700",
   },
 });
