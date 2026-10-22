@@ -3,7 +3,7 @@ import * as SecureStore from "expo-secure-store";
 
 // Defina EXPO_PUBLIC_API_URL no ambiente do Expo para apontar para sua API.
 // Exemplo: http://192.168.0.10:3000/api/v1
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://10.89.227.20:3000/api/v1";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://10.89.240.86:3000/api/v1";
 
 export const http = axios.create({
   baseURL: API_BASE_URL,

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
@@ -23,46 +24,64 @@ export default function CameraScannerScreen({ navigation, route }) {
   const [scanned, setScanned] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
   const [notificacaoSucesso, setNotificacaoSucesso] = useState(null);
+
   const camRef = useRef(null);
+  const scanLock = useRef(false);
 
-  // Só exibe um produto depois de recebê-lo da API ou da navegação.
-  const [produtoDetectado, setProdutoDetectado] = useState(route?.params?.produto || null);
+  const [produtoDetectado, setProdutoDetectado] = useState(
+    route?.params?.produto || null
+  );
 
-  // Solicita permissão automaticamente ao montar o componente
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
       requestPermission();
     }
-  }, [permission]);
+  }, [permission?.granted, permission?.canAskAgain]);
 
-  // Tira foto real com a câmera usando CameraView ref
+  useEffect(() => {
+    setCameraReady(false);
+  }, [facing]);
+
   async function takePicture() {
-    if (camRef.current && !isTakingPhoto) {
-      try {
-        setIsTakingPhoto(true);
-        const data = await camRef.current.takePictureAsync({
-          quality: 0.85,
-        });
-        if (data?.uri) {
-          setCapturedPhoto(data.uri);
-          setOpen(true);
-        }
-      } catch (error) {
-        console.log("Erro ao capturar foto:", error);
-        Alert.alert("Erro", "Não foi possível capturar a foto. Tente novamente.");
-      } finally {
-        setIsTakingPhoto(false);
+    if (!camRef.current || !cameraReady || isTakingPhoto) {
+      if (!cameraReady) {
+        Alert.alert("Aguarde", "A câmera ainda está inicializando.");
       }
+      return;
+    }
+
+    try {
+      setIsTakingPhoto(true);
+
+      const data = await camRef.current.takePictureAsync({
+        quality: 0.85,
+        shutterSound: false,
+      });
+
+      if (data?.uri) {
+        setCapturedPhoto(data.uri);
+        setOpen(true);
+      }
+    } catch (error) {
+      console.log("Erro ao capturar foto:", error);
+      Alert.alert(
+        "Erro",
+        "Não foi possível capturar a foto. Tente novamente."
+      );
+    } finally {
+      setIsTakingPhoto(false);
     }
   }
 
-  // Leitura inteligente de código de barras ou QR Code
-  const handleBarCodeScanned = async ({ data }) => {
-    if (scanned || isSearching) return;
-    const codigo = (data || "").trim();
+  async function handleBarCodeScanned({ data }) {
+    if (scanLock.current || isSearching) return;
+
+    const codigo = String(data || "").trim();
     if (!codigo) return;
 
+    scanLock.current = true;
     setScanned(true);
     setIsSearching(true);
 
@@ -70,69 +89,108 @@ export default function CameraScannerScreen({ navigation, route }) {
       const produtoEncontrado = await buscarProdutoPorCodigo(codigo);
 
       if (!produtoEncontrado) {
-        Alert.alert("Produto não encontrado", "Não foi possível localizar esse código.");
+        Alert.alert(
+          "Produto não encontrado",
+          "Não foi possível localizar esse código no estoque."
+        );
         return;
       }
 
       setProdutoDetectado(produtoEncontrado);
-      setNotificacaoSucesso(`Produto: ${produtoEncontrado.nome}`);
+      setNotificacaoSucesso(
+        `Produto: ${produtoEncontrado.nome || produtoEncontrado.name || "Identificado"}`
+      );
 
       navigation.navigate("ResultadoLeitura", {
         codigo: produtoEncontrado.codigo || codigo,
         produto: produtoEncontrado,
       });
-
-      setTimeout(() => {
-        setNotificacaoSucesso(null);
-      }, 3500);
     } catch (error) {
       console.log("Erro na busca do produto:", error);
-      Alert.alert("Erro", "Não foi possível carregar as informações do produto.");
+      Alert.alert(
+        "Erro",
+        "Não foi possível carregar as informações do produto."
+      );
     } finally {
       setIsSearching(false);
     }
-  };
+  }
 
-  const handleAcao = (tipo) => {
+  function handleAcao(tipo) {
+    if (!produtoDetectado) {
+      Alert.alert("Atenção", "Leia um produto antes de continuar.");
+      return;
+    }
+
     navigation.navigate("ConfirmacaoMovimento", {
       produto: {
         ...produtoDetectado,
-        id: produtoDetectado.id || produtoDetectado._id || produtoDetectado.produto_id,
+        id:
+          produtoDetectado.id ||
+          produtoDetectado._id ||
+          produtoDetectado.produto_id,
         nome: produtoDetectado.nome || produtoDetectado.name,
-        codigo: produtoDetectado.codigo || produtoDetectado.sku || produtoDetectado.codigo_barras,
+        codigo:
+          produtoDetectado.codigo ||
+          produtoDetectado.sku ||
+          produtoDetectado.codigo_barras,
         quantidade: undefined,
-        tipo: tipo,
+        tipo,
         imagem: produtoDetectado.imagem,
       },
     });
-  };
+  }
 
-  const toggleTorch = () => {
+  function toggleTorch() {
     setTorch((prev) => !prev);
-  };
+  }
 
-  const toggleFacing = () => {
+  function toggleFacing() {
+    setTorch(false);
     setFacing((prev) => (prev === "back" ? "front" : "back"));
-  };
+  }
 
-  const handleUsePhotoForProduct = () => {
-    if (capturedPhoto) {
-      setProdutoDetectado((prev) => ({
-        ...prev,
-        imagem: capturedPhoto,
-      }));
-      setOpen(false);
-      Alert.alert("Foto Atualizada", "A imagem do produto foi atualizada com sucesso!");
+  function handleUsePhotoForProduct() {
+    if (!capturedPhoto || !produtoDetectado) {
+      Alert.alert(
+        "Nenhum produto selecionado",
+        "Leia ou selecione um produto antes de associar uma foto."
+      );
+      return;
     }
-  };
 
-  const handleVerDetalhes = () => {
+    setProdutoDetectado((prev) => ({
+      ...prev,
+      imagem: capturedPhoto,
+    }));
+
+    setOpen(false);
+
+    Alert.alert(
+      "Foto atualizada",
+      "A foto foi associada ao produto nesta tela. Para mantê-la após sair, salve a alteração no cadastro do produto."
+    );
+  }
+
+  function handleVerDetalhes() {
+    if (!produtoDetectado) return;
+
     navigation.navigate("DetalhesProduto", {
       produto: produtoDetectado,
     });
-  };
+  }
 
-  // Se a permissão ainda estiver carregando
+  function handleCameraError(error) {
+    console.log("Erro ao iniciar câmera:", error?.message || error);
+    setCameraReady(false);
+
+    Alert.alert(
+      "Erro na câmera",
+      error?.message ||
+        "Não foi possível iniciar a câmera. Verifique a permissão e tente novamente."
+    );
+  }
+
   if (!permission) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -143,20 +201,27 @@ export default function CameraScannerScreen({ navigation, route }) {
     );
   }
 
-  // Se a permissão não foi concedida
   if (!permission.granted) {
     return (
       <View style={[styles.container, styles.permissionContainer]}>
         <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+
         <View style={styles.permissionCard}>
           <View style={styles.permissionIconCircle}>
-            <MaterialIcons name="no-photography" size={48} color="#ef4444" />
+            <MaterialIcons
+              name="no-photography"
+              size={48}
+              color="#ef4444"
+            />
           </View>
 
-          <Text style={styles.permissionTitle}>Permissão Necessária</Text>
+          <Text style={styles.permissionTitle}>
+            Permissão necessária
+          </Text>
+
           <Text style={styles.permissionDescription}>
-            Precisamos de permissão para exibir e usar a câmera para escanear
-            códigos de barras e identificar produtos do seu estoque.
+            Precisamos de acesso à câmera para ler códigos de barras,
+            identificar produtos e fotografar itens do estoque.
           </Text>
 
           <TouchableOpacity
@@ -170,7 +235,9 @@ export default function CameraScannerScreen({ navigation, route }) {
               color="#ffffff"
               style={{ marginRight: 8 }}
             />
-            <Text style={styles.permissionButtonText}>Permitir Acesso à Câmera</Text>
+            <Text style={styles.permissionButtonText}>
+              Permitir acesso à câmera
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -187,21 +254,47 @@ export default function CameraScannerScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-
-      {/* Câmera Real com Expo CameraView */}
-      <CameraView
-        ref={camRef}
-        style={StyleSheet.absoluteFillObject}
-        facing={facing}
-        enableTorch={torch}
-        barcodeScannerSettings={{
-          barcodeTypes: ["qr", "ean13", "ean8", "code128", "code39", "upc_a", "upc_e"],
-        }}
-        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
       />
 
-      {/* Header Superior */}
+      <CameraView
+        ref={camRef}
+        style={StyleSheet.absoluteFill}
+        facing={facing}
+        enableTorch={torch && facing === "back"}
+        barcodeScannerSettings={{
+          barcodeTypes: [
+            "qr",
+            "ean13",
+            "ean8",
+            "code128",
+            "code39",
+            "upc_a",
+            "upc_e",
+          ],
+        }}
+        onCameraReady={() => {
+          console.log("Câmera pronta para exibição");
+          setCameraReady(true);
+        }}
+        onMountError={handleCameraError}
+        onBarcodeScanned={
+          scanned || isSearching ? undefined : handleBarCodeScanned
+        }
+      />
+
+      {!cameraReady && (
+        <View style={styles.cameraLoading}>
+          <ActivityIndicator size="large" color="#38bdf8" />
+          <Text style={styles.cameraLoadingText}>
+            Inicializando câmera...
+          </Text>
+        </View>
+      )}
+
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerIconBtn}
@@ -214,19 +307,22 @@ export default function CameraScannerScreen({ navigation, route }) {
         <Text style={styles.headerTitle}>Leitor KeepStock</Text>
 
         <View style={styles.headerActions}>
-          {/* Botão de Alternar Câmera Frontal / Traseira */}
           <TouchableOpacity
             style={[styles.headerIconBtn, { marginRight: 8 }]}
             onPress={toggleFacing}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <MaterialIcons name="flip-camera-ios" size={22} color="#f8fafc" />
+            <MaterialIcons
+              name="flip-camera-ios"
+              size={22}
+              color="#f8fafc"
+            />
           </TouchableOpacity>
 
-          {/* Botão de Lanterna / Flash */}
           <TouchableOpacity
             style={styles.headerIconBtn}
             onPress={toggleTorch}
+            disabled={facing !== "back"}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Feather
@@ -238,48 +334,63 @@ export default function CameraScannerScreen({ navigation, route }) {
         </View>
       </View>
 
-      {/* Notificação Toast de Sucesso no topo */}
       {notificacaoSucesso && (
         <View style={styles.toastContainer}>
-          <Feather name="check-circle" size={16} color="#34d399" style={{ marginRight: 8 }} />
+          <Feather
+            name="check-circle"
+            size={16}
+            color="#34d399"
+            style={{ marginRight: 8 }}
+          />
           <Text style={styles.toastText} numberOfLines={1}>
             {notificacaoSucesso}
           </Text>
         </View>
       )}
 
-      {/* Retículo / Mira Central do Scanner */}
       <View style={styles.viewfinderContainer} pointerEvents="box-none">
-        <View style={[styles.reticleBox, scanned && styles.reticleBoxScanned]}>
-          {/* 4 cantos estilizados */}
+        <View
+          style={[
+            styles.reticleBox,
+            scanned && styles.reticleBoxScanned,
+          ]}
+        >
           <View style={[styles.corner, styles.cornerTL, scanned && styles.cornerScanned]} />
           <View style={[styles.corner, styles.cornerTR, scanned && styles.cornerScanned]} />
           <View style={[styles.corner, styles.cornerBL, scanned && styles.cornerScanned]} />
           <View style={[styles.corner, styles.cornerBR, scanned && styles.cornerScanned]} />
 
-          {/* Linha laser de leitura */}
           <View style={[styles.laserLine, scanned && styles.laserScanned]} />
 
-          {/* Indicador quando já leu o código */}
           {scanned && (
             <TouchableOpacity
               style={styles.scannedBadge}
-              onPress={() => setScanned(false)}
+              onPress={() => {
+                scanLock.current = false;
+                setScanned(false);
+                setNotificacaoSucesso(null);
+              }}
               activeOpacity={0.8}
             >
-              <Feather name="refresh-cw" size={14} color="#ffffff" style={{ marginRight: 6 }} />
-              <Text style={styles.scannedBadgeText}>Ler outro código</Text>
+              <Feather
+                name="refresh-cw"
+                size={14}
+                color="#ffffff"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.scannedBadgeText}>
+                Ler outro código
+              </Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Botão de Tirar Foto */}
       <View style={styles.captureContainer} pointerEvents="box-none">
         <TouchableOpacity
           style={styles.buttonTake}
           onPress={takePicture}
-          disabled={isTakingPhoto}
+          disabled={isTakingPhoto || !cameraReady}
           activeOpacity={0.8}
         >
           <View style={styles.buttonTakeInner}>
@@ -290,45 +401,66 @@ export default function CameraScannerScreen({ navigation, route }) {
             )}
           </View>
         </TouchableOpacity>
+
         <Text style={styles.captureHint}>Fotografar produto</Text>
       </View>
 
-      {/* Bottom Sheet com Informações do Produto Lido */}
       <View style={styles.bottomSheet}>
-        {/* Puxador da Gaveta */}
         <View style={styles.dragHandle} />
 
         {isSearching ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color="#38bdf8" />
-            <Text style={styles.loadingText}>Buscando dados do produto...</Text>
+            <Text style={styles.loadingText}>
+              Buscando dados do produto...
+            </Text>
           </View>
-        ) : (
-          produtoDetectado ? <>
-            {/* Tag de Status de Reconhecimento */}
+        ) : produtoDetectado ? (
+          <>
             <View style={styles.badgeRow}>
               <View style={styles.tagSuccess}>
-                <Feather name="check" size={12} color="#34d399" style={{ marginRight: 4 }} />
-                <Text style={styles.tagSuccessText}>Produto Identificado</Text>
+                <Feather
+                  name="check"
+                  size={12}
+                  color="#34d399"
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.tagSuccessText}>
+                  Produto identificado
+                </Text>
               </View>
 
-              {produtoDetectado.local && (
+              {!!produtoDetectado.local && (
                 <View style={styles.tagLocation}>
-                  <Feather name="map-pin" size={11} color="#94a3b8" style={{ marginRight: 4 }} />
-                  <Text style={styles.tagLocationText}>{produtoDetectado.local}</Text>
+                  <Feather
+                    name="map-pin"
+                    size={11}
+                    color="#94a3b8"
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={styles.tagLocationText}>
+                    {produtoDetectado.local}
+                  </Text>
                 </View>
               )}
             </View>
 
-            {/* Informações do Produto Lido */}
             <View style={styles.productRow}>
-              <Image
-                source={{ uri: produtoDetectado.imagem }}
-                style={styles.productThumb}
-              />
+              {produtoDetectado.imagem ? (
+                <Image
+                  source={{ uri: produtoDetectado.imagem }}
+                  style={styles.productThumb}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.productThumb, styles.imagePlaceholder]}>
+                  <Feather name="package" size={26} color="#64748b" />
+                </View>
+              )}
+
               <View style={styles.productDetails}>
                 <Text style={styles.productTitle} numberOfLines={2}>
-                  {produtoDetectado.nome}
+                  {produtoDetectado.nome || produtoDetectado.name || "Produto"}
                 </Text>
 
                 <View style={styles.codeRow}>
@@ -339,9 +471,10 @@ export default function CameraScannerScreen({ navigation, route }) {
                     style={{ marginRight: 5 }}
                   />
                   <Text style={styles.productCode}>
-                    Cód: {produtoDetectado.codigo}
+                    Cód: {produtoDetectado.codigo || produtoDetectado.sku || "—"}
                   </Text>
-                  {produtoDetectado.categoria && (
+
+                  {!!produtoDetectado.categoria && (
                     <Text style={styles.categoryBadge}>
                       • {produtoDetectado.categoria}
                     </Text>
@@ -350,27 +483,34 @@ export default function CameraScannerScreen({ navigation, route }) {
 
                 <View style={styles.stockValueRow}>
                   <Text style={styles.stockText}>
-                    Estoque: <Text style={styles.stockHighlight}>{produtoDetectado.estoque} un.</Text>
+                    Estoque:{" "}
+                    <Text style={styles.stockHighlight}>
+                      {produtoDetectado.estoque ?? 0} un.
+                    </Text>
                   </Text>
-                  {produtoDetectado.valor && (
-                    <Text style={styles.priceText}>{produtoDetectado.valor}</Text>
+
+                  {produtoDetectado.valor != null && (
+                    <Text style={styles.priceText}>
+                      {String(produtoDetectado.valor)}
+                    </Text>
                   )}
                 </View>
               </View>
 
-              {/* Botão Ver Detalhes */}
               <TouchableOpacity
                 style={styles.detailsBtn}
                 onPress={handleVerDetalhes}
                 activeOpacity={0.7}
               >
-                <Feather name="chevron-right" size={20} color="#94a3b8" />
+                <Feather
+                  name="chevron-right"
+                  size={20}
+                  color="#94a3b8"
+                />
               </TouchableOpacity>
             </View>
 
-            {/* 3 Botões de Ação Imediata (Entrada, Saída, Ajuste) */}
             <View style={styles.actionsGrid}>
-              {/* Ação 1: Entrada */}
               <TouchableOpacity
                 style={[styles.actionCard, styles.actionCardIn]}
                 activeOpacity={0.8}
@@ -390,7 +530,6 @@ export default function CameraScannerScreen({ navigation, route }) {
                 <Text style={styles.actionSubtitle}>Adicionar</Text>
               </TouchableOpacity>
 
-              {/* Ação 2: Saída */}
               <TouchableOpacity
                 style={[styles.actionCard, styles.actionCardOut]}
                 activeOpacity={0.8}
@@ -410,7 +549,6 @@ export default function CameraScannerScreen({ navigation, route }) {
                 <Text style={styles.actionSubtitle}>Remover</Text>
               </TouchableOpacity>
 
-              {/* Ação 3: Ajuste */}
               <TouchableOpacity
                 style={[styles.actionCard, styles.actionCardAdjust]}
                 activeOpacity={0.8}
@@ -430,32 +568,38 @@ export default function CameraScannerScreen({ navigation, route }) {
                 <Text style={styles.actionSubtitle}>Quantidade</Text>
               </TouchableOpacity>
             </View>
-          </> : (
-            <View style={styles.loadingContainer}>
-              <Feather name="maximize" size={26} color="#94a3b8" />
-              <Text style={styles.loadingText}>Aponte a câmera para o código de barras de um produto cadastrado.</Text>
-            </View>
-          )
+          </>
+        ) : (
+          <View style={styles.loadingContainer}>
+            <Feather name="maximize" size={26} color="#94a3b8" />
+            <Text style={styles.loadingText}>
+              Aponte a câmera para o código de barras de um produto cadastrado.
+            </Text>
+          </View>
         )}
       </View>
 
-      {/* Modal de Foto Capturada */}
       {capturedPhoto && (
         <Modal
           animationType="slide"
-          transparent={true}
+          transparent
           visible={open}
           onRequestClose={() => setOpen(false)}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Foto Capturada</Text>
+                <Text style={styles.modalTitle}>Foto capturada</Text>
+
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={() => setOpen(false)}
                 >
-                  <MaterialIcons name="close" size={26} color="#f8fafc" />
+                  <MaterialIcons
+                    name="close"
+                    size={26}
+                    color="#f8fafc"
+                  />
                 </TouchableOpacity>
               </View>
 
@@ -470,7 +614,9 @@ export default function CameraScannerScreen({ navigation, route }) {
                   style={styles.modalBtnSecondary}
                   onPress={() => setOpen(false)}
                 >
-                  <Text style={styles.modalBtnSecondaryText}>Descartar</Text>
+                  <Text style={styles.modalBtnSecondaryText}>
+                    Descartar
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -484,7 +630,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                     style={{ marginRight: 6 }}
                   />
                   <Text style={styles.modalBtnPrimaryText}>
-                    Usar no Produto
+                    Usar no produto
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -579,6 +725,18 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontSize: 14,
     fontWeight: "600",
+  },
+  cameraLoading: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#000000",
+  },
+  cameraLoadingText: {
+    color: "#94a3b8",
+    fontSize: 13,
+    marginTop: 10,
   },
   header: {
     position: "absolute",
@@ -772,6 +930,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 16,
+    zIndex: 5,
   },
   dragHandle: {
     width: 44,
@@ -790,6 +949,7 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     fontSize: 13,
     marginTop: 10,
+    textAlign: "center",
   },
   badgeRow: {
     flexDirection: "row",
@@ -839,6 +999,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: "#0f172a",
     marginRight: 12,
+  },
+  imagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   productDetails: {
     flex: 1,
