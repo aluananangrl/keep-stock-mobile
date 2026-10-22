@@ -1,243 +1,422 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
 import { Feather } from "@expo/vector-icons";
 
-import { useTheme } from "../context/ThemeContext";
+import api from "../services/api";
 
-const notificacoes = [
-  {
-    id: 1,
-    titulo: "Low Stock: Água Mineral",
-    mensagem: "O estoque do item Água Mineral 500ml está em nível crítico. Restam apenas 12 unidades.",
-    categoria: "Atenção",
-    data: "Hoje",
-    cor: "#f96d6d",
-    icone: "alert-triangle",
-    botao: "Ver item",
-  },
-  {
-    id: 2,
-    titulo: "New Movement: Entrada de 445",
-    mensagem: "João Silva adicionou 500 unidades de Papel Sulfite A4 ao estoque. Total: #8420.",
-    categoria: "Sucesso",
-    data: "Ontem",
-    cor: "#63d2ff",
-    icone: "package",
-    botao: "Detalhes",
-  },
-  {
-    id: 3,
-    titulo: "System Update",
-    mensagem: "O KeepStock foi atualizado para a versão 4.2. Novos relatórios e ajustes de performance.",
-    categoria: "Sistema",
-    data: "Ontem",
-    cor: "#b7a8ff",
-    icone: "bell",
-    botao: "Abrir",
-  },
-  {
-    id: 4,
-    titulo: "New Movement: Saida",
-    mensagem: "Maria Santos removeu 50 unidades de Tecido Mecânico para o pedido #1042.",
-    categoria: "Estoque",
-    data: "Ontem",
-    cor: "#ffd76a",
-    icone: "arrow-up-right",
-    botao: "Ver ajuste",
-  },
-];
+import {
+  extractList,
+  getErrorMessage,
+  getMinimumStock,
+  getProductName,
+  getStock,
+} from "../services/responseUtils";
+
+const C = {
+  bg: "#0b1220",
+  panel: "#121d2e",
+  border: "#243247",
+  text: "#f1f5f9",
+  muted: "#94a3b8",
+  green: "#72e0a4",
+  amber: "#fbbf24",
+  red: "#fb7185",
+};
 
 export default function NotificacoesScreen({ navigation }) {
-  const { theme } = useTheme();
-  const isDarkTheme = theme === "dark";
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [erro, setErro] = useState("");
 
-  const palette = isDarkTheme
-    ? {
-        background: "#1b1b1d",
-        header: "#1b1b1d",
-        text: "#e1e3f0",
-        muted: "#858b9f",
-        card: "#172035",
-        border: "#303a55",
-        surface: "#20283b",
-        action: "#2d436a",
-        bottom: "#151b2e",
+  // Carrega os alertas de estoque
+  const carregar = useCallback(async (pull = false) => {
+    if (pull) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setErro("");
+
+    try {
+      const resposta = await api.listarAlertasEstoque({
+        limit: 100,
+      });
+
+      let lista = extractList(resposta);
+
+      // Se a API não retornar alertas, verifica os produtos
+      if (lista.length === 0) {
+        const respostaProdutos = await api.listarProdutos({
+          limit: 200,
+        });
+
+        const produtos = extractList(respostaProdutos);
+
+        lista = produtos.filter((produto) => {
+          const minimo = getMinimumStock(produto);
+          const estoque = getStock(produto);
+
+          return minimo > 0 && estoque <= minimo;
+        });
       }
-    : {
-        background: "#f4f7fb",
-        header: "#ffffff",
-        text: "#1d2433",
-        muted: "#60708a",
-        card: "#ffffff",
-        border: "#dfe6f3",
-        surface: "#eef3ff",
-        action: "#dfe8ff",
-        bottom: "#f1f4fb",
-      };
+
+      setItems(lista);
+    } catch (e) {
+      setErro(
+        getErrorMessage(
+          e,
+          "Não foi possível carregar os alertas."
+        )
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={[styles.header, { backgroundColor: palette.header }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="menu" size={22} color={palette.text} />
+    <View style={s.container}>
+      {/* Cabeçalho */}
+      <View style={s.header}>
+        <TouchableOpacity
+          style={s.icon}
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Voltar"
+        >
+          <Feather
+            name="arrow-left"
+            size={20}
+            color={C.text}
+          />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: palette.text }]}>KeepStock</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.kicker}>
+            CENTRAL DE ALERTAS
+          </Text>
 
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="bell" size={20} color={palette.text} />
+          <Text style={s.title}>
+            Notificações
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={s.icon}
+          onPress={() => carregar(true)}
+          accessibilityLabel="Atualizar notificações"
+        >
+          <Feather
+            name="refresh-cw"
+            size={18}
+            color={C.green}
+          />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.contentWrap}>
-        <Text style={[styles.title, { color: palette.text }]}>Notificações</Text>
+      {/* Resumo dos alertas */}
+      <View style={s.summary}>
+        <View style={s.alertIcon}>
+          <Feather
+            name="alert-triangle"
+            size={19}
+            color={C.amber}
+          />
+        </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-          {notificacoes.map((item) => (
-            <View key={item.id} style={[styles.card, { backgroundColor: palette.card, borderColor: palette.border }]}>
-              <View style={[styles.badge, { backgroundColor: item.cor }]}>
-                <Feather name={item.icone} size={18} color="#fff" />
-              </View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.summaryTitle}>
+            Estoque abaixo do mínimo
+          </Text>
 
-              <View style={styles.cardBody}>
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.cardTitle, { color: palette.text }]}>{item.titulo}</Text>
-                  <Text style={[styles.cardDate, { color: palette.muted }]}>{item.data}</Text>
-                </View>
+          <Text style={s.muted}>
+            Alertas calculados a partir dos dados cadastrados.
+          </Text>
+        </View>
 
-                <Text style={[styles.cardMessage, { color: palette.muted }]}>{item.mensagem}</Text>
+        <Text style={s.count}>
+          {items.length}
+        </Text>
+      </View>
 
-                <View style={styles.footerRow}>
-                  <Text style={[styles.category, { color: palette.muted }]}>{item.categoria}</Text>
-                  <TouchableOpacity style={[styles.actionButton, { backgroundColor: palette.action }]}>
-                    <Text style={[styles.actionText, { color: isDarkTheme ? "#edf2ff" : "#1d2433" }]}>{item.botao}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+      {/* Carregamento */}
+      {loading ? (
+        <View style={s.center}>
+          <ActivityIndicator color={C.green} />
+
+          <Text style={s.muted}>
+            Verificando alertas...
+          </Text>
+        </View>
+      ) : erro ? (
+        /* Mensagem de erro */
+        <View style={s.center}>
+          <Feather
+            name="alert-circle"
+            size={28}
+            color={C.red}
+          />
+
+          <Text style={s.muted}>
+            {erro}
+          </Text>
+
+          <TouchableOpacity
+            style={s.button}
+            onPress={() => carregar()}
+          >
+            <Text style={s.buttonText}>
+              Tentar novamente
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        /* Lista de notificações */
+        <ScrollView
+          contentContainerStyle={s.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => carregar(true)}
+              tintColor={C.green}
+            />
+          }
+        >
+          {items.length === 0 ? (
+            <View style={s.empty}>
+              <Feather
+                name="check-circle"
+                size={28}
+                color={C.green}
+              />
+
+              <Text style={s.emptyTitle}>
+                Nenhum alerta no momento
+              </Text>
+
+              <Text style={s.muted}>
+                Não há produtos abaixo da quantidade
+                mínima configurada.
+              </Text>
             </View>
-          ))}
-        </ScrollView>
-      </View>
+          ) : (
+            items.map((produto, index) => {
+              const estoque = getStock(produto);
+              const minimo = getMinimumStock(produto);
 
-      <View style={[styles.bottomNav, { backgroundColor: palette.bottom, borderTopColor: palette.border }]}>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Home")}>
-          <Feather name="home" size={18} color={palette.muted} />
-          <Text style={[styles.navText, { color: palette.muted }]}>Início</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("CameraScanner")}>
-          <Feather name="camera" size={18} color={palette.muted} />
-          <Text style={[styles.navText, { color: palette.muted }]}>Scanner</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate("Perfil")}>
-          <Feather name="user" size={18} color={palette.muted} />
-          <Text style={[styles.navText, { color: palette.muted }]}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+              return (
+                <TouchableOpacity
+                  key={String(
+                    produto.id ?? produto._id ?? index
+                  )}
+                  style={s.card}
+                  onPress={() =>
+                    navigation.navigate(
+                      "DetalhesProduto",
+                      {
+                        produto: {
+                          ...produto,
+                          nome: getProductName(produto),
+                          estoque,
+                        },
+                      }
+                    )
+                  }
+                  activeOpacity={0.75}
+                >
+                  {/* Ícone do alerta */}
+                  <View style={s.alertIcon}>
+                    <Feather
+                      name="alert-circle"
+                      size={19}
+                      color={C.amber}
+                    />
+                  </View>
+
+                  {/* Dados do produto */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.product}>
+                      {getProductName(produto)}
+                    </Text>
+
+                    <Text style={s.muted}>
+                      Saldo atual: {estoque} un. · mínimo:{" "}
+                      {minimo} un.
+                    </Text>
+                  </View>
+
+                  <Feather
+                    name="chevron-right"
+                    size={18}
+                    color={C.muted}
+                  />
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: C.bg,
+    paddingTop: 52,
   },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 12,
     paddingHorizontal: 20,
-    paddingTop: 55,
-    paddingBottom: 16,
+    marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  contentWrap: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  content: {
-    paddingBottom: 12,
-  },
-  card: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    borderRadius: 14,
+
+  icon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     borderWidth: 1,
-    padding: 12,
-    marginBottom: 12,
-  },
-  badge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    justifyContent: "center",
+    borderColor: C.border,
     alignItems: "center",
-    marginRight: 12,
+    justifyContent: "center",
   },
-  cardBody: {
-    flex: 1,
+
+  kicker: {
+    color: C.green,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
   },
-  cardHeader: {
+
+  title: {
+    color: C.text,
+    fontSize: 25,
+    fontWeight: "700",
+    marginTop: 3,
+  },
+
+  summary: {
+    marginHorizontal: 20,
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+    gap: 12,
+    padding: 15,
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 15,
+    marginBottom: 18,
+  },
+
+  alertIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "#3a3220",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  summaryTitle: {
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "700",
     marginBottom: 4,
   },
-  cardTitle: {
-    flex: 1,
-    fontSize: 14,
+
+  muted: {
+    color: C.muted,
+    fontSize: 11,
+    lineHeight: 17,
+  },
+
+  count: {
+    color: C.amber,
+    fontSize: 22,
+    fontWeight: "800",
+  },
+
+  list: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    gap: 10,
+  },
+
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 14,
+  },
+
+  product: {
+    color: C.text,
+    fontSize: 13,
     fontWeight: "700",
-    marginRight: 8,
+    marginBottom: 4,
   },
-  cardDate: {
-    fontSize: 11,
-  },
-  cardMessage: {
-    fontSize: 12,
-    lineHeight: 18,
-    marginBottom: 10,
-  },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  category: {
-    fontSize: 11,
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  actionButton: {
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  actionText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    borderTopWidth: 1,
-    paddingTop: 10,
-    paddingBottom: 22,
-  },
-  navItem: {
+
+  empty: {
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 70,
+    padding: 28,
+    gap: 12,
+    backgroundColor: C.panel,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.border,
   },
-  navText: {
-    fontSize: 11,
-    marginTop: 4,
+
+  emptyTitle: {
+    color: C.text,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    padding: 24,
+  },
+
+  button: {
+    backgroundColor: C.green,
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+
+  buttonText: {
+    color: "#082016",
+    fontWeight: "800",
   },
 });

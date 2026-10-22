@@ -1,391 +1,442 @@
-import React from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+
 import { Feather } from "@expo/vector-icons";
+import api from "../services/api";
 
-import { useTheme } from "../context/ThemeContext";
+import {
+  extractList,
+  getErrorMessage,
+} from "../services/responseUtils";
 
-const fornecedores = [
-  {
-    nome: "Alimentos Gênesis",
-    categoria: "Food",
-    tipo: "ACTIVE",
-    prazo: "Há 2 dias",
-    prazoValor: "45",
-    cor: "#7dd3fc",
-  },
-  {
-    nome: "LiquidFlow Distribuidora",
-    categoria: "Beverage",
-    tipo: "ACTIVE",
-    prazo: "Hoje",
-    prazoValor: "120",
-    cor: "#c4b5fd",
-  },
-  {
-    nome: "Sanitize Pro",
-    categoria: "Cleaning",
-    tipo: "INACTIVE",
-    prazo: "Há 3 meses",
-    prazoValor: "12",
-    cor: "#f9a8d4",
-  },
-  {
-    nome: "Fresh Farm Co.",
-    categoria: "Food",
-    tipo: "ACTIVE",
-    prazo: "Há 5 dias",
-    prazoValor: "68",
-    cor: "#86efac",
-  },
-];
+const C = {
+  bg: "#0b1220",
+  panel: "#121d2e",
+  border: "#243247",
+  text: "#f1f5f9",
+  muted: "#94a3b8",
+  green: "#72e0a4",
+  red: "#fb7185",
+};
 
 export default function FornecedoresScreen({ navigation }) {
-  const { theme } = useTheme();
-  const isDarkTheme = theme === "dark";
+  const [items, setItems] = useState([]);
+  const [busca, setBusca] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [erro, setErro] = useState("");
 
-  const palette = isDarkTheme
-    ? {
-        background: "#1b1b1d",
-        header: "#1b1b1d",
-        text: "#e1e3f0",
-        muted: "#858b9f",
-        card: "#172035",
-        cardSoft: "#20283b",
-        border: "#303a55",
-        tab: "#151b2e",
-        tabText: "#858b9f",
-        accent: "#6bffa0",
-      }
-    : {
-        background: "#f5f7fb",
-        header: "#ffffff",
-        text: "#1d2433",
-        muted: "#60708a",
-        card: "#ffffff",
-        cardSoft: "#edf3ff",
-        border: "#dfe6f3",
-        tab: "#f1f4fb",
-        tabText: "#64748b",
-        accent: "#2d6df6",
-      };
+  // Carrega a lista de fornecedores da API.
+  const carregar = useCallback(async (pull = false) => {
+    if (pull) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setErro("");
+
+    try {
+      const resposta = await api.listarFornecedores({
+        limit: 200,
+      });
+
+      setItems(extractList(resposta));
+    } catch (e) {
+      setErro(
+        getErrorMessage(
+          e,
+          "Não foi possível carregar os fornecedores."
+        )
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  // Filtra os fornecedores conforme o texto digitado.
+  const filtrados = useMemo(
+    () =>
+      items.filter((fornecedor) => {
+        const dados = `
+          ${fornecedor.nome || fornecedor.name || ""}
+          ${fornecedor.cnpj || ""}
+          ${fornecedor.email || ""}
+          ${fornecedor.telefone || fornecedor.contato || ""}
+        `;
+
+        return dados
+          .toLocaleLowerCase("pt-BR")
+          .includes(busca.toLocaleLowerCase("pt-BR"));
+      }),
+    [items, busca]
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: palette.background }]}>
-      <View style={[styles.header, { backgroundColor: palette.header }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Feather name="menu" size={22} color={palette.text} />
+    <View style={s.container}>
+      {/* Cabeçalho */}
+      <View style={s.header}>
+        <TouchableOpacity
+          style={s.icon}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather
+            name="arrow-left"
+            size={20}
+            color={C.text}
+          />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitle, { color: palette.text }]}>KeepStock</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.kicker}>
+            CADEIA DE SUPRIMENTOS
+          </Text>
 
-        <TouchableOpacity onPress={() => navigation.navigate("Notificacoes")}>
-          <Feather name="bell" size={20} color={palette.text} />
+          <Text style={s.title}>
+            Fornecedores
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={s.icon}
+          onPress={() => carregar(true)}
+        >
+          <Feather
+            name="refresh-cw"
+            size={18}
+            color={C.green}
+          />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={[styles.title, { color: palette.text }]}>Fornecedores</Text>
-        <Text style={[styles.subtitle, { color: palette.muted }]}>Gerencie e consulte seus parceiros de negócio.</Text>
+      {/* Campo de pesquisa */}
+      <View style={s.search}>
+        <Feather
+          name="search"
+          size={17}
+          color={C.muted}
+        />
 
-        <View
-          style={[
-            styles.searchBox,
-            { backgroundColor: palette.cardSoft, borderColor: palette.border },
-          ]}
-        >
-          <Feather name="search" size={16} color={palette.muted} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: palette.text }]}
-            placeholder="Buscar fornecedor, categoria..."
-            placeholderTextColor={palette.muted}
+        <TextInput
+          style={s.input}
+          value={busca}
+          onChangeText={setBusca}
+          placeholder="Nome, CNPJ ou contato"
+          placeholderTextColor="#64748b"
+        />
+      </View>
+
+      {/* Resumo dos fornecedores */}
+      <View style={s.summary}>
+        <Text style={s.summaryLabel}>
+          Fornecedores cadastrados
+        </Text>
+
+        <Text style={s.summaryValue}>
+          {items.length}
+        </Text>
+      </View>
+
+      {/* Carregamento */}
+      {loading ? (
+        <View style={s.center}>
+          <ActivityIndicator color={C.green} />
+
+          <Text style={s.muted}>
+            Carregando fornecedores...
+          </Text>
+        </View>
+      ) : erro ? (
+        /* Mensagem de erro */
+        <View style={s.center}>
+          <Feather
+            name="alert-circle"
+            size={28}
+            color={C.red}
           />
-        </View>
 
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            style={[
-              styles.filterTag,
-              { backgroundColor: isDarkTheme ? "#2a4268" : "#eaf0ff" },
-            ]}
-          >
-            <Text style={[styles.filterText, { color: isDarkTheme ? "#edf2ff" : "#1d2433" }]}>Todos</Text>
-          </TouchableOpacity>
+          <Text style={s.muted}>
+            {erro}
+          </Text>
 
           <TouchableOpacity
-            style={[
-              styles.filterTag,
-              { backgroundColor: palette.cardSoft, borderColor: palette.border, borderWidth: 1 },
-            ]}
+            style={s.button}
+            onPress={() => carregar()}
           >
-            <Text style={[styles.filterText, { color: palette.text }]}>Alimentos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.filterTag,
-              { backgroundColor: palette.cardSoft, borderColor: palette.border, borderWidth: 1 },
-            ]}
-          >
-            <Text style={[styles.filterText, { color: palette.text }]}>Bebidas</Text>
+            <Text style={s.buttonText}>
+              Tentar novamente
+            </Text>
           </TouchableOpacity>
         </View>
+      ) : (
+        /* Lista de fornecedores */
+        <ScrollView
+          contentContainerStyle={s.list}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => carregar(true)}
+              tintColor={C.green}
+            />
+          }
+        >
+          {filtrados.length === 0 ? (
+            <Text style={s.muted}>
+              Nenhum fornecedor encontrado na API.
+            </Text>
+          ) : (
+            filtrados.map((fornecedor, index) => {
+              const inativo =
+                fornecedor.ativo === false ||
+                String(fornecedor.status || "")
+                  .toLowerCase()
+                  .includes("inativo");
 
-        {fornecedores.map((item) => (
-          <View
-            key={item.nome}
-            style={[
-              styles.card,
-              { backgroundColor: palette.card, borderColor: palette.border },
-            ]}
-          >
-            <View style={styles.cardTopRow}>
-              <View style={[styles.iconBox, { backgroundColor: item.cor }]}>
-                <Text style={styles.iconText}>{item.nome.slice(0, 2).toUpperCase()}</Text>
-              </View>
-
-              <View style={styles.cardMeta}>
-                <Text style={[styles.category, { color: palette.text }]}>{item.categoria}</Text>
-                <Text
-                  style={[
-                    styles.status,
-                    {
-                      backgroundColor: item.tipo === "ACTIVE" ? "#2ea673" : "#6b7280",
-                    },
-                  ]}
+              return (
+                <View
+                  key={String(
+                    fornecedor.id ??
+                      fornecedor._id ??
+                      fornecedor.cnpj ??
+                      index
+                  )}
+                  style={s.card}
                 >
-                  {item.tipo}
-                </Text>
-              </View>
-            </View>
+                  {/* Ícone */}
+                  <View style={s.avatar}>
+                    <Feather
+                      name="truck"
+                      size={19}
+                      color={C.green}
+                    />
+                  </View>
 
-            <View style={styles.cardInfoRow}>
-              <Text style={[styles.label, { color: palette.muted }]}>Último Pedido</Text>
-              <Text style={[styles.label, { color: palette.muted }]}>Último valor</Text>
-            </View>
+                  {/* Dados do fornecedor */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.name}>
+                      {fornecedor.nome ||
+                        fornecedor.name ||
+                        "Fornecedor sem nome"}
+                    </Text>
 
-            <View style={styles.cardInfoRow}>
-              <Text style={[styles.value, { color: palette.text }]}>{item.prazo}</Text>
-              <Text style={[styles.value, { color: palette.text }]}>{item.prazoValor}</Text>
-            </View>
+                    <Text style={s.detail}>
+                      {fornecedor.cnpj
+                        ? `CNPJ: ${fornecedor.cnpj}`
+                        : "CNPJ não informado"}
+                    </Text>
 
-            <View style={styles.cardFooter}>
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: isDarkTheme ? "#dfe7ff" : "#dfe8ff" },
-                ]}
-              >
-                <Text style={[styles.primaryText, { color: "#1d2a3d" }]}>Contato</Text>
-              </TouchableOpacity>
+                    <Text style={s.detail}>
+                      {fornecedor.email ||
+                        fornecedor.telefone ||
+                        fornecedor.contato ||
+                        "Sem contato cadastrado"}
+                    </Text>
+                  </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.infoButton,
-                  { backgroundColor: palette.cardSoft, borderColor: palette.border, borderWidth: 1 },
-                ]}
-              >
-                <Feather name="info" size={16} color={palette.text} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
-
-        <View style={styles.addSection}>
-          <TouchableOpacity
-            style={[
-              styles.addButton,
-              {
-                backgroundColor: isDarkTheme ? "#111b2e" : "#eaf0ff",
-                borderColor: isDarkTheme ? "#59d4ff" : "#5a78ff",
-              },
-            ]}
-          >
-            <Feather name="plus" size={26} color={isDarkTheme ? "#0f172a" : "#1d2433"} />
-          </TouchableOpacity>
-          <Text style={[styles.addText, { color: palette.text }]}>Adicionar Novo</Text>
-          <Text style={[styles.addSubtitle, { color: palette.muted }]}>Cadastre um novo fornecedor no sistema</Text>
-        </View>
-      </ScrollView>
+                  {/* Situação do fornecedor */}
+                  <View
+                    style={[
+                      s.status,
+                      {
+                        backgroundColor: inativo
+                          ? "#3a202b"
+                          : "#18332b",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: inativo
+                          ? C.red
+                          : C.green,
+                        fontSize: 10,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {inativo ? "Inativo" : "Ativo"}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: C.bg,
+    paddingTop: 52,
   },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 12,
     paddingHorizontal: 20,
-    paddingTop: 55,
-    paddingBottom: 16,
+    marginBottom: 20,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+
+  icon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  scroll: {
-    flex: 1,
+
+  kicker: {
+    color: C.green,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.1,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 28,
-  },
+
   title: {
-    fontSize: 22,
+    color: C.text,
+    fontSize: 24,
     fontWeight: "700",
-    marginTop: 8,
+    marginTop: 3,
   },
-  subtitle: {
-    fontSize: 13,
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  searchBox: {
+
+  search: {
+    marginHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
+    gap: 10,
+    paddingHorizontal: 13,
+    backgroundColor: C.panel,
     borderWidth: 1,
-    paddingHorizontal: 12,
-    height: 44,
-    marginBottom: 14,
+    borderColor: C.border,
+    borderRadius: 13,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
+
+  input: {
     flex: 1,
+    color: C.text,
+    paddingVertical: 13,
     fontSize: 13,
   },
-  filterRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 14,
-  },
-  filterTag: {
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
+
+  summary: {
+    marginHorizontal: 20,
+    marginTop: 18,
     marginBottom: 8,
-  },
-  filterText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  card: {
-    borderRadius: 16,
+    padding: 16,
+    backgroundColor: C.panel,
     borderWidth: 1,
-    padding: 14,
-    marginBottom: 12,
+    borderColor: C.border,
+    borderRadius: 15,
   },
-  cardTopRow: {
+
+  summaryLabel: {
+    color: C.muted,
+    fontSize: 11,
+  },
+
+  summaryValue: {
+    color: C.text,
+    fontSize: 25,
+    fontWeight: "700",
+    marginTop: 6,
+  },
+
+  list: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 30,
+    gap: 10,
+  },
+
+  card: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
+    gap: 12,
+    padding: 14,
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 15,
   },
-  iconBox: {
+
+  avatar: {
     width: 42,
     height: 42,
     borderRadius: 12,
+    backgroundColor: "#18332b",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
   },
-  iconText: {
-    color: "#0b1220",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  cardMeta: {
-    flex: 1,
-    marginLeft: 12,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  category: {
-    fontSize: 13,
+
+  name: {
+    color: C.text,
+    fontSize: 14,
     fontWeight: "700",
+    marginBottom: 5,
   },
-  status: {
-    color: "#edf2ff",
-    fontSize: 10,
-    fontWeight: "700",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-    overflow: "hidden",
-  },
-  cardInfoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
-  },
-  label: {
+
+  detail: {
+    color: C.muted,
     fontSize: 11,
+    marginTop: 2,
   },
-  value: {
-    fontSize: 12,
-    fontWeight: "600",
+
+  status: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 9,
   },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+
+  center: {
+    flex: 1,
     alignItems: "center",
-    marginTop: 12,
+    justifyContent: "center",
+    padding: 24,
+    gap: 12,
   },
-  primaryButton: {
-    borderRadius: 10,
+
+  muted: {
+    color: C.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
+
+  button: {
+    backgroundColor: C.green,
+    paddingVertical: 12,
     paddingHorizontal: 18,
-    paddingVertical: 8,
-  },
-  primaryText: {
-    fontWeight: "700",
-    fontSize: 12,
-  },
-  infoButton: {
-    width: 32,
-    height: 32,
     borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  addSection: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  addButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addText: {
-    textAlign: "center",
-    fontSize: 16,
-    fontWeight: "700",
-    marginTop: 12,
-  },
-  addSubtitle: {
-    textAlign: "center",
-    fontSize: 12,
-    marginTop: 4,
+
+  buttonText: {
+    color: "#082016",
+    fontWeight: "800",
   },
 });

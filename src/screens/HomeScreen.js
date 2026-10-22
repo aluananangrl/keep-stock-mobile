@@ -17,42 +17,17 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
+import { extractList, getMinimumStock, getProductCode, getProductName, getStock } from "../services/responseUtils";
 import { useTheme } from "../context/ThemeContext";
 import SidebarModal from "../components/SidebarModal";
 import KeepStockBottomNav from "../components/KeepStockBottomNav";
 
-
-// ============================================================
-// DADOS MOCADOS (troque pela chamada real da sua API)
-// ============================================================
-
-const PRODUTOS_DESTAQUE = [
-  {
-    id: "1",
-    nome: "Água Mineral 500ml",
-    estoque: 38,
-    status: "critico", // critico | baixo | normal
-  },
-  {
-    id: "2",
-    nome: "Salgadinho 100g",
-    estoque: 15,
-    status: "baixo",
-  },
-  {
-    id: "3",
-    nome: "Refrigerante 350ml",
-    estoque: 120,
-    status: "normal",
-  },
-];
 
 const STATUS_CONFIG = {
   critico: { label: "CRÍTICO", bg: "#3a1f2b", color: "#ff7a94" },
   baixo: { label: "BAIXO", bg: "#3a2f1f", color: "#ffc86b" },
   normal: { label: "NORMAL", bg: "#1f3a2a", color: "#6bffa0" },
 };
-
 
 // ============================================================
 // COMPONENTE PRINCIPAL
@@ -94,6 +69,10 @@ export default function HomeScreen({ navigation }) {
 
   const [usuario, setUsuario] = useState(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [produtos, setProdutos] = useState([]);
+  const [movimentosCount, setMovimentosCount] = useState(0);
+  const [busca, setBusca] = useState("");
+  const [erroEstoque, setErroEstoque] = useState(false);
 
 
   // ==========================================================
@@ -103,6 +82,7 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
 
     carregarUsuario();
+    carregarResumoEstoque();
 
   }, []);
 
@@ -137,13 +117,40 @@ export default function HomeScreen({ navigation }) {
   }
 
 
+
+  async function carregarResumoEstoque() {
+    try {
+      const [resProdutos, resMovimentos] = await Promise.all([
+        api.listarProdutos({ limit: 200 }),
+        api.listarMovimentacoes({ limit: 1000 }),
+      ]);
+      setProdutos(extractList(resProdutos));
+      const dadosMovimentos = resMovimentos?.data;
+      const listaMovimentos = extractList(resMovimentos);
+      setMovimentosCount(Number(dadosMovimentos?.total ?? dadosMovimentos?.pagination?.total ?? listaMovimentos.length));
+      setErroEstoque(false);
+    } catch (error) {
+      setErroEstoque(true);
+    }
+  }
+
+  const produtosFiltrados = produtos.filter((produto) => {
+    const termo = busca.trim().toLocaleLowerCase("pt-BR");
+    return !termo || `${getProductName(produto)} ${getProductCode(produto)}`.toLocaleLowerCase("pt-BR").includes(termo);
+  }).slice(0, 5).map((produto) => {
+    const quantidade = getStock(produto);
+    const minimo = getMinimumStock(produto);
+    return { ...produto, id: produto.id ?? produto._id, nome: getProductName(produto), codigo: getProductCode(produto), estoque: quantidade, status: minimo > 0 && quantidade <= minimo ? "baixo" : "normal" };
+  });
+  const totalAlertas = produtos.filter((produto) => getMinimumStock(produto) > 0 && getStock(produto) <= getMinimumStock(produto)).length;
+
   // ==========================================================
   // RENDER DE UM ITEM DE PRODUTO
   // ==========================================================
 
   function renderProduto(produto) {
 
-    const status = STATUS_CONFIG[produto.status];
+    const status = STATUS_CONFIG[produto.status] || STATUS_CONFIG.normal;
 
     return (
       <TouchableOpacity
@@ -219,6 +226,8 @@ export default function HomeScreen({ navigation }) {
             style={[styles.searchInput, { color: palette.text }]}
             placeholder="Buscar produtos, códigos, locais..."
             placeholderTextColor={palette.muted}
+            value={busca}
+            onChangeText={setBusca}
           />
         </View>
 
@@ -231,7 +240,7 @@ export default function HomeScreen({ navigation }) {
         >
           <View>
             <Text style={styles.alertLabel}>PRODUTOS EM ALERTA</Text>
-            <Text style={styles.alertNumber}>12</Text>
+            <Text style={styles.alertNumber}>{erroEstoque ? "—" : totalAlertas}</Text>
             <Text style={styles.alertDescription}>
               Estoque baixo ou crítico
             </Text>
@@ -249,7 +258,7 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.statIconBox, { backgroundColor: isDarkTheme ? "#2a2450" : "#e8edff" }]}>
               <Feather name="archive" size={16} color={isDarkTheme ? "#aaa8ff" : "#3e5ef5"} />
             </View>
-            <Text style={[styles.statNumber, { color: palette.text }]}>256</Text>
+            <Text style={[styles.statNumber, { color: palette.text }]}>{erroEstoque ? "—" : produtos.length}</Text>
             <Text style={[styles.statLabel, { color: palette.muted }]}>PRODUTOS</Text>
           </View>
 
@@ -257,16 +266,16 @@ export default function HomeScreen({ navigation }) {
             <View style={[styles.statIconBox, { backgroundColor: isDarkTheme ? "#233046" : "#eaf4ff" }]}>
               <Feather name="activity" size={16} color={isDarkTheme ? "#7fb8ff" : "#2b6df6"} />
             </View>
-            <Text style={[styles.statNumber, { color: palette.text }]}>1.245</Text>
+            <Text style={[styles.statNumber, { color: palette.text }]}>{erroEstoque ? "—" : movimentosCount.toLocaleString("pt-BR")}</Text>
             <Text style={[styles.statLabel, { color: palette.muted }]}>MOVIMENTOS</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: palette.card, borderColor: palette.border }]}>
             <View style={[styles.statIconBox, { backgroundColor: isDarkTheme ? "#1f3a2a" : "#eafaf1" }]}>
-              <Ionicons name="checkmark-circle" size={16} color={isDarkTheme ? "#6bffa0" : "#1bb36a"} />
+              <Feather name="layers" size={16} color={isDarkTheme ? "#6bffa0" : "#1bb36a"} />
             </View>
-            <Text style={[styles.statNumber, { color: palette.text }]}>98%</Text>
-            <Text style={[styles.statLabel, { color: palette.muted }]}>ACURÁCIA</Text>
+            <Text style={[styles.statNumber, { color: palette.text }]}>{erroEstoque ? "—" : produtos.reduce((total, produto) => total + getStock(produto), 0).toLocaleString("pt-BR")}</Text>
+            <Text style={[styles.statLabel, { color: palette.muted }]}>UNIDADES</Text>
           </View>
 
         </View>
@@ -274,13 +283,15 @@ export default function HomeScreen({ navigation }) {
         {/* ===================== PRODUTOS EM DESTAQUE ===================== */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>Produtos em destaque</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("ListaProdutos")}>
             <Text style={[styles.sectionLink, { color: isDarkTheme ? "#aaa8ff" : "#4f6cf5" }]}>Ver todos</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.productList}>
-          {PRODUTOS_DESTAQUE.map(renderProduto)}
+          {produtosFiltrados.map((produto, index) => renderProduto({ ...produto, id: produto.id ?? produto._id ?? `${produto.codigo}-${index}` }))}
+          {!erroEstoque && produtosFiltrados.length === 0 ? <Text style={{ color: palette.muted, padding: 14 }}>Nenhum produto cadastrado ou correspondente à busca.</Text> : null}
+          {erroEstoque ? <Text style={{ color: palette.muted, padding: 14 }}>Não foi possível conectar à API. Confira o endereço do servidor.</Text> : null}
         </View>
 
       </ScrollView>

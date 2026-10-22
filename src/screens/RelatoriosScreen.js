@@ -1,573 +1,566 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
-  Image,
+  View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import Svg, {
-  Defs,
-  LinearGradient as SvgLinearGradient,
-  Stop,
-  Path,
-  Circle,
-  Rect,
-} from "react-native-svg";
-import KeepStockHeader from "../components/KeepStockHeader";
-import KeepStockBottomNav from "../components/KeepStockBottomNav";
-import SidebarModal from "../components/SidebarModal";
+
+import api from "../services/api";
+import {
+  extractList,
+  getErrorMessage,
+  getMinimumStock,
+  getProductName,
+  getStock,
+} from "../services/responseUtils";
+
+const C = {
+  bg: "#0b1220",
+  panel: "#121d2e",
+  border: "#243247",
+  text: "#f1f5f9",
+  muted: "#94a3b8",
+  green: "#72e0a4",
+  amber: "#fbbf24",
+  red: "#fb7185",
+};
 
 export default function RelatoriosScreen({ navigation }) {
-  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [produtos, setProdutos] = useState([]);
+  const [movimentos, setMovimentos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [erro, setErro] = useState("");
 
-  // Dados do gráfico de barras (Monthly Movements)
-  const monthlyMovements = [
-    { month: "Jan", in: 2800, out: 2400 },
-    { month: "Feb", in: 2600, out: 3000 },
-    { month: "Mar", in: 4200, out: 2700 },
-    { month: "Apr", in: 1800, out: 2200 },
-    { month: "May", in: 3800, out: 1900 },
-    { month: "Jun", in: 2200, out: 2600 },
-  ];
+  const carregar = useCallback(async (pull = false) => {
+    pull ? setRefreshing(true) : setLoading(true);
+    setErro("");
+
+    try {
+      const [p, m] = await Promise.all([
+        api.listarProdutos({ limit: 500 }),
+        api.listarMovimentacoes({ limit: 100 }),
+      ]);
+
+      setProdutos(extractList(p));
+      setMovimentos(extractList(m));
+    } catch (e) {
+      setErro(
+        getErrorMessage(
+          e,
+          "Não foi possível gerar o resumo dos relatórios."
+        )
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  // Calcula os indicadores do estoque.
+  const alertas = produtos.filter(
+    (p) =>
+      getMinimumStock(p) > 0 &&
+      getStock(p) <= getMinimumStock(p)
+  );
+
+  const unidades = produtos.reduce(
+    (total, p) => total + getStock(p),
+    0
+  );
+
+  // Conta as entradas e saídas retornadas pela API.
+  const entradas = movimentos.filter((m) =>
+    String(m.tipo || "")
+      .toUpperCase()
+      .includes("ENTRADA")
+  ).length;
+
+  const saidas = movimentos.filter((m) => {
+    const tipo = String(m.tipo || "").toUpperCase();
+
+    return tipo.includes("SAIDA") || tipo.includes("SAÍDA");
+  }).length;
+
+  const outros = Math.max(
+    0,
+    movimentos.length - entradas - saidas
+  );
 
   return (
-    <View style={styles.container}>
-      <KeepStockHeader
-        title="KeepStock"
-        onMenuPress={() => setSidebarVisible(true)}
-        onNotificationsPress={() => navigation.navigate("Notificacoes")}
-      />
+    <View style={s.container}>
+      {/* Cabeçalho */}
+      <View style={s.header}>
+        <TouchableOpacity
+          style={s.icon}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather
+            name="arrow-left"
+            size={20}
+            color={C.text}
+          />
+        </TouchableOpacity>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Título e Ações */}
-        <View style={styles.titleSection}>
-          <Text style={styles.pageTitle}>Analytics & Reports</Text>
-          <Text style={styles.pageSubtitle}>
-            Overview of inventory performance and metrics.
+        <View style={{ flex: 1 }}>
+          <Text style={s.kicker}>ACOMPANHAMENTO</Text>
+          <Text style={s.title}>Relatórios</Text>
+        </View>
+
+        <TouchableOpacity
+          style={s.icon}
+          onPress={() => carregar(true)}
+        >
+          <Feather
+            name="refresh-cw"
+            size={18}
+            color={C.green}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {loading ? (
+        <View style={s.center}>
+          <ActivityIndicator color={C.green} />
+          <Text style={s.muted}>
+            Calculando indicadores...
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => carregar(true)}
+              tintColor={C.green}
+            />
+          }
+        >
+          {/* Mensagem de erro */}
+          {erro ? (
+            <View style={s.error}>
+              <Feather
+                name="alert-circle"
+                size={18}
+                color={C.red}
+              />
+
+              <Text style={s.muted}>{erro}</Text>
+
+              <TouchableOpacity onPress={() => carregar()}>
+                <Text
+                  style={{
+                    color: C.green,
+                    fontWeight: "700",
+                  }}
+                >
+                  Tentar novamente
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {/* Resumo geral */}
+          <Text style={s.section}>Resumo atual</Text>
+
+          <View style={s.grid}>
+            <View style={s.metric}>
+              <Feather
+                name="package"
+                size={19}
+                color={C.green}
+              />
+
+              <Text style={s.value}>
+                {produtos.length}
+              </Text>
+
+              <Text style={s.label}>
+                Produtos cadastrados
+              </Text>
+            </View>
+
+            <View style={s.metric}>
+              <Feather
+                name="layers"
+                size={19}
+                color="#93c5fd"
+              />
+
+              <Text style={s.value}>
+                {unidades.toLocaleString("pt-BR")}
+              </Text>
+
+              <Text style={s.label}>
+                Unidades em estoque
+              </Text>
+            </View>
+
+            <View style={s.metric}>
+              <Feather
+                name="alert-triangle"
+                size={19}
+                color={C.amber}
+              />
+
+              <Text
+                style={[
+                  s.value,
+                  { color: C.amber },
+                ]}
+              >
+                {alertas.length}
+              </Text>
+
+              <Text style={s.label}>
+                Abaixo do mínimo
+              </Text>
+            </View>
+
+            <View style={s.metric}>
+              <Feather
+                name="activity"
+                size={19}
+                color="#c4b5fd"
+              />
+
+              <Text style={s.value}>
+                {movimentos.length}
+              </Text>
+
+              <Text style={s.label}>
+                Movimentações consultadas
+              </Text>
+            </View>
+          </View>
+
+          {/* Resumo das movimentações */}
+          <Text style={s.section}>
+            Movimentações retornadas pela API
           </Text>
 
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity style={styles.periodButton} activeOpacity={0.8}>
-              <Feather name="calendar" size={14} color="#cbd5e1" style={{ marginRight: 6 }} />
-              <Text style={styles.periodButtonText}>This Month</Text>
-            </TouchableOpacity>
+          <View style={s.panel}>
+            <View style={s.statLine}>
+              <Text style={s.label}>
+                Entradas registradas
+              </Text>
 
-            <TouchableOpacity style={styles.exportButton} activeOpacity={0.8}>
-              <Feather name="upload" size={14} color="#1e1b4b" style={{ marginRight: 6 }} />
-              <Text style={styles.exportButtonText}>Export</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Card 1: Turnover Rate */}
-        <View style={styles.metricCard}>
-          <View style={styles.metricCardHeader}>
-            <View style={[styles.metricIconWrap, { backgroundColor: "rgba(129, 140, 248, 0.18)" }]}>
-              <Feather name="rotate-cw" size={18} color="#a5b4fc" />
-            </View>
-            <View style={styles.badgeSuccess}>
-              <Text style={styles.badgeSuccessText}>↗ 12%</Text>
-            </View>
-          </View>
-          <Text style={styles.metricCardLabel}>TURNOVER RATE</Text>
-          <Text style={styles.metricCardValue}>4.2x</Text>
-        </View>
-
-        {/* Card 2: Total Valuation */}
-        <View style={styles.metricCard}>
-          <View style={styles.metricCardHeader}>
-            <View style={[styles.metricIconWrap, { backgroundColor: "rgba(52, 211, 153, 0.18)" }]}>
-              <Feather name="credit-card" size={18} color="#34d399" />
-            </View>
-            <View style={styles.badgeDanger}>
-              <Text style={styles.badgeDangerText}>↘ 2.4%</Text>
-            </View>
-          </View>
-          <Text style={styles.metricCardLabel}>TOTAL VALUATION</Text>
-          <Text style={styles.metricCardValue}>$1.24M</Text>
-        </View>
-
-        {/* Card 3: Low Stock Alerts */}
-        <View style={styles.metricCard}>
-          <View style={styles.metricCardHeader}>
-            <View style={[styles.metricIconWrap, { backgroundColor: "rgba(251, 146, 60, 0.18)" }]}>
-              <Feather name="alert-triangle" size={18} color="#fb923c" />
-            </View>
-          </View>
-          <Text style={styles.metricCardLabel}>LOW STOCK ALERTS</Text>
-          <View style={styles.reorderWrap}>
-            <Text style={styles.alertNumber}>24</Text>
-            <Text style={styles.reorderText}>items need reorder</Text>
-          </View>
-        </View>
-
-        {/* Gráfico 1: Stock Levels Over Time */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Stock Levels Over Time</Text>
-            <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="more-horizontal" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.chartBody}>
-            {/* Eixo Y de Legendas */}
-            <View style={styles.yAxisLabels}>
-              {["14.500", "14.000", "13.500", "13.000", "12.500", "12.000", "11.500", "11.000", "10.500", "10.000"].map((yVal) => (
-                <Text key={yVal} style={styles.axisLabelText}>{yVal}</Text>
-              ))}
+              <Text
+                style={[
+                  s.statValue,
+                  { color: C.green },
+                ]}
+              >
+                {entradas}
+              </Text>
             </View>
 
-            {/* Gráfico SVG de Linha e Área */}
-            <View style={styles.svgContainer}>
-              <Svg height="140" width="100%" viewBox="0 0 240 140">
-                <Defs>
-                  <SvgLinearGradient id="gradStock" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0%" stopColor="#818cf8" stopOpacity="0.45" />
-                    <Stop offset="100%" stopColor="#818cf8" stopOpacity="0.02" />
-                  </SvgLinearGradient>
-                </Defs>
+            <View style={s.separator} />
 
-                {/* Preenchimento da área com degradê */}
-                <Path
-                  d="M 10 90 C 35 110, 50 115, 75 80 C 100 50, 120 70, 145 68 C 170 30, 185 20, 205 24 C 220 28, 230 32, 235 34 L 235 140 L 10 140 Z"
-                  fill="url(#gradStock)"
-                />
+            <View style={s.statLine}>
+              <Text style={s.label}>
+                Saídas registradas
+              </Text>
 
-                {/* Linha curva */}
-                <Path
-                  d="M 10 90 C 35 110, 50 115, 75 80 C 100 50, 120 70, 145 68 C 170 30, 185 20, 205 24 C 220 28, 230 32, 235 34"
-                  fill="none"
-                  stroke="#c7d2fe"
-                  strokeWidth="2.5"
-                />
-
-                {/* Pontos nas coordenadas */}
-                <Circle cx="10" cy="90" r="3.5" fill="#f8fafc" />
-                <Circle cx="50" cy="105" r="3.5" fill="#f8fafc" />
-                <Circle cx="95" cy="65" r="3.5" fill="#f8fafc" />
-                <Circle cx="145" cy="68" r="3.5" fill="#f8fafc" />
-                <Circle cx="195" cy="22" r="3.5" fill="#f8fafc" />
-                <Circle cx="235" cy="34" r="3.5" fill="#f8fafc" />
-              </Svg>
-
-              {/* Rótulos do Eixo X */}
-              <View style={styles.xAxisLabels}>
-                {["Jan", "Feb", "Mar", "Apr", "May", "Jun"].map((m) => (
-                  <Text key={m} style={styles.axisLabelText}>{m}</Text>
-                ))}
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Gráfico 2: Monthly Movements (In/Out) */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Monthly Movements (In/Out)</Text>
-            <TouchableOpacity hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="more-horizontal" size={18} color="#94a3b8" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.chartBody}>
-            {/* Eixo Y */}
-            <View style={styles.yAxisLabelsBars}>
-              {["4.500", "4.000", "3.500", "3.000", "2.500", "2.000", "1.500", "1.000", "500", "0"].map((val) => (
-                <Text key={val} style={styles.axisLabelText}>{val}</Text>
-              ))}
+              <Text
+                style={[
+                  s.statValue,
+                  { color: C.red },
+                ]}
+              >
+                {saidas}
+              </Text>
             </View>
 
-            {/* Barras SVG */}
-            <View style={styles.svgContainer}>
-              <Svg height="140" width="100%" viewBox="0 0 240 140">
-                {monthlyMovements.map((item, idx) => {
-                  const xBase = 10 + idx * 38;
-                  const maxHeight = 120;
-                  const inHeight = (item.in / 4500) * maxHeight;
-                  const outHeight = (item.out / 4500) * maxHeight;
+            <View style={s.separator} />
 
-                  return (
-                    <React.Fragment key={item.month}>
-                      {/* Barra Inbound (Verde) */}
-                      <Rect
-                        x={xBase}
-                        y={130 - inHeight}
-                        width="8"
-                        height={inHeight}
-                        rx="4"
-                        fill="#34d399"
-                      />
-                      {/* Barra Outbound (Laranja) */}
-                      <Rect
-                        x={xBase + 12}
-                        y={130 - outHeight}
-                        width="8"
-                        height={outHeight}
-                        rx="4"
-                        fill="#fbbf24"
-                      />
-                    </React.Fragment>
-                  );
-                })}
-              </Svg>
+            <View style={s.statLine}>
+              <Text style={s.label}>Outros tipos</Text>
 
-              {/* Rótulos do Eixo X */}
-              <View style={styles.xAxisLabels}>
-                {monthlyMovements.map((m) => (
-                  <Text key={m.month} style={styles.axisLabelText}>{m.month}</Text>
-                ))}
-              </View>
+              <Text style={s.statValue}>
+                {outros}
+              </Text>
             </View>
           </View>
 
-          {/* Legenda */}
-          <View style={styles.legendRow}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: "#34d399" }]} />
-              <Text style={styles.legendText}>Inbound</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: "#fbbf24" }]} />
-              <Text style={styles.legendText}>Outbound</Text>
-            </View>
-          </View>
-        </View>
+          {/* Observação sobre os dados */}
+          <Text style={s.note}>
+            Os indicadores refletem os registros devolvidos
+            pela API. Para relatórios por período e
+            exportação em PDF/Excel, será necessário
+            implementar os filtros e o serviço de exportação
+            no backend ou no aplicativo.
+          </Text>
 
-        {/* Lista Top Selling Products */}
-        <View style={styles.productsSection}>
-          <View style={styles.productsHeader}>
-            <Text style={styles.productsSectionTitle}>Top Selling Products</Text>
-            <TouchableOpacity onPress={() => navigation.navigate("ListaProdutos")}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Produto 1 */}
-          <View style={styles.productCard}>
-            <Image
-              source={{
-                uri: "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?auto=format&fit=crop&w=200&q=80",
-              }}
-              style={styles.productThumb}
+          {/* Acesso ao histórico */}
+          <TouchableOpacity
+            style={s.action}
+            onPress={() => navigation.navigate("Historico")}
+          >
+            <Feather
+              name="list"
+              size={18}
+              color="#082016"
             />
-            <View style={styles.productDetails}>
-              <Text style={styles.productName}>Quantum Core Processor QX-9</Text>
-              <Text style={styles.productSku}>SKU: QX9-6821</Text>
-            </View>
-            <View style={styles.productStats}>
-              <Text style={styles.unitsCount}>1,204 units</Text>
-              <View style={styles.badgePill}>
-                <Text style={styles.badgePillText}>+15% vs last mo</Text>
-              </View>
-            </View>
-          </View>
 
-          {/* Produto 2 */}
-          <View style={styles.productCard}>
-            <Image
-              source={{
-                uri: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=200&q=80",
-              }}
-              style={styles.productThumb}
-            />
-            <View style={styles.productDetails}>
-              <Text style={styles.productName}>Proximity Sensor Array V2</Text>
-              <Text style={styles.productSku}>SKU: PSA-2214</Text>
-            </View>
-            <View style={styles.productStats}>
-              <Text style={styles.unitsCount}>582 units</Text>
-              <View style={styles.badgePill}>
-                <Text style={styles.badgePillText}>+8% vs last mo</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
+            <Text style={s.actionText}>
+              Consultar histórico completo
+            </Text>
+          </TouchableOpacity>
 
-      {/* Navegação Inferior */}
-      <KeepStockBottomNav activeTab="inicio" navigation={navigation} />
+          {/* Produtos com estoque baixo */}
+          <Text style={s.section}>
+            Produtos com estoque baixo
+          </Text>
 
-      {/* Menu Lateral Drawer */}
-      <SidebarModal
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        navigation={navigation}
-        currentScreen="Relatorios"
-      />
+          {alertas.length === 0 ? (
+            <View style={s.panel}>
+              <Text style={s.muted}>
+                Nenhum produto abaixo do mínimo configurado.
+              </Text>
+            </View>
+          ) : (
+            alertas.slice(0, 10).map((p, i) => (
+              <TouchableOpacity
+                key={String(p.id ?? p._id ?? i)}
+                style={s.product}
+                onPress={() =>
+                  navigation.navigate("DetalhesProduto", {
+                    produto: {
+                      ...p,
+                      nome: getProductName(p),
+                      estoque: getStock(p),
+                    },
+                  })
+                }
+              >
+                <View style={s.alertIcon}>
+                  <Feather
+                    name="alert-circle"
+                    size={17}
+                    color={C.amber}
+                  />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={s.productName}>
+                    {getProductName(p)}
+                  </Text>
+
+                  <Text style={s.label}>
+                    Saldo {getStock(p)} · mínimo{" "}
+                    {getMinimumStock(p)}
+                  </Text>
+                </View>
+
+                <Feather
+                  name="chevron-right"
+                  color={C.muted}
+                  size={18}
+                />
+              </TouchableOpacity>
+            ))
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0d131f",
+    backgroundColor: C.bg,
+    paddingTop: 52,
   },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  titleSection: {
     marginBottom: 20,
   },
-  pageTitle: {
-    color: "#f8fafc",
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    color: "#94a3b8",
-    fontSize: 12,
-    marginBottom: 16,
-  },
-  actionButtonsRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  periodButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#161f32",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+
+  icon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: "#202c44",
-  },
-  periodButtonText: {
-    color: "#cbd5e1",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  exportButton: {
-    flexDirection: "row",
+    borderColor: C.border,
     alignItems: "center",
-    backgroundColor: "#c7d2fe",
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-  },
-  exportButtonText: {
-    color: "#1e1b4b",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  metricCard: {
-    backgroundColor: "#161f32",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#202c44",
-  },
-  metricCardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  metricIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     justifyContent: "center",
-    alignItems: "center",
   },
-  badgeSuccess: {
-    backgroundColor: "rgba(52, 211, 153, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  badgeSuccessText: {
-    color: "#34d399",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  badgeDanger: {
-    backgroundColor: "rgba(248, 113, 113, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  badgeDangerText: {
-    color: "#f87171",
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  metricCardLabel: {
-    color: "#94a3b8",
+
+  kicker: {
+    color: C.green,
     fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.4,
+  },
+
+  title: {
+    color: C.text,
+    fontSize: 25,
     fontWeight: "700",
-    letterSpacing: 0.5,
-    marginBottom: 4,
+    marginTop: 3,
   },
-  metricCardValue: {
-    color: "#f8fafc",
-    fontSize: 26,
+
+  content: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+
+  section: {
+    color: C.text,
+    fontSize: 16,
     fontWeight: "700",
-  },
-  reorderWrap: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-  },
-  alertNumber: {
-    color: "#fbbf24",
-    fontSize: 26,
-    fontWeight: "700",
-  },
-  reorderText: {
-    color: "#cbd5e1",
-    fontSize: 13,
-  },
-  chartCard: {
-    backgroundColor: "#161f32",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#202c44",
-  },
-  chartHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  chartTitle: {
-    color: "#f8fafc",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  chartBody: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-  },
-  yAxisLabels: {
-    justifyContent: "space-between",
-    height: 140,
-    paddingRight: 8,
-  },
-  yAxisLabelsBars: {
-    justifyContent: "space-between",
-    height: 140,
-    paddingRight: 8,
-  },
-  axisLabelText: {
-    color: "#64748b",
-    fontSize: 8.5,
-  },
-  svgContainer: {
-    flex: 1,
-  },
-  xAxisLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
-    paddingHorizontal: 6,
-  },
-  legendRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 20,
-    marginTop: 14,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  legendText: {
-    color: "#94a3b8",
-    fontSize: 11,
-  },
-  productsSection: {
-    marginTop: 8,
     marginBottom: 12,
+    marginTop: 8,
   },
-  productsHeader: {
+
+  grid: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 24,
   },
-  productsSectionTitle: {
-    color: "#f8fafc",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  viewAllText: {
-    color: "#818cf8",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  productCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#161f32",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
+
+  metric: {
+    width: "48%",
+    flexGrow: 1,
+    minHeight: 125,
+    padding: 15,
+    backgroundColor: C.panel,
     borderWidth: 1,
-    borderColor: "#202c44",
+    borderColor: C.border,
+    borderRadius: 15,
   },
-  productThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: "#1e293b",
-    marginRight: 12,
+
+  value: {
+    color: C.text,
+    fontSize: 25,
+    fontWeight: "700",
+    marginTop: 12,
   },
-  productDetails: {
-    flex: 1,
+
+  label: {
+    color: C.muted,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 4,
   },
+
+  panel: {
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 15,
+    padding: 16,
+    marginBottom: 20,
+  },
+
+  statLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 5,
+  },
+
+  statValue: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: C.text,
+  },
+
+  separator: {
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 10,
+  },
+
+  note: {
+    color: C.muted,
+    fontSize: 11,
+    lineHeight: 17,
+    marginBottom: 15,
+  },
+
+  action: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    backgroundColor: C.green,
+    borderRadius: 13,
+    padding: 14,
+    marginBottom: 24,
+  },
+
+  actionText: {
+    color: "#082016",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+
+  product: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+
+  alertIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    backgroundColor: "#3a3220",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   productName: {
-    color: "#f8fafc",
-    fontSize: 12.5,
-    fontWeight: "600",
-    marginBottom: 3,
+    color: C.text,
+    fontSize: 13,
+    fontWeight: "700",
   },
-  productSku: {
-    color: "#94a3b8",
-    fontSize: 10.5,
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    padding: 24,
   },
-  productStats: {
-    alignItems: "flex-end",
-  },
-  unitsCount: {
-    color: "#f8fafc",
+
+  muted: {
+    color: C.muted,
     fontSize: 12,
-    fontWeight: "700",
-    marginBottom: 4,
+    lineHeight: 18,
   },
-  badgePill: {
-    backgroundColor: "rgba(52, 211, 153, 0.15)",
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  badgePillText: {
-    color: "#34d399",
-    fontSize: 9.5,
-    fontWeight: "700",
+
+  error: {
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 18,
+    gap: 8,
   },
 });

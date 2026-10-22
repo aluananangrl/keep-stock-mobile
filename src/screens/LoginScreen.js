@@ -167,13 +167,11 @@ export default function LoginScreen({ navigation }) {
       // VERIFICA TOKEN
       // ======================================================
 
-      if (!response.data.token) {
-
-        Alert.alert(
-          "Erro",
-          "O servidor não retornou o token de acesso."
-        );
-
+      const payload = response?.data?.data ?? response?.data;
+      const token = payload?.token ?? payload?.accessToken ?? payload?.access_token;
+      const usuario = payload?.user ?? payload?.usuario ?? payload?.usuarioAutenticado;
+      if (!token) {
+        Alert.alert("Erro", "O servidor respondeu, mas não retornou um token de acesso reconhecido. Confira o formato da resposta do endpoint /api/v1/auth/login.");
         return;
       }
 
@@ -184,7 +182,7 @@ export default function LoginScreen({ navigation }) {
 
       await SecureStore.setItemAsync(
         "token",
-        response.data.token
+        String(token)
       );
 
 
@@ -192,34 +190,34 @@ export default function LoginScreen({ navigation }) {
       // SALVA DADOS DO USUÁRIO
       // ======================================================
 
-      if (response.data.user) {
+      if (usuario) {
 
         // Salva usuário completo
         await SecureStore.setItemAsync(
           "user",
           JSON.stringify(
-            response.data.user
+            usuario
           )
         );
 
 
         // Salva nome
-        if (response.data.user.nome) {
+        if (usuario.nome) {
 
           await SecureStore.setItemAsync(
             "nome",
-            response.data.user.nome
+            usuario.nome
           );
 
         }
 
 
         // Salva e-mail
-        if (response.data.user.email) {
+        if (usuario.email) {
 
           await SecureStore.setItemAsync(
             "email",
-            response.data.user.email
+            usuario.email
           );
 
         }
