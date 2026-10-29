@@ -1,8 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -26,6 +22,10 @@ import {
   getStock,
 } from "../services/responseUtils";
 
+// ============================================================
+// CORES
+// ============================================================
+
 const C = {
   bg: "#0b1220",
   panel: "#121d2e",
@@ -37,25 +37,45 @@ const C = {
   red: "#fb7185",
 };
 
-// Procura o ID nos formatos comuns retornados pela API.
+// ============================================================
+// IDENTIFICAR O ID DO PRODUTO
+// ============================================================
+
 const getId = (produto) => {
   if (!produto || typeof produto !== "object") {
     return null;
   }
 
-  const id =
-    produto.id ??
-    produto.produto_id ??
-    produto.produtoId ??
-    produto.id_produto ??
-    produto._id;
+  const candidatos = [
+    produto.id,
+    produto.produto_id,
+    produto.produtoId,
+    produto.id_produto,
+    produto._id,
+    produto.ID,
+    produto.idProduto,
+    produto.produto?.id,
+    produto.produto?.produto_id,
+    produto.produto?._id,
+    produto.data?.id,
+    produto.data?.produto_id,
+    produto.data?.produto?.id,
+  ];
 
-  return id !== undefined && id !== null && String(id).trim() !== ""
-    ? id
-    : null;
+  const id = candidatos.find(
+    (valor) =>
+      valor !== undefined &&
+      valor !== null &&
+      String(valor).trim() !== ""
+  );
+
+  return id ?? null;
 };
 
-// Extrai o produto recebido pela navegação.
+// ============================================================
+// EXTRAIR PRODUTO DA NAVEGAÇÃO
+// ============================================================
+
 const getInitialProduct = (params) => {
   if (!params || typeof params !== "object") {
     return null;
@@ -65,19 +85,32 @@ const getInitialProduct = (params) => {
     params.produto ??
     params.product ??
     params.item ??
+    params.data?.produto ??
+    params.data ??
     params;
 
   if (!recebido || typeof recebido !== "object") {
     return null;
   }
 
-  return (
+  if (Array.isArray(recebido)) {
+    return null;
+  }
+
+  const produto =
     recebido.produto ??
     recebido.data?.produto ??
     recebido.data ??
-    recebido
-  );
+    recebido;
+
+  return produto && typeof produto === "object" && !Array.isArray(produto)
+    ? produto
+    : null;
 };
+
+// ============================================================
+// ID DO PRODUTO NA MOVIMENTAÇÃO
+// ============================================================
 
 const getMovementProductId = (movimentacao) =>
   movimentacao?.produto_id ??
@@ -87,8 +120,14 @@ const getMovementProductId = (movimentacao) =>
   movimentacao?.produto?._id ??
   null;
 
+// ============================================================
+// FORMATAR DATA
+// ============================================================
+
 const dateText = (value) => {
-  if (!value) return "Data não informada";
+  if (!value) {
+    return "Data não informada";
+  }
 
   const data = new Date(value);
 
@@ -97,10 +136,11 @@ const dateText = (value) => {
     : data.toLocaleString("pt-BR");
 };
 
-export default function DetalhesProdutoScreen({
-  navigation,
-  route,
-}) {
+// ============================================================
+// COMPONENTE PRINCIPAL
+// ============================================================
+
+export default function DetalhesProdutoScreen({ navigation, route }) {
   const params = route?.params || {};
 
   const produtoInicial = getInitialProduct(params);
@@ -108,6 +148,9 @@ export default function DetalhesProdutoScreen({
   const idRecebido =
     params.produtoId ??
     params.productId ??
+    params.id ??
+    params.produto_id ??
+    params.produtoIdSelecionado ??
     getId(produtoInicial);
 
   const [produto, setProduto] = useState(produtoInicial);
@@ -117,6 +160,10 @@ export default function DetalhesProdutoScreen({
   const [aba, setAba] = useState("Resumo");
 
   const produtoId = idRecebido;
+
+  // ==========================================================
+  // CARREGAR DADOS DO PRODUTO E HISTÓRICO
+  // ==========================================================
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -128,22 +175,17 @@ export default function DetalhesProdutoScreen({
         produtoId === null ||
         String(produtoId).trim() === ""
       ) {
+        console.log("PARÂMETROS RECEBIDOS:", params);
+        console.log("PRODUTO RECEBIDO:", produtoInicial);
+        console.log("ID RECEBIDO:", produtoId);
+
         throw new Error(
-          "Não foi recebido o ID do produto. Volte à lista e abra os detalhes novamente."
+          "O produto foi recebido, mas não contém um ID válido. Confira o retorno da API e a navegação."
         );
       }
 
-      const [produtoResponse, movimentosResponse] =
-        await Promise.all([
-          api.obterProduto(produtoId),
-
-          api
-            .listarMovimentacoes({
-              produto_id: produtoId,
-              limit: 100,
-            })
-            .catch(() => null),
-        ]);
+      // Busca os dados atualizados do produto.
+      const produtoResponse = await api.obterProduto(produtoId);
 
       const data = produtoResponse?.data;
 
@@ -158,30 +200,54 @@ export default function DetalhesProdutoScreen({
         typeof atualizado !== "object" ||
         Array.isArray(atualizado)
       ) {
-        throw new Error(
-          "A API não retornou um produto válido."
-        );
+        throw new Error("A API não retornou um produto válido.");
       }
 
-      setProduto(atualizado);
+      // Mantém o ID recebido se a resposta não trouxer um identificador.
+      const produtoAtualizado = {
+        ...atualizado,
+        id: getId(atualizado) ?? produtoId,
+      };
 
-      const lista = movimentosResponse
-        ? extractList(movimentosResponse)
-        : [];
+      setProduto(produtoAtualizado);
 
-      setMovimentacoes(
-        lista.filter((movimentacao) => {
-          const idMovimentacao =
-            getMovementProductId(movimentacao);
+      // O histórico é complementar: falha nele não impede
+      // a exibição dos detalhes do produto.
+      try {
+        const movimentosResponse = await api.listarMovimentacoes({
+          produto_id: produtoId,
+          limit: 100,
+        });
 
-          // Se a API não retornar o produto_id, mantém o registro.
-          return (
-            idMovimentacao == null ||
-            String(idMovimentacao) === String(produtoId)
-          );
-        })
-      );
+        const lista = extractList(movimentosResponse);
+
+        setMovimentacoes(
+          lista.filter((movimentacao) => {
+            const idMovimentacao =
+              getMovementProductId(movimentacao);
+
+            return (
+              idMovimentacao == null ||
+              String(idMovimentacao) === String(produtoId)
+            );
+          })
+        );
+      } catch (erroMovimentos) {
+        console.log(
+          "ERRO AO CARREGAR MOVIMENTAÇÕES:",
+          erroMovimentos?.response?.data ??
+            erroMovimentos?.message ??
+            erroMovimentos
+        );
+
+        setMovimentacoes([]);
+      }
     } catch (e) {
+      console.log(
+        "ERRO AO CARREGAR PRODUTO:",
+        e?.response?.data ?? e?.message ?? e
+      );
+
       setErro(
         getErrorMessage(
           e,
@@ -193,9 +259,17 @@ export default function DetalhesProdutoScreen({
     }
   }, [produtoId]);
 
+  // ==========================================================
+  // CARREGAR AO ABRIR A TELA
+  // ==========================================================
+
   useEffect(() => {
     carregar();
   }, [carregar]);
+
+  // ==========================================================
+  // DADOS PARA EXIBIÇÃO
+  // ==========================================================
 
   const nome = getProductName(produto || {});
   const codigo = getProductCode(produto || {});
@@ -204,46 +278,63 @@ export default function DetalhesProdutoScreen({
 
   const estoqueBaixo = minimo > 0 && estoque <= minimo;
 
-  const iniciarMovimento = (tipo) => {
-    if (!produtoId) {
-      setErro("Não foi possível identificar o produto.");
-      return;
-    }
-
-    navigation.navigate("ConfirmacaoMovimento", {
-      produto: {
-        ...produto,
-        id: produtoId,
-        nome,
-        codigo,
-        estoque,
-        quantidade_atual: estoque,
-        tipo,
-      },
-      produtoId,
-      tipo,
-    });
-  };
-
   const categoria =
     typeof produto?.categoria === "object"
-      ? produto?.categoria?.nome
+      ? produto?.categoria?.nome ?? "Não informada"
       : produto?.categoria ??
         produto?.categoria_nome ??
         "Não informada";
 
   const fornecedor =
     typeof produto?.fornecedor === "object"
-      ? produto?.fornecedor?.nome
+      ? produto?.fornecedor?.nome ?? "Não informado"
       : produto?.fornecedor ??
         produto?.fornecedor_nome ??
         "Não informado";
 
-  const preco =
-    produto?.preco ?? produto?.preco_unitario;
+  const preco = produto?.preco ?? produto?.preco_unitario;
+
+  // ==========================================================
+  // REGISTRAR ENTRADA OU SAÍDA
+  // ==========================================================
+
+  const iniciarMovimento = (tipo) => {
+    const id = getId(produto) ?? produtoId;
+
+    if (
+      id === undefined ||
+      id === null ||
+      String(id).trim() === ""
+    ) {
+      setErro(
+        "Não foi possível identificar o produto para registrar a movimentação."
+      );
+      return;
+    }
+
+    navigation.navigate("ConfirmacaoMovimento", {
+      produto: {
+        ...produto,
+        id,
+        nome,
+        codigo,
+        estoque,
+        quantidade_atual: estoque,
+        tipo,
+      },
+      produtoId: id,
+      tipo,
+    });
+  };
+
+  // ==========================================================
+  // INTERFACE
+  // ==========================================================
 
   return (
     <View style={s.container}>
+      {/* CABEÇALHO */}
+
       <View style={s.header}>
         <TouchableOpacity
           style={s.iconButton}
@@ -258,13 +349,8 @@ export default function DetalhesProdutoScreen({
         </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
-          <Text style={s.kicker}>
-            CADASTRO DE ESTOQUE
-          </Text>
-
-          <Text style={s.title}>
-            Detalhes do produto
-          </Text>
+          <Text style={s.kicker}>CADASTRO DE ESTOQUE</Text>
+          <Text style={s.title}>Detalhes do produto</Text>
         </View>
 
         <TouchableOpacity
@@ -279,6 +365,8 @@ export default function DetalhesProdutoScreen({
           />
         </TouchableOpacity>
       </View>
+
+      {/* CARREGAMENTO */}
 
       {loading && !produto ? (
         <View style={s.center}>
@@ -298,9 +386,7 @@ export default function DetalhesProdutoScreen({
             color={C.red}
           />
 
-          <Text style={s.errorText}>
-            {erro}
-          </Text>
+          <Text style={s.errorText}>{erro}</Text>
 
           <TouchableOpacity
             style={s.primary}
@@ -331,6 +417,8 @@ export default function DetalhesProdutoScreen({
             />
           }
         >
+          {/* MENSAGEM DE ERRO */}
+
           {erro ? (
             <View style={s.warning}>
               <Feather
@@ -338,11 +426,11 @@ export default function DetalhesProdutoScreen({
                 size={17}
                 color={C.amber}
               />
-              <Text style={s.warningText}>
-                {erro}
-              </Text>
+              <Text style={s.warningText}>{erro}</Text>
             </View>
           ) : null}
+
+          {/* CARTÃO DO PRODUTO */}
 
           <View style={s.productCard}>
             <View style={s.productIcon}>
@@ -374,55 +462,47 @@ export default function DetalhesProdutoScreen({
               >
                 <Text
                   style={{
-                    color: estoqueBaixo
-                      ? C.amber
-                      : C.green,
+                    color: estoqueBaixo ? C.amber : C.green,
                     fontSize: 11,
                     fontWeight: "700",
                   }}
                 >
                   {estoqueBaixo
-                    ? "Estoque baixo"
+                    ? "Estoque baixo ou no mínimo"
                     : "Estoque normal"}
                 </Text>
               </View>
             </View>
           </View>
 
+          {/* INDICADORES DE ESTOQUE */}
+
           <View style={s.metrics}>
             <View style={s.metric}>
-              <Text style={s.metricLabel}>
-                Saldo atual
-              </Text>
-              <Text style={s.metricValue}>
-                {estoque}
-              </Text>
-              <Text style={s.metricUnit}>
-                unidades
-              </Text>
+              <Text style={s.metricLabel}>Saldo atual</Text>
+              <Text style={s.metricValue}>{estoque}</Text>
+              <Text style={s.metricUnit}>unidades</Text>
             </View>
 
             <View style={s.metric}>
-              <Text style={s.metricLabel}>
-                Estoque mínimo
-              </Text>
+              <Text style={s.metricLabel}>Estoque mínimo</Text>
+
               <Text
                 style={[
                   s.metricValue,
                   {
-                    color: estoqueBaixo
-                      ? C.amber
-                      : C.text,
+                    color: estoqueBaixo ? C.amber : C.text,
                   },
                 ]}
               >
                 {minimo}
               </Text>
-              <Text style={s.metricUnit}>
-                unidades
-              </Text>
+
+              <Text style={s.metricUnit}>unidades</Text>
             </View>
           </View>
+
+          {/* AÇÕES DE ESTOQUE */}
 
           <View style={s.actions}>
             <TouchableOpacity
@@ -454,6 +534,8 @@ export default function DetalhesProdutoScreen({
             </TouchableOpacity>
           </View>
 
+          {/* ABAS */}
+
           <View style={s.tabs}>
             {["Resumo", "Histórico"].map((item) => (
               <TouchableOpacity
@@ -476,6 +558,8 @@ export default function DetalhesProdutoScreen({
             ))}
           </View>
 
+          {/* ABA RESUMO */}
+
           {aba === "Resumo" ? (
             <View style={s.infoCard}>
               <Info
@@ -491,14 +575,11 @@ export default function DetalhesProdutoScreen({
               <Info
                 label="Preço unitário"
                 value={
-                  preco != null
-                    ? Number(preco).toLocaleString(
-                        "pt-BR",
-                        {
-                          style: "currency",
-                          currency: "BRL",
-                        }
-                      )
+                  preco != null && Number.isFinite(Number(preco))
+                    ? Number(preco).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      })
                     : "Não informado"
                 }
               />
@@ -513,10 +594,12 @@ export default function DetalhesProdutoScreen({
 
               <Info
                 label="ID do produto"
-                value={String(produtoId)}
+                value={String(getId(produto) ?? produtoId)}
               />
             </View>
           ) : (
+            /* ABA HISTÓRICO */
+
             <View style={s.infoCard}>
               {movimentacoes.length === 0 ? (
                 <View style={s.empty}>
@@ -525,9 +608,9 @@ export default function DetalhesProdutoScreen({
                     size={24}
                     color={C.muted}
                   />
+
                   <Text style={s.muted}>
-                    Nenhuma movimentação encontrada
-                    para este produto.
+                    Nenhuma movimentação encontrada para este produto.
                   </Text>
                 </View>
               ) : (
@@ -583,6 +666,7 @@ export default function DetalhesProdutoScreen({
                         <Text style={s.movementTitle}>
                           {tipo}
                         </Text>
+
                         <Text style={s.muted}>
                           {dateText(
                             movimentacao?.data_hora ??
@@ -616,12 +700,14 @@ export default function DetalhesProdutoScreen({
   );
 }
 
+// ============================================================
+// COMPONENTE DE INFORMAÇÃO
+// ============================================================
+
 function Info({ label, value }) {
   return (
     <View style={s.infoRow}>
-      <Text style={s.infoLabel}>
-        {label}
-      </Text>
+      <Text style={s.infoLabel}>{label}</Text>
       <Text style={s.infoValue}>
         {String(value ?? "Não informado")}
       </Text>
@@ -629,12 +715,17 @@ function Info({ label, value }) {
   );
 }
 
+// ============================================================
+// ESTILOS
+// ============================================================
+
 const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
     paddingTop: 52,
   },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -642,6 +733,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
+
   iconButton: {
     width: 42,
     height: 42,
@@ -651,22 +743,26 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   kicker: {
     color: C.green,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.3,
   },
+
   title: {
     color: C.text,
     fontSize: 21,
     fontWeight: "700",
     marginTop: 3,
   },
+
   content: {
     paddingHorizontal: 20,
     paddingBottom: 35,
   },
+
   productCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -677,6 +773,7 @@ const s = StyleSheet.create({
     borderColor: C.border,
     borderRadius: 18,
   },
+
   productIcon: {
     width: 58,
     height: 58,
@@ -685,17 +782,20 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   productName: {
     color: C.text,
     fontSize: 18,
     fontWeight: "700",
     marginBottom: 5,
   },
+
   muted: {
     color: C.muted,
     fontSize: 12,
     lineHeight: 18,
   },
+
   badge: {
     alignSelf: "flex-start",
     paddingHorizontal: 9,
@@ -703,11 +803,13 @@ const s = StyleSheet.create({
     borderRadius: 7,
     marginTop: 9,
   },
+
   metrics: {
     flexDirection: "row",
     gap: 12,
     marginTop: 12,
   },
+
   metric: {
     flex: 1,
     backgroundColor: C.panel,
@@ -716,25 +818,30 @@ const s = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
   },
+
   metricLabel: {
     color: C.muted,
     fontSize: 11,
   },
+
   metricValue: {
     color: C.text,
     fontSize: 29,
     fontWeight: "800",
     marginTop: 8,
   },
+
   metricUnit: {
     color: C.muted,
     fontSize: 10,
     marginTop: 1,
   },
+
   actions: {
     gap: 10,
     marginTop: 14,
   },
+
   entryButton: {
     backgroundColor: C.green,
     borderRadius: 12,
@@ -744,11 +851,13 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+
   actionText: {
     color: "#082016",
     fontSize: 13,
     fontWeight: "800",
   },
+
   exitButton: {
     borderWidth: 1,
     borderColor: "#63303b",
@@ -760,11 +869,13 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+
   exitText: {
     color: C.red,
     fontSize: 13,
     fontWeight: "800",
   },
+
   tabs: {
     flexDirection: "row",
     marginTop: 24,
@@ -772,23 +883,28 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+
   tab: {
     paddingVertical: 12,
     paddingHorizontal: 16,
     marginRight: 8,
   },
+
   activeTab: {
     borderBottomWidth: 2,
     borderBottomColor: C.green,
   },
+
   tabText: {
     color: C.muted,
     fontSize: 13,
     fontWeight: "600",
   },
+
   activeTabText: {
     color: C.green,
   },
+
   infoCard: {
     backgroundColor: C.panel,
     borderWidth: 1,
@@ -796,31 +912,37 @@ const s = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 16,
   },
+
   infoRow: {
     paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+
   infoLabel: {
     color: C.muted,
     fontSize: 11,
     marginBottom: 6,
   },
+
   infoValue: {
     color: C.text,
     fontSize: 13,
     lineHeight: 19,
   },
+
   movement: {
     flexDirection: "row",
     alignItems: "center",
     gap: 11,
     paddingVertical: 14,
   },
+
   movementBorder: {
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+
   movementIcon: {
     width: 36,
     height: 36,
@@ -828,21 +950,25 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   movementTitle: {
     color: C.text,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: 4,
   },
+
   movementQty: {
     fontSize: 16,
     fontWeight: "800",
   },
+
   empty: {
     alignItems: "center",
     paddingVertical: 24,
     gap: 10,
   },
+
   center: {
     flex: 1,
     alignItems: "center",
@@ -850,12 +976,14 @@ const s = StyleSheet.create({
     padding: 28,
     gap: 12,
   },
+
   errorText: {
     color: C.red,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 19,
   },
+
   warning: {
     flexDirection: "row",
     gap: 8,
@@ -864,22 +992,26 @@ const s = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 12,
   },
+
   warningText: {
     flex: 1,
     color: C.amber,
     fontSize: 12,
     lineHeight: 18,
   },
+
   primary: {
     backgroundColor: C.green,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 10,
   },
+
   primaryText: {
     color: "#082016",
     fontWeight: "800",
   },
+
   secondary: {
     borderWidth: 1,
     borderColor: C.border,
@@ -887,6 +1019,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
   },
+
   secondaryText: {
     color: C.text,
     fontWeight: "700",

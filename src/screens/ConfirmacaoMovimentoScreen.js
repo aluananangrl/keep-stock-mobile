@@ -26,6 +26,12 @@ const COLORS = {
   red: "#fb7185",
 };
 
+const normalizarTexto = (valor) =>
+  String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+
 export default function ConfirmacaoMovimentoScreen({
   navigation,
   route,
@@ -39,30 +45,86 @@ export default function ConfirmacaoMovimentoScreen({
   const [concluido, setConcluido] = useState(false);
   const [erro, setErro] = useState("");
 
-  const tipo = String(produto.tipo || "ENTRADA");
+  const tipo = String(
+    route?.params?.tipo || produto.tipo || "ENTRADA"
+  );
+
+  const tipoNormalizado = normalizarTexto(tipo);
+  const operacaoEhSaida = tipoNormalizado === "SAIDA";
+
+  const corOperacao = operacaoEhSaida
+    ? COLORS.red
+    : COLORS.green;
 
   async function registrarMovimentacao() {
+    if (salvando || concluido) {
+      return;
+    }
+
     setErro("");
 
+    // Valida o tipo de movimentação.
+    if (
+      tipoNormalizado !== "ENTRADA" &&
+      tipoNormalizado !== "SAIDA"
+    ) {
+      setErro("Tipo de movimentação inválido.");
+      return;
+    }
+
+    // Valida a quantidade informada.
     const quantidadeNumerica = Number(quantidade);
 
     if (
-      !Number.isInteger(quantidadeNumerica) ||
+      quantidade.trim() === "" ||
+      !Number.isSafeInteger(quantidadeNumerica) ||
       quantidadeNumerica <= 0
     ) {
       setErro("Informe uma quantidade inteira maior que zero.");
       return;
     }
 
+    // Identifica o produto.
     const produtoId =
+      route?.params?.produtoId ??
       produto.id ??
-      produto._id ??
-      produto.produto_id;
+      produto.produto_id ??
+      produto.produtoId ??
+      produto.id_produto ??
+      produto._id;
 
-    if (!produtoId) {
+    if (
+      produtoId === undefined ||
+      produtoId === null ||
+      String(produtoId).trim() === ""
+    ) {
       setErro(
-        "Este código não está vinculado a um produto cadastrado na API. " +
-          "Não foi registrada nenhuma movimentação."
+        "Não foi possível identificar o produto. " +
+          "Volte à lista e selecione um produto cadastrado."
+      );
+      return;
+    }
+
+    // Impede saída maior que o estoque disponível.
+    const estoqueAtual = Number(getStock(produto));
+
+    if (
+      !Number.isFinite(estoqueAtual) ||
+      estoqueAtual < 0
+    ) {
+      setErro(
+        "Não foi possível verificar o estoque atual. " +
+          "Atualize os dados do produto e tente novamente."
+      );
+      return;
+    }
+
+    if (
+      operacaoEhSaida &&
+      quantidadeNumerica > estoqueAtual
+    ) {
+      setErro(
+        `Estoque insuficiente. Disponível: ${estoqueAtual} unidades.`
       );
       return;
     }
@@ -70,11 +132,6 @@ export default function ConfirmacaoMovimentoScreen({
     setSalvando(true);
 
     try {
-      const tipoNormalizado = tipo
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase();
-
       await api.criarMovimentacao({
         produto_id: produtoId,
         tipo: tipoNormalizado,
@@ -89,7 +146,7 @@ export default function ConfirmacaoMovimentoScreen({
         getErrorMessage(
           error,
           "Não foi possível registrar a movimentação. " +
-            "O estoque não foi confirmado como atualizado."
+            "Confira a conexão e tente novamente."
         )
       );
     } finally {
@@ -97,14 +154,15 @@ export default function ConfirmacaoMovimentoScreen({
     }
   }
 
-  const operacaoEhSaida = tipo
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase() === "SAIDA";
-
-  const corOperacao = operacaoEhSaida
-    ? COLORS.red
-    : COLORS.green;
+  function voltarAosDetalhes() {
+    // Volta à tela anterior, que normalmente é a de detalhes.
+    // A tela de detalhes deve recarregar os dados ao receber foco.
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate("Home");
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -113,6 +171,7 @@ export default function ConfirmacaoMovimentoScreen({
         <TouchableOpacity
           style={styles.iconButton}
           onPress={() => navigation.goBack()}
+          disabled={salvando}
           accessibilityLabel="Voltar"
         >
           <Feather
@@ -165,7 +224,7 @@ export default function ConfirmacaoMovimentoScreen({
           <Text style={styles.label}>Produto</Text>
 
           <Text style={styles.productName}>
-            {getProductName(produto)}
+            {getProductName(produto) || "Produto não identificado"}
           </Text>
 
           <View style={styles.divider} />
@@ -180,7 +239,7 @@ export default function ConfirmacaoMovimentoScreen({
               { color: corOperacao },
             ]}
           >
-            {tipo}
+            {tipoNormalizado === "SAIDA" ? "SAÍDA" : tipo}
           </Text>
 
           <View style={styles.divider} />
@@ -193,12 +252,17 @@ export default function ConfirmacaoMovimentoScreen({
 
               <TextInput
                 value={quantidade}
-                onChangeText={setQuantidade}
+                onChangeText={(valor) => {
+                  setQuantidade(valor);
+                  if (erro) setErro("");
+                }}
                 keyboardType="number-pad"
                 editable={!salvando}
                 style={styles.input}
                 placeholder="Ex.: 10"
                 placeholderTextColor="#64748b"
+                maxLength={9}
+                accessibilityLabel="Quantidade de unidades"
               />
 
               <Text style={styles.hint}>
@@ -262,16 +326,16 @@ export default function ConfirmacaoMovimentoScreen({
         ) : (
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => navigation.navigate("Home")}
+            onPress={voltarAosDetalhes}
           >
             <Feather
-              name="home"
+              name="check-circle"
               size={18}
               color="#082016"
             />
 
             <Text style={styles.primaryText}>
-              Voltar ao início
+              Voltar ao produto
             </Text>
           </TouchableOpacity>
         )}

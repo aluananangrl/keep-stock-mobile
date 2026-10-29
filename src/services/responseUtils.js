@@ -40,10 +40,53 @@ export function getMinimumStock(product) {
   return Number.isFinite(number) ? number : 0;
 }
 
-export function getErrorMessage(error, fallback = "Não foi possível concluir a operação.") {
-  const serverMessage = error?.response?.data?.message || error?.response?.data?.erro || error?.response?.data?.error;
-  if (serverMessage) return String(serverMessage);
-  if (error?.code === "ECONNABORTED") return "A API demorou para responder. Confira se o servidor está ativo e tente novamente.";
-  if (error?.message === "Network Error") return "Não foi possível conectar à API. Confirme o IP, a porta 3000, a rede Wi-Fi e se o servidor aceita conexões externas.";
-  return error?.message || fallback;
+
+export function getErrorMessage(error, fallback = "Ocorreu um erro inesperado.") {
+  const data = error?.response?.data;
+
+  // Mensagens retornadas pela API
+  const mensagem =
+    data?.message ??
+    data?.mensagem ??
+    data?.error ??
+    data?.erro ??
+    error?.message;
+
+  if (typeof mensagem === "string" && mensagem.trim()) {
+    return mensagem;
+  }
+
+  // Alguns backends retornam os detalhes como objeto ou lista
+  if (mensagem && typeof mensagem === "object") {
+    if (Array.isArray(mensagem)) {
+      return mensagem
+        .map((item) =>
+          typeof item === "string"
+            ? item
+            : item?.message ?? item?.mensagem ?? JSON.stringify(item)
+        )
+        .join("\n");
+    }
+
+    return (
+      mensagem.message ??
+      mensagem.mensagem ??
+      JSON.stringify(mensagem)
+    );
+  }
+
+  if (data && typeof data === "object") {
+    return JSON.stringify(data);
+  }
+
+  if (error?.code === "ECONNABORTED") {
+    return "A conexão com a API demorou demais. Tente novamente.";
+  }
+
+  if (!error?.response) {
+    return "Não foi possível conectar à API. Confira o endereço do servidor e a conexão.";
+  }
+
+  return fallback;
 }
+

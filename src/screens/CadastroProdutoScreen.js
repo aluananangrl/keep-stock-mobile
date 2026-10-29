@@ -1,0 +1,763 @@
+import React, { useCallback, useEffect, useState } from "react";
+
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import { Feather } from "@expo/vector-icons";
+import api from "../services/api";
+
+import {
+  extractList,
+  getErrorMessage,
+} from "../services/responseUtils";
+
+const C = {
+  bg: "#0b1220",
+  panel: "#121d2e",
+  border: "#243247",
+  text: "#f1f5f9",
+  muted: "#94a3b8",
+  green: "#72e0a4",
+  red: "#fb7185",
+};
+
+export default function CadastroProdutoScreen({ navigation }) {
+  const [nome, setNome] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [codigoBarras, setCodigoBarras] = useState("");
+  const [quantidade, setQuantidade] = useState("0");
+  const [minimo, setMinimo] = useState("0");
+
+  const [categorias, setCategorias] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
+
+  const [categoria, setCategoria] = useState(null);
+  const [fornecedor, setFornecedor] = useState(null);
+
+  const [seletor, setSeletor] = useState("");
+  const [carregandoListas, setCarregandoListas] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+
+  const carregarListas = useCallback(async () => {
+    setCarregandoListas(true);
+    setErro("");
+
+    try {
+      const [resCategorias, resFornecedores] = await Promise.all([
+        api.listarCategorias({ limit: 200 }),
+        api.listarFornecedores({ limit: 200 }),
+      ]);
+
+      setCategorias(extractList(resCategorias));
+      setFornecedores(extractList(resFornecedores));
+    } catch (e) {
+      setErro(
+        getErrorMessage(
+          e,
+          "Não foi possível carregar categorias e fornecedores."
+        )
+      );
+    } finally {
+      setCarregandoListas(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarListas();
+  }, [carregarListas]);
+
+  const obterId = (item) =>
+    item?.id ?? item?._id ?? item?.categoria_id ?? item?.fornecedor_id;
+
+  const obterNome = (item) =>
+    item?.nome ?? item?.name ?? "Sem nome";
+
+  const validarInteiro = (valor) => {
+    if (String(valor).trim() === "") return null;
+
+    const numero = Number(valor);
+
+    if (!Number.isSafeInteger(numero) || numero < 0) {
+      return null;
+    }
+
+    return numero;
+  };
+
+  const cadastrar = async () => {
+    if (!nome.trim()) {
+      Alert.alert("Campo obrigatório", "Informe o nome do produto.");
+      return;
+    }
+
+    if (!codigo.trim()) {
+      Alert.alert("Campo obrigatório", "Informe o código do produto.");
+      return;
+    }
+
+    if (!categoria || obterId(categoria) == null) {
+      Alert.alert("Categoria obrigatória", "Selecione uma categoria.");
+      return;
+    }
+
+    if (!fornecedor || obterId(fornecedor) == null) {
+      Alert.alert("Fornecedor obrigatório", "Selecione um fornecedor.");
+      return;
+    }
+
+    const quantidadeInicial = validarInteiro(quantidade);
+    const quantidadeMinima = validarInteiro(minimo);
+
+    if (quantidadeInicial === null || quantidadeMinima === null) {
+      Alert.alert(
+        "Quantidade inválida",
+        "O estoque inicial e o mínimo devem ser números inteiros iguais ou maiores que zero."
+      );
+      return;
+    }
+
+    const dados = {
+      nome: nome.trim(),
+      codigo: codigo.trim(),
+      descricao: descricao.trim() || null,
+      categoria_id: obterId(categoria),
+      fornecedor_id: obterId(fornecedor),
+      quantidade_atual: quantidadeInicial,
+      quantidade_minima: quantidadeMinima,
+      codigo_barras: codigoBarras.trim() || null,
+    };
+
+    setSalvando(true);
+    setErro("");
+
+    try {
+      await api.criarProduto(dados);
+
+      Alert.alert(
+        "Produto cadastrado",
+        "O produto foi salvo com sucesso.",
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
+    } catch (e) {
+      const mensagem = getErrorMessage(
+        e,
+        "Não foi possível cadastrar o produto."
+      );
+
+      setErro(mensagem);
+      Alert.alert("Erro no cadastro", mensagem);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const opcoes =
+    seletor === "categoria" ? categorias : fornecedores;
+
+  const itemSelecionado =
+    seletor === "categoria" ? categoria : fornecedor;
+
+  const selecionar = (item) => {
+    if (seletor === "categoria") {
+      setCategoria(item);
+    } else {
+      setFornecedor(item);
+    }
+
+    setSeletor("");
+  };
+
+  const campo = (
+    label,
+    valor,
+    alterar,
+    placeholder,
+    opcoes = {}
+  ) => (
+    <View style={s.field}>
+      <Text style={s.label}>{label}</Text>
+
+      <TextInput
+        style={[
+          s.input,
+          opcoes.multiline && s.multiline,
+        ]}
+        value={valor}
+        onChangeText={alterar}
+        placeholder={placeholder}
+        placeholderTextColor="#64748b"
+        keyboardType={opcoes.keyboardType || "default"}
+        multiline={opcoes.multiline || false}
+        textAlignVertical={opcoes.multiline ? "top" : "center"}
+        maxLength={opcoes.maxLength}
+        editable={!salvando}
+        autoCapitalize={opcoes.autoCapitalize || "sentences"}
+      />
+    </View>
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={s.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <View style={s.header}>
+        <TouchableOpacity
+          style={s.back}
+          onPress={() => navigation.goBack()}
+          disabled={salvando}
+        >
+          <Feather name="arrow-left" size={21} color={C.text} />
+        </TouchableOpacity>
+
+        <View style={{ flex: 1 }}>
+          <Text style={s.kicker}>GESTÃO DE ESTOQUE</Text>
+          <Text style={s.title}>Novo produto</Text>
+        </View>
+
+        <View style={s.headerIcon}>
+          <Feather name="package" size={21} color={C.green} />
+        </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={s.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={s.intro}>
+          <Text style={s.sectionTitle}>Dados do produto</Text>
+          <Text style={s.helper}>
+            Preencha os campos para cadastrar um novo item no inventário.
+          </Text>
+        </View>
+
+        {campo("Nome *", nome, setNome, "Ex.: Teclado sem fio", {
+          maxLength: 200,
+        })}
+
+        {campo("Código do produto *", codigo, setCodigo, "Ex.: PROD-001", {
+          maxLength: 100,
+          autoCapitalize: "characters",
+        })}
+
+        {campo(
+          "Código de barras",
+          codigoBarras,
+          setCodigoBarras,
+          "Digite ou leia o código de barras",
+          { maxLength: 100 }
+        )}
+
+        {campo(
+          "Descrição",
+          descricao,
+          setDescricao,
+          "Detalhes do produto (opcional)",
+          { multiline: true, maxLength: 2000 }
+        )}
+
+        <View style={s.field}>
+          <Text style={s.label}>Categoria *</Text>
+
+          <TouchableOpacity
+            style={s.select}
+            onPress={() => setSeletor("categoria")}
+            disabled={salvando || carregandoListas}
+          >
+            <Text
+              style={[
+                s.selectText,
+                !categoria && s.placeholder,
+              ]}
+              numberOfLines={1}
+            >
+              {categoria
+                ? obterNome(categoria)
+                : "Selecione uma categoria"}
+            </Text>
+
+            <Feather
+              name="chevron-down"
+              size={18}
+              color={C.muted}
+            />
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.field}>
+          <Text style={s.label}>Fornecedor *</Text>
+
+          <TouchableOpacity
+            style={s.select}
+            onPress={() => setSeletor("fornecedor")}
+            disabled={salvando || carregandoListas}
+          >
+            <Text
+              style={[
+                s.selectText,
+                !fornecedor && s.placeholder,
+              ]}
+              numberOfLines={1}
+            >
+              {fornecedor
+                ? obterNome(fornecedor)
+                : "Selecione um fornecedor"}
+            </Text>
+
+            <Feather
+              name="chevron-down"
+              size={18}
+              color={C.muted}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {carregandoListas ? (
+          <View style={s.inlineLoading}>
+            <ActivityIndicator color={C.green} />
+            <Text style={s.helper}>
+              Carregando categorias e fornecedores...
+            </Text>
+          </View>
+        ) : (
+          <>
+            {categorias.length === 0 && (
+              <Text style={s.warning}>
+                Nenhuma categoria encontrada. Cadastre uma categoria antes
+                de criar o produto.
+              </Text>
+            )}
+
+            {fornecedores.length === 0 && (
+              <Text style={s.warning}>
+                Nenhum fornecedor encontrado. Cadastre um fornecedor antes
+                de criar o produto.
+              </Text>
+            )}
+
+            {erro ? (
+              <TouchableOpacity
+                style={s.retry}
+                onPress={carregarListas}
+                disabled={salvando}
+              >
+                <Text style={s.retryText}>
+                  Recarregar categorias e fornecedores
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </>
+        )}
+
+        <View style={s.divider} />
+
+        <Text style={s.sectionTitle}>Controle de estoque</Text>
+
+        <Text style={s.helper}>
+          Informe quantidades inteiras iguais ou maiores que zero.
+        </Text>
+
+        <View style={s.quantityRow}>
+          <View style={{ flex: 1 }}>
+            {campo(
+              "Estoque inicial",
+              quantidade,
+              setQuantidade,
+              "0",
+              { keyboardType: "numeric" }
+            )}
+          </View>
+
+          <View style={{ flex: 1 }}>
+            {campo(
+              "Estoque mínimo",
+              minimo,
+              setMinimo,
+              "0",
+              { keyboardType: "numeric" }
+            )}
+          </View>
+        </View>
+
+        {erro ? (
+          <View style={s.errorBox}>
+            <Feather name="alert-circle" size={18} color={C.red} />
+            <Text style={s.errorText}>{erro}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[
+            s.saveButton,
+            (salvando || carregandoListas) && s.disabled,
+          ]}
+          onPress={cadastrar}
+          disabled={salvando || carregandoListas}
+          activeOpacity={0.8}
+        >
+          {salvando ? (
+            <ActivityIndicator color={C.bg} />
+          ) : (
+            <Feather name="check" size={19} color={C.bg} />
+          )}
+
+          <Text style={s.saveText}>
+            {salvando ? "Salvando produto..." : "Cadastrar produto"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={s.cancelButton}
+          onPress={() => navigation.goBack()}
+          disabled={salvando}
+        >
+          <Text style={s.cancelText}>Cancelar</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      <Modal
+        visible={Boolean(seletor)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSeletor("")}
+      >
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>
+                {seletor === "categoria"
+                  ? "Selecionar categoria"
+                  : "Selecionar fornecedor"}
+              </Text>
+
+              <TouchableOpacity onPress={() => setSeletor("")}>
+                <Feather name="x" size={22} color={C.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={s.modalList}>
+              {opcoes.map((item, index) => {
+                const id = obterId(item);
+                const chave = String(id ?? index);
+                const selecionado =
+                  String(id) === String(obterId(itemSelecionado));
+
+                return (
+                  <TouchableOpacity
+                    key={chave}
+                    style={s.option}
+                    onPress={() => selecionar(item)}
+                  >
+                    <Text style={s.optionText}>
+                      {obterNome(item)}
+                    </Text>
+
+                    {selecionado ? (
+                      <Feather
+                        name="check"
+                        size={18}
+                        color={C.green}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {opcoes.length === 0 ? (
+                <Text style={s.helper}>
+                  Nenhum registro disponível.
+                </Text>
+              ) : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
+  );
+}
+
+const s = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: C.bg,
+  },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "ios" ? 54 : 24,
+    paddingBottom: 18,
+  },
+
+  back: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    borderWidth: 1,
+    borderColor: C.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  headerIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: "#18332b",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  kicker: {
+    color: C.green,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+
+  title: {
+    color: C.text,
+    fontSize: 24,
+    fontWeight: "700",
+    marginTop: 3,
+  },
+
+  content: {
+    paddingHorizontal: 20,
+    paddingBottom: 35,
+  },
+
+  intro: {
+    marginBottom: 18,
+  },
+
+  sectionTitle: {
+    color: C.text,
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+
+  helper: {
+    color: C.muted,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  field: {
+    marginBottom: 15,
+  },
+
+  label: {
+    color: C.text,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+
+  input: {
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    color: C.text,
+    fontSize: 14,
+    minHeight: 47,
+  },
+
+  multiline: {
+    minHeight: 90,
+    paddingTop: 12,
+  },
+
+  select: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingHorizontal: 13,
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 12,
+  },
+
+  selectText: {
+    color: C.text,
+    fontSize: 13,
+    flex: 1,
+  },
+
+  placeholder: {
+    color: "#64748b",
+  },
+
+  inlineLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 15,
+  },
+
+  warning: {
+    color: "#fbbf24",
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+
+  retry: {
+    alignSelf: "flex-start",
+    paddingVertical: 9,
+    marginBottom: 10,
+  },
+
+  retryText: {
+    color: C.green,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: C.border,
+    marginVertical: 20,
+  },
+
+  quantityRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 15,
+  },
+
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 9,
+    backgroundColor: "#301d28",
+    borderWidth: 1,
+    borderColor: "#613044",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 15,
+  },
+
+  errorText: {
+    flex: 1,
+    color: C.red,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+
+  saveButton: {
+    minHeight: 49,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 9,
+    backgroundColor: C.green,
+    borderRadius: 13,
+    marginTop: 10,
+  },
+
+  saveText: {
+    color: C.bg,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  disabled: {
+    opacity: 0.6,
+  },
+
+  cancelButton: {
+    minHeight: 45,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+
+  cancelText: {
+    color: C.muted,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    padding: 22,
+  },
+
+  modalCard: {
+    maxHeight: "75%",
+    backgroundColor: C.panel,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 18,
+    padding: 16,
+  },
+
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+
+  modalTitle: {
+    color: C.text,
+    fontSize: 16,
+    fontWeight: "700",
+    flex: 1,
+  },
+
+  modalList: {
+    marginTop: 8,
+  },
+
+  option: {
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+
+  optionText: {
+    color: C.text,
+    fontSize: 13,
+    flex: 1,
+  },
+});

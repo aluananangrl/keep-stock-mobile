@@ -1,9 +1,10 @@
+
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
-  "http://10.89.240.86:3000/api/v1";
+  "http://10.89.240.67:3000/api/v1";
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
@@ -16,18 +17,30 @@ export const http = axios.create({
 
 const PUBLIC_ROUTES = ["/auth/login", "/auth/register"];
 
-// Adiciona o token JWT nas rotas protegidas
+const isPublicRoute = (url = "") => {
+  const path = url.split("?")[0].replace(/\/+$/, "");
+  return PUBLIC_ROUTES.some((route) => path.endsWith(route));
+};
+
+const limparSessao = async () => {
+  await Promise.all([
+    SecureStore.deleteItemAsync("token"),
+    SecureStore.deleteItemAsync("user"),
+    SecureStore.deleteItemAsync("nome"),
+    SecureStore.deleteItemAsync("email"),
+  ]);
+};
+
+// Adiciona o token JWT às requisições protegidas.
 http.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync("token");
-    const path = (config.url || "").split("?")[0];
+    if (!isPublicRoute(config.url)) {
+      const token = await SecureStore.getItemAsync("token");
 
-    if (
-      token &&
-      !PUBLIC_ROUTES.some((route) => path.endsWith(route))
-    ) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     return config;
@@ -35,22 +48,22 @@ http.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Trata erros de autenticação
+// Limpa a sessão quando a API retorna 401 em uma rota protegida.
 http.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const path = (error?.config?.url || "").split("?")[0];
+    const config = error?.config;
 
     if (
       error?.response?.status === 401 &&
-      !PUBLIC_ROUTES.some((route) => path.endsWith(route))
+      config &&
+      !isPublicRoute(config.url)
     ) {
-      await Promise.all([
-        SecureStore.deleteItemAsync("token"),
-        SecureStore.deleteItemAsync("user"),
-        SecureStore.deleteItemAsync("nome"),
-        SecureStore.deleteItemAsync("email"),
-      ]);
+      try {
+        await limparSessao();
+      } catch (storageError) {
+        console.warn("Não foi possível limpar a sessão:", storageError);
+      }
     }
 
     return Promise.reject(error);
@@ -58,30 +71,18 @@ http.interceptors.response.use(
 );
 
 const apiService = {
-  // =========================
   // AUTENTICAÇÃO
-  // =========================
-  cadastrar: (dados) =>
-    http.post("/auth/register", dados),
+  cadastrar: (dados) => http.post("/auth/register", dados),
 
-  login: (dados) =>
-    http.post("/auth/login", dados),
+  login: (dados) => http.post("/auth/login", dados),
 
-  me: () =>
-    http.get("/auth/me"),
+  me: () => http.get("/auth/me"),
 
   logout: async () => {
-    await Promise.all([
-      SecureStore.deleteItemAsync("token"),
-      SecureStore.deleteItemAsync("user"),
-      SecureStore.deleteItemAsync("nome"),
-      SecureStore.deleteItemAsync("email"),
-    ]);
+    await limparSessao();
   },
 
-  // =========================
   // USUÁRIOS
-  // =========================
   listarUsuarios: (params = {}) =>
     http.get("/usuarios", { params }),
 
@@ -100,9 +101,7 @@ const apiService = {
   excluirUsuario: (id) =>
     http.delete(`/usuarios/${id}`),
 
-  // =========================
   // ASSINATURAS
-  // =========================
   minhaAssinatura: () =>
     http.get("/assinaturas/minha"),
 
@@ -118,9 +117,7 @@ const apiService = {
   atualizarStatusAssinatura: (id, dados) =>
     http.patch(`/assinaturas/${id}/status`, dados),
 
-  // =========================
   // CATEGORIAS
-  // =========================
   listarCategorias: (params = {}) =>
     http.get("/categorias", { params }),
 
@@ -136,9 +133,7 @@ const apiService = {
   excluirCategoria: (id) =>
     http.delete(`/categorias/${id}`),
 
-  // =========================
   // FORNECEDORES
-  // =========================
   listarFornecedores: (params = {}) =>
     http.get("/fornecedores", { params }),
 
@@ -154,9 +149,7 @@ const apiService = {
   excluirFornecedor: (id) =>
     http.delete(`/fornecedores/${id}`),
 
-  // =========================
   // PRODUTOS
-  // =========================
   listarProdutos: (params = {}) =>
     http.get("/produtos", { params }),
 
@@ -191,9 +184,7 @@ const apiService = {
     });
   },
 
-  // =========================
   // MOVIMENTAÇÕES DE ESTOQUE
-  // =========================
   listarMovimentacoes: (params = {}) =>
     http.get("/movimentacoes", { params }),
 
@@ -203,9 +194,7 @@ const apiService = {
   criarMovimentacao: (dados) =>
     http.post("/movimentacoes", dados),
 
-  // =========================
   // HISTÓRICO
-  // =========================
   listarHistorico: (params = {}) =>
     http.get("/historico", { params }),
 
