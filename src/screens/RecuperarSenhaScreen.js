@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 
 import {
@@ -16,7 +17,6 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import api from "../services/api";
 import fundoLogin from "../../assets/fundo-login.png";
@@ -28,7 +28,6 @@ import fundoLogin from "../../assets/fundo-login.png";
 export default function RecuperarSenhaScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState("");
-
   const [etapa, setEtapa] = useState("email");
   const [enviando, setEnviando] = useState(false);
 
@@ -44,7 +43,10 @@ export default function RecuperarSenhaScreen({ navigation }) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(emailFormatado)) {
-      Alert.alert("E-mail inválido", "Por favor, informe um e-mail válido.");
+      Alert.alert(
+        "E-mail inválido",
+        "Por favor, informe um e-mail válido."
+      );
       return;
     }
 
@@ -59,18 +61,18 @@ export default function RecuperarSenhaScreen({ navigation }) {
 
       Alert.alert(
         "Solicitação recebida",
-        "Se o e-mail estiver cadastrado, você receberá um código de recuperação.",
+        "Se o e-mail estiver cadastrado, você receberá um código de recuperação."
       );
     } catch (error) {
       console.log(
         "Erro ao enviar código:",
-        error.response?.data || error.message,
+        error.response?.data || error.message
       );
 
       Alert.alert(
         "Erro ao enviar código",
         error.response?.data?.message ||
-          "Não foi possível solicitar o código. Tente novamente.",
+          "Não foi possível solicitar o código. Tente novamente."
       );
     } finally {
       setEnviando(false);
@@ -78,7 +80,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
   }
 
   // ============================================================
-  // VERIFICAR CÓDIGO RECEBIDO
+  // VERIFICAR CÓDIGO
   // ============================================================
 
   async function handleVerificarCodigo() {
@@ -89,7 +91,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
     if (!/^\d{6}$/.test(codigoFormatado)) {
       Alert.alert(
         "Código inválido",
-        "Digite o código de 6 dígitos recebido por e-mail.",
+        "Digite o código de 6 dígitos recebido por e-mail."
       );
       return;
     }
@@ -97,7 +99,10 @@ export default function RecuperarSenhaScreen({ navigation }) {
     setEnviando(true);
 
     try {
-      await api.verificarCodigo(email, codigoFormatado);
+      await api.verificarCodigo(
+        email,
+        codigoFormatado
+      );
 
       navigation.navigate("NovaSenha", {
         email,
@@ -106,12 +111,13 @@ export default function RecuperarSenhaScreen({ navigation }) {
     } catch (error) {
       console.log(
         "Erro ao verificar código:",
-        error.response?.data || error.message,
+        error.response?.data || error.message
       );
 
       Alert.alert(
         "Código inválido",
-        error.response?.data?.message || "O código está incorreto ou expirou.",
+        error.response?.data?.message ||
+          "O código está incorreto ou expirou."
       );
     } finally {
       setEnviando(false);
@@ -144,28 +150,35 @@ export default function RecuperarSenhaScreen({ navigation }) {
         translucent={false}
       />
 
-      {/* =============================================== */}
-      {/* IMAGEM DE FUNDO - CAMADA INDEPENDENTE */}
-      {/* =============================================== */}
+      {/* ====================================================== */}
+      {/* IMAGEM DE FUNDO */}
+      {/* ====================================================== */}
 
-      <View style={styles.backgroundContainer} pointerEvents="none">
-        <Image
-          source={fundoLogin}
-          style={styles.backgroundImage}
-          resizeMode="cover"
-        />
+      {/* <Image
+        source={fundoLogin}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+        pointerEvents="none"
+      /> */}
 
-        <View style={styles.overlay} />
-      </View>
+      {/* CAMADA ESCURA SOBRE A IMAGEM */}
+      <View
+        style={styles.overlay}
+        pointerEvents="none"
+      />
 
-      {/* =============================================== */}
-      {/* CONTEÚDO DA TELA */}
-      {/* =============================================== */}
+      {/* ====================================================== */}
+      {/* CONTEÚDO PRINCIPAL - ACIMA DA IMAGEM */}
+      {/* ====================================================== */}
 
-      <SafeAreaView style={styles.safeArea}>
+      <View style={styles.contentContainer}>
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={
+            Platform.OS === "ios"
+              ? "padding"
+              : undefined
+          }
         >
           <ScrollView
             style={styles.scrollView}
@@ -173,9 +186,9 @@ export default function RecuperarSenhaScreen({ navigation }) {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* ======================================= */}
+            {/* ================================================== */}
             {/* BOTÃO VOLTAR */}
-            {/* ======================================= */}
+            {/* ================================================== */}
 
             <View style={styles.headerWrap}>
               <TouchableOpacity
@@ -183,13 +196,17 @@ export default function RecuperarSenhaScreen({ navigation }) {
                 onPress={handleVoltar}
                 activeOpacity={0.7}
               >
-                <Ionicons name="arrow-back" size={25} color="#FFFFFF" />
+                <Ionicons
+                  name="arrow-back"
+                  size={25}
+                  color="#FFFFFF"
+                />
               </TouchableOpacity>
             </View>
 
-            {/* ======================================= */}
-            {/* CARD DE RECUPERAÇÃO */}
-            {/* ======================================= */}
+            {/* ================================================== */}
+            {/* CARD PRINCIPAL */}
+            {/* ================================================== */}
 
             <View style={styles.card}>
               {/* ÍCONE SUPERIOR */}
@@ -209,7 +226,9 @@ export default function RecuperarSenhaScreen({ navigation }) {
               {/* TÍTULO */}
 
               <Text style={styles.title}>
-                {etapa === "email" ? "Recuperar Senha" : "Verificar Código"}
+                {etapa === "email"
+                  ? "Recuperar Senha"
+                  : "Verificar Código"}
               </Text>
 
               {/* DESCRIÇÃO */}
@@ -220,19 +239,23 @@ export default function RecuperarSenhaScreen({ navigation }) {
                   : `Digite o código de 6 dígitos enviado para ${email}.`}
               </Text>
 
-              {/* =================================== */}
-              {/* CAMPO DE E-MAIL */}
-              {/* =================================== */}
+              {/* ================================================== */}
+              {/* CAMPO DE E-MAIL OU CÓDIGO */}
+              {/* ================================================== */}
 
-              {etapa === "email" ? (
-                <View style={styles.inputBox}>
-                  <Ionicons
-                    name="mail-outline"
-                    size={21}
-                    color="#8495B5"
-                    style={styles.inputIcon}
-                  />
+              <View style={styles.inputBox}>
+                <Ionicons
+                  name={
+                    etapa === "email"
+                      ? "mail-outline"
+                      : "keypad-outline"
+                  }
+                  size={21}
+                  color="#8495B5"
+                  style={styles.inputIcon}
+                />
 
+                {etapa === "email" ? (
                   <TextInput
                     style={styles.input}
                     placeholder="E-mail corporativo"
@@ -247,66 +270,65 @@ export default function RecuperarSenhaScreen({ navigation }) {
                     returnKeyType="done"
                     onSubmitEditing={handleEnviarCodigo}
                   />
-                </View>
-              ) : (
-                /* ================================= */
-                /* CAMPO DO CÓDIGO */
-                /* ================================= */
-
-                <View style={styles.inputBox}>
-                  <Ionicons
-                    name="keypad-outline"
-                    size={23}
-                    color="#8495B5"
-                    style={styles.inputIcon}
-                  />
-
+                ) : (
                   <TextInput
                     style={styles.input}
                     placeholder="Código de 6 dígitos"
                     placeholderTextColor="#8495B5"
                     value={codigo}
                     onChangeText={(texto) =>
-                      setCodigo(texto.replace(/\D/g, ""))
+                      setCodigo(
+                        texto.replace(/\D/g, "")
+                      )
                     }
                     keyboardType="number-pad"
                     maxLength={6}
                     editable={!enviando}
                   />
-                </View>
-              )}
+                )}
+              </View>
 
-              {/* =================================== */}
+              {/* ================================================== */}
               {/* BOTÃO PRINCIPAL */}
-              {/* =================================== */}
+              {/* ================================================== */}
 
               <TouchableOpacity
-                style={[styles.button, enviando && styles.buttonDisabled]}
+                style={[
+                  styles.button,
+                  enviando && styles.buttonDisabled,
+                ]}
                 onPress={
-                  etapa === "email" ? handleEnviarCodigo : handleVerificarCodigo
+                  etapa === "email"
+                    ? handleEnviarCodigo
+                    : handleVerificarCodigo
                 }
-                activeOpacity={0.8}
                 disabled={enviando}
+                activeOpacity={0.8}
               >
                 {enviando ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator
+                    size="small"
+                    color="#FFFFFF"
+                  />
                 ) : (
                   <Text style={styles.buttonText}>
-                    {etapa === "email" ? "Enviar Código" : "Verificar Código"}
+                    {etapa === "email"
+                      ? "Enviar Código"
+                      : "Verificar Código"}
                   </Text>
                 )}
               </TouchableOpacity>
 
-              {/* =================================== */}
+              {/* ================================================== */}
               {/* REENVIAR CÓDIGO */}
-              {/* =================================== */}
+              {/* ================================================== */}
 
               {etapa === "codigo" && (
                 <TouchableOpacity
                   style={styles.backLoginButton}
                   onPress={handleEnviarCodigo}
-                  activeOpacity={0.7}
                   disabled={enviando}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.backText}>
                     Não recebeu? Reenviar código
@@ -314,48 +336,48 @@ export default function RecuperarSenhaScreen({ navigation }) {
                 </TouchableOpacity>
               )}
 
-              {/* =================================== */}
+              {/* ================================================== */}
               {/* VOLTAR PARA LOGIN */}
-              {/* =================================== */}
+              {/* ================================================== */}
 
               <TouchableOpacity
                 style={styles.backLoginButton}
-                onPress={() => navigation.navigate("Login")}
-                activeOpacity={0.7}
+                onPress={() => {
+                  navigation.navigate("Login");
+                }}
                 disabled={enviando}
+                activeOpacity={0.7}
               >
-                <Text style={styles.backText}>Voltar para o Login</Text>
+                <Text style={styles.backText}>
+                  Voltar para o Login
+                </Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
 
 // ============================================================
-// ESTILOS
+// ESTILOS COMPLETOS
 // ============================================================
 
 const styles = StyleSheet.create({
-  // ==========================================================
+  // ============================================================
   // CONTAINER PRINCIPAL
-  // ==========================================================
+  // ============================================================
 
   container: {
     flex: 1,
     backgroundColor: "#080E21",
+    position: "relative",
   },
 
-  // ==========================================================
-  // FUNDO DA TELA
-  // ==========================================================
-
-  backgroundContainer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: "hidden",
-  },
+  // ============================================================
+  // IMAGEM DE FUNDO
+  // ============================================================
 
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
@@ -363,28 +385,34 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 
+  // ============================================================
+  // CAMADA ESCURA
+  // ============================================================
+
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(4, 9, 28, 0.36)",
   },
 
-  // ==========================================================
-  // CAMADA DO CONTEÚDO
-  // ==========================================================
+  // ============================================================
+  // CONTEÚDO ACIMA DA IMAGEM
+  // ============================================================
 
-  safeArea: {
+  contentContainer: {
     flex: 1,
+    width: "100%",
+    position: "relative",
+    zIndex: 10,
+    elevation: 10,
     backgroundColor: "transparent",
   },
 
   keyboardContainer: {
     flex: 1,
-    backgroundColor: "transparent",
   },
 
   scrollView: {
     flex: 1,
-    backgroundColor: "transparent",
   },
 
   scroll: {
@@ -395,9 +423,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // ==========================================================
-  // BOTÃO VOLTAR
-  // ==========================================================
+  // ============================================================
+  // CABEÇALHO
+  // ============================================================
 
   headerWrap: {
     width: "100%",
@@ -411,22 +439,28 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
+
     backgroundColor: "rgba(19, 29, 55, 0.90)",
+
     borderWidth: 1,
     borderColor: "rgba(145, 143, 255, 0.30)",
   },
 
-  // ==========================================================
+  // ============================================================
   // CARD PRINCIPAL
-  // ==========================================================
+  // ============================================================
 
   card: {
     width: "100%",
+
     backgroundColor: "rgba(12, 22, 47, 0.96)",
+
     borderRadius: 28,
+
     paddingHorizontal: 22,
     paddingTop: 30,
     paddingBottom: 30,
+
     borderWidth: 1.5,
     borderColor: "#6658E8",
 
@@ -435,29 +469,35 @@ const styles = StyleSheet.create({
       width: 0,
       height: 8,
     },
+
     shadowOpacity: 0.25,
     shadowRadius: 20,
+
     elevation: 12,
   },
 
-  // ==========================================================
+  // ============================================================
   // ÍCONE SUPERIOR
-  // ==========================================================
+  // ============================================================
 
   iconWrap: {
     width: 76,
     height: 76,
+
     borderRadius: 22,
+
     backgroundColor: "rgba(116, 111, 191, 0.28)",
+
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
+
     marginBottom: 24,
   },
 
-  // ==========================================================
+  // ============================================================
   // TÍTULO
-  // ==========================================================
+  // ============================================================
 
   title: {
     color: "#FFFFFF",
@@ -468,9 +508,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
 
-  // ==========================================================
+  // ============================================================
   // DESCRIÇÃO
-  // ==========================================================
+  // ============================================================
 
   subtitle: {
     color: "#A5B3D2",
@@ -480,19 +520,23 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
-  // ==========================================================
+  // ============================================================
   // CAMPO DE ENTRADA
-  // ==========================================================
+  // ============================================================
 
   inputBox: {
     width: "100%",
     height: 62,
+
     flexDirection: "row",
     alignItems: "center",
+
     backgroundColor: "rgba(21, 34, 59, 0.95)",
+
     borderWidth: 1,
     borderColor: "#364769",
     borderRadius: 18,
+
     marginBottom: 24,
   },
 
@@ -503,30 +547,38 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: "100%",
+
     color: "#FFFFFF",
     fontSize: 15,
+
     paddingHorizontal: 14,
   },
 
-  // ==========================================================
+  // ============================================================
   // BOTÃO PRINCIPAL
-  // ==========================================================
+  // ============================================================
 
   button: {
     width: "100%",
     minHeight: 60,
+
     borderRadius: 30,
+
     backgroundColor: "#5B4BFF",
+
     justifyContent: "center",
     alignItems: "center",
+
     paddingHorizontal: 12,
     marginBottom: 22,
 
     shadowColor: "#5B4BFF",
+
     shadowOffset: {
       width: 0,
       height: 5,
     },
+
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
@@ -543,9 +595,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // ==========================================================
+  // ============================================================
   // LINKS INFERIORES
-  // ==========================================================
+  // ============================================================
 
   backLoginButton: {
     paddingVertical: 8,

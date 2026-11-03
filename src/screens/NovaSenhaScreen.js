@@ -139,12 +139,12 @@ export default function NovaSenhaScreen({
       />
 
       {/* FUNDO */}
-      <Image
+      {/* <Image
         source={fundoLogin}
         style={styles.backgroundImage}
         resizeMode="cover"
         pointerEvents="none"
-      />
+      /> */}
 
       <View
         style={styles.overlay}

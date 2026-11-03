@@ -37,7 +37,7 @@ function AppNavigator() {
     <NavigationContainer theme={theme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack.Navigator
         initialRouteName="Login"
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: true }}
       >
         <Stack.Screen name="Cadastro" component={CadastroScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -69,9 +69,9 @@ function AppNavigator() {
         <Stack.Screen name="QRCodeProduto" component={QRCodeProdutoScreen}
           options={{ title: "QR Code do produto" }}/>
         <Stack.Screen name="CadastroProduto" component={CadastroProdutoScreen} />
-        <Stack.Screen name="NovaSenha" component={NovaSenhaScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+          <Stack.Screen name="NovaSenha" component={NovaSenhaScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
   );
 }
 
