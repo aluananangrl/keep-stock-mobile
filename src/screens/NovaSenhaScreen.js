@@ -19,24 +19,29 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
+
+// ============================================================
+// IMAGEM DE FUNDO
+// ============================================================
+
 import fundoLogin from "../../assets/fundo-login.png";
 
 // ============================================================
 // COMPONENTE PRINCIPAL
 // ============================================================
 
-export default function NovaSenhaScreen({
-  navigation,
-  route,
-}) {
+export default function NovaSenhaScreen({ navigation, route }) {
   const { email, codigo } = route.params || {};
+
+  // ==========================================================
+  // ESTADOS
+  // ==========================================================
 
   const [senha, setSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
 
   const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [mostrarConfirmar, setMostrarConfirmar] =
-    useState(false);
+  const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
 
   const [salvando, setSalvando] = useState(false);
 
@@ -113,12 +118,12 @@ export default function NovaSenhaScreen({
     } catch (error) {
       console.log(
         "Erro ao redefinir senha:",
-        error.response?.data || error.message
+        error?.response?.data || error?.message
       );
 
       Alert.alert(
         "Erro ao alterar senha",
-        error.response?.data?.message ||
+        error?.response?.data?.message ||
           "Não foi possível redefinir a senha. O código pode ter expirado."
       );
     } finally {
@@ -127,44 +132,54 @@ export default function NovaSenhaScreen({
   }
 
   // ==========================================================
-  // INTERFACE
+  // INTERFACE PRINCIPAL
   // ==========================================================
 
   return (
-    <View style={styles.container}>
+    <View style={styles.background}>
+
       <StatusBar
         barStyle="light-content"
         backgroundColor="#080E21"
-        translucent
+        translucent={false}
       />
 
-      {/* FUNDO */}
-      {/* <Image
+      {/* ==================================================== */}
+      {/* IMAGEM DE FUNDO - MESMO MÉTODO DO LOGIN */}
+      {/* ==================================================== */}
+
+      <Image
         source={fundoLogin}
         style={styles.backgroundImage}
         resizeMode="cover"
         pointerEvents="none"
-      /> */}
-
-      <View
-        style={styles.overlay}
-        pointerEvents="none"
+        accessible={false}
       />
 
+      {/* ==================================================== */}
+      {/* CONTEÚDO ACIMA DA IMAGEM */}
+      {/* ==================================================== */}
+
       <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.container}
+        behavior={
+          Platform.OS === "ios" ? "padding" : undefined
+        }
       >
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* VOLTAR */}
+          {/* ================================================== */}
+          {/* BOTÃO VOLTAR */}
+          {/* ================================================== */}
+
           <View style={styles.headerWrap}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => navigation.goBack()}
+              activeOpacity={0.8}
             >
               <Ionicons
                 name="arrow-back"
@@ -174,8 +189,18 @@ export default function NovaSenhaScreen({
             </TouchableOpacity>
           </View>
 
-          {/* CARD */}
+          {/* ================================================== */}
+          {/* CARD PRINCIPAL */}
+          {/* ================================================== */}
+
           <View style={styles.card}>
+
+            {/* LINHA ROXA SUPERIOR */}
+
+            <View style={styles.topLine} />
+
+            {/* ÍCONE */}
+
             <View style={styles.iconWrap}>
               <Ionicons
                 name="lock-open-outline"
@@ -184,16 +209,22 @@ export default function NovaSenhaScreen({
               />
             </View>
 
+            {/* TÍTULO */}
+
             <Text style={styles.title}>
               Criar Nova Senha
             </Text>
 
+            {/* SUBTÍTULO */}
+
             <Text style={styles.subtitle}>
-              Crie uma nova senha para sua conta
-              KeepStock.
+              Crie uma nova senha para sua conta KeepStock.
             </Text>
 
-            {/* NOVA SENHA */}
+            {/* ============================================== */}
+            {/* CAMPO NOVA SENHA */}
+            {/* ============================================== */}
+
             <View style={styles.inputBox}>
               <Ionicons
                 name="lock-closed-outline"
@@ -217,6 +248,7 @@ export default function NovaSenhaScreen({
                 onPress={() =>
                   setMostrarSenha(!mostrarSenha)
                 }
+                disabled={salvando}
               >
                 <Ionicons
                   name={
@@ -230,7 +262,10 @@ export default function NovaSenhaScreen({
               </TouchableOpacity>
             </View>
 
-            {/* CONFIRMAR SENHA */}
+            {/* ============================================== */}
+            {/* CONFIRMAR NOVA SENHA */}
+            {/* ============================================== */}
+
             <View style={styles.inputBox}>
               <Ionicons
                 name="shield-checkmark-outline"
@@ -254,6 +289,7 @@ export default function NovaSenhaScreen({
                 onPress={() =>
                   setMostrarConfirmar(!mostrarConfirmar)
                 }
+                disabled={salvando}
               >
                 <Ionicons
                   name={
@@ -267,7 +303,10 @@ export default function NovaSenhaScreen({
               </TouchableOpacity>
             </View>
 
-            {/* SALVAR */}
+            {/* ============================================== */}
+            {/* BOTÃO SALVAR */}
+            {/* ============================================== */}
+
             <TouchableOpacity
               style={[
                 styles.button,
@@ -286,14 +325,22 @@ export default function NovaSenhaScreen({
               )}
             </TouchableOpacity>
 
+            {/* ============================================== */}
+            {/* VOLTAR PARA O LOGIN */}
+            {/* ============================================== */}
+
             <TouchableOpacity
               style={styles.backLoginButton}
-              onPress={() => navigation.navigate("Login")}
+              onPress={() =>
+                navigation.navigate("Login")
+              }
+              disabled={salvando}
             >
               <Text style={styles.backText}>
                 Voltar para o Login
               </Text>
             </TouchableOpacity>
+
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -302,45 +349,60 @@ export default function NovaSenhaScreen({
 }
 
 // ============================================================
-// ESTILOS
+// ESTILOS COMPLETOS
 // ============================================================
 
 const styles = StyleSheet.create({
-  container: {
+
+  // ==========================================================
+  // CONTAINER PRINCIPAL - IGUAL AO LOGIN
+  // ==========================================================
+
+  background: {
     flex: 1,
     backgroundColor: "#080E21",
-    position: "relative",
   },
+
+  // ==========================================================
+  // IMAGEM DE FUNDO - IGUAL AO LOGIN
+  // ==========================================================
 
   backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: "100%",
     height: "100%",
-    zIndex: 0,
   },
 
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(4, 9, 28, 0.36)",
-    zIndex: 1,
-  },
+  // ==========================================================
+  // CONTEÚDO NA FRENTE
+  // ==========================================================
 
-  keyboardContainer: {
+  container: {
     flex: 1,
-    position: "relative",
-    zIndex: 2,
+    zIndex: 1,
+    elevation: 1,
+    backgroundColor: "transparent",
   },
+
+  // ==========================================================
+  // SCROLL
+  // ==========================================================
 
   scroll: {
     flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: 22,
-    paddingTop:
-      Platform.OS === "android"
-        ? (StatusBar.currentHeight || 24) + 35
-        : 65,
+    paddingTop: 35,
     paddingBottom: 40,
   },
+
+  // ==========================================================
+  // BOTÃO VOLTAR
+  // ==========================================================
 
   headerWrap: {
     width: "100%",
@@ -359,15 +421,21 @@ const styles = StyleSheet.create({
     borderColor: "rgba(145, 143, 255, 0.24)",
   },
 
+  // ==========================================================
+  // CARD PRINCIPAL
+  // ==========================================================
+
   card: {
     width: "100%",
-    backgroundColor: "rgba(12, 22, 47, 0.94)",
+    backgroundColor: "rgba(12, 22, 47, 0.90)",
     borderRadius: 28,
     paddingHorizontal: 22,
     paddingTop: 30,
     paddingBottom: 30,
     borderWidth: 1.5,
     borderColor: "#6658E8",
+    overflow: "hidden",
+
     shadowColor: "#5B4BFF",
     shadowOffset: {
       width: 0,
@@ -375,8 +443,25 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 20,
-    elevation: 12,
+    elevation: 8,
   },
+
+  // ==========================================================
+  // LINHA SUPERIOR
+  // ==========================================================
+
+  topLine: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: "#6554FF",
+  },
+
+  // ==========================================================
+  // ÍCONE
+  // ==========================================================
 
   iconWrap: {
     width: 76,
@@ -389,6 +474,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
 
+  // ==========================================================
+  // TÍTULO
+  // ==========================================================
+
   title: {
     color: "#FFFFFF",
     fontSize: 26,
@@ -397,6 +486,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
+  // ==========================================================
+  // SUBTÍTULO
+  // ==========================================================
+
   subtitle: {
     color: "#A5B3D2",
     fontSize: 14,
@@ -404,6 +497,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 30,
   },
+
+  // ==========================================================
+  // INPUTS
+  // ==========================================================
 
   inputBox: {
     width: "100%",
@@ -426,6 +523,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
 
+  // ==========================================================
+  // BOTÃO SALVAR
+  // ==========================================================
+
   button: {
     width: "100%",
     minHeight: 60,
@@ -446,6 +547,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
+
+  // ==========================================================
+  // VOLTAR LOGIN
+  // ==========================================================
 
   backLoginButton: {
     paddingVertical: 8,

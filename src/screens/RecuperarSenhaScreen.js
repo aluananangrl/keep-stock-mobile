@@ -19,6 +19,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
+
+// ============================================================
+// IMAGEM DE FUNDO - MESMA DO LOGIN
+// ============================================================
+
 import fundoLogin from "../../assets/fundo-login.png";
 
 // ============================================================
@@ -26,14 +31,18 @@ import fundoLogin from "../../assets/fundo-login.png";
 // ============================================================
 
 export default function RecuperarSenhaScreen({ navigation }) {
+  // ==========================================================
+  // ESTADOS
+  // ==========================================================
+
   const [email, setEmail] = useState("");
   const [codigo, setCodigo] = useState("");
   const [etapa, setEtapa] = useState("email");
   const [enviando, setEnviando] = useState(false);
 
-  // ============================================================
+  // ==========================================================
   // ENVIAR CÓDIGO DE RECUPERAÇÃO
-  // ============================================================
+  // ==========================================================
 
   async function handleEnviarCodigo() {
     if (enviando) return;
@@ -66,12 +75,12 @@ export default function RecuperarSenhaScreen({ navigation }) {
     } catch (error) {
       console.log(
         "Erro ao enviar código:",
-        error.response?.data || error.message
+        error?.response?.data || error?.message
       );
 
       Alert.alert(
         "Erro ao enviar código",
-        error.response?.data?.message ||
+        error?.response?.data?.message ||
           "Não foi possível solicitar o código. Tente novamente."
       );
     } finally {
@@ -79,9 +88,9 @@ export default function RecuperarSenhaScreen({ navigation }) {
     }
   }
 
-  // ============================================================
+  // ==========================================================
   // VERIFICAR CÓDIGO
-  // ============================================================
+  // ==========================================================
 
   async function handleVerificarCodigo() {
     if (enviando) return;
@@ -111,12 +120,12 @@ export default function RecuperarSenhaScreen({ navigation }) {
     } catch (error) {
       console.log(
         "Erro ao verificar código:",
-        error.response?.data || error.message
+        error?.response?.data || error?.message
       );
 
       Alert.alert(
         "Código inválido",
-        error.response?.data?.message ||
+        error?.response?.data?.message ||
           "O código está incorreto ou expirou."
       );
     } finally {
@@ -124,9 +133,9 @@ export default function RecuperarSenhaScreen({ navigation }) {
     }
   }
 
-  // ============================================================
+  // ==========================================================
   // VOLTAR
-  // ============================================================
+  // ==========================================================
 
   function handleVoltar() {
     if (etapa === "codigo") {
@@ -138,224 +147,226 @@ export default function RecuperarSenhaScreen({ navigation }) {
     navigation.goBack();
   }
 
-  // ============================================================
-  // INTERFACE
-  // ============================================================
+  // ==========================================================
+  // INTERFACE PRINCIPAL
+  // ==========================================================
 
   return (
-    <View style={styles.container}>
+    <View style={styles.background}>
       <StatusBar
         barStyle="light-content"
         backgroundColor="#080E21"
         translucent={false}
       />
 
-      {/* ====================================================== */}
-      {/* IMAGEM DE FUNDO */}
-      {/* ====================================================== */}
+      {/* ==================================================== */}
+      {/* IMAGEM DE FUNDO - IGUAL AO LOGIN */}
+      {/* ==================================================== */}
 
-      {/* <Image
+      <Image
         source={fundoLogin}
         style={styles.backgroundImage}
         resizeMode="cover"
         pointerEvents="none"
-      /> */}
-
-      {/* CAMADA ESCURA SOBRE A IMAGEM */}
-      <View
-        style={styles.overlay}
-        pointerEvents="none"
+        accessible={false}
       />
 
-      {/* ====================================================== */}
-      {/* CONTEÚDO PRINCIPAL - ACIMA DA IMAGEM */}
-      {/* ====================================================== */}
+      {/* ==================================================== */}
+      {/* CONTEÚDO PRINCIPAL ACIMA DA IMAGEM */}
+      {/* ==================================================== */}
 
-      <View style={styles.contentContainer}>
-        <KeyboardAvoidingView
-          style={styles.keyboardContainer}
-          behavior={
-            Platform.OS === "ios"
-              ? "padding"
-              : undefined
-          }
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : undefined
+        }
+      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scroll}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* ================================================== */}
-            {/* BOTÃO VOLTAR */}
-            {/* ================================================== */}
+          {/* ================================================ */}
+          {/* BOTÃO VOLTAR */}
+          {/* ================================================ */}
 
-            <View style={styles.headerWrap}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={handleVoltar}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name="arrow-back"
-                  size={25}
-                  color="#FFFFFF"
-                />
-              </TouchableOpacity>
+          <View style={styles.headerWrap}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleVoltar}
+              activeOpacity={0.7}
+              disabled={enviando}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={25}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* ================================================ */}
+          {/* CARD PRINCIPAL */}
+          {/* ================================================ */}
+
+          <View style={styles.card}>
+            {/* LINHA SUPERIOR */}
+
+            <View style={styles.topLine} />
+
+            {/* ============================================== */}
+            {/* ÍCONE SUPERIOR */}
+            {/* ============================================== */}
+
+            <View style={styles.iconWrap}>
+              <Ionicons
+                name={
+                  etapa === "email"
+                    ? "lock-closed-outline"
+                    : "shield-checkmark-outline"
+                }
+                size={36}
+                color="#DCD9FF"
+              />
             </View>
 
-            {/* ================================================== */}
-            {/* CARD PRINCIPAL */}
-            {/* ================================================== */}
+            {/* ============================================== */}
+            {/* TÍTULO */}
+            {/* ============================================== */}
 
-            <View style={styles.card}>
-              {/* ÍCONE SUPERIOR */}
+            <Text style={styles.title}>
+              {etapa === "email"
+                ? "Recuperar Senha"
+                : "Verificar Código"}
+            </Text>
 
-              <View style={styles.iconWrap}>
-                <Ionicons
-                  name={
-                    etapa === "email"
-                      ? "lock-closed-outline"
-                      : "shield-checkmark-outline"
-                  }
-                  size={36}
-                  color="#DCD9FF"
-                />
-              </View>
+            {/* ============================================== */}
+            {/* DESCRIÇÃO */}
+            {/* ============================================== */}
 
-              {/* TÍTULO */}
+            <Text style={styles.subtitle}>
+              {etapa === "email"
+                ? "Insira seu e-mail corporativo para receber um código de recuperação."
+                : `Digite o código de 6 dígitos enviado para ${email}.`}
+            </Text>
 
-              <Text style={styles.title}>
-                {etapa === "email"
-                  ? "Recuperar Senha"
-                  : "Verificar Código"}
-              </Text>
+            {/* ============================================== */}
+            {/* E-MAIL OU CÓDIGO */}
+            {/* ============================================== */}
 
-              {/* DESCRIÇÃO */}
-
-              <Text style={styles.subtitle}>
-                {etapa === "email"
-                  ? "Insira seu e-mail corporativo para receber um código de recuperação."
-                  : `Digite o código de 6 dígitos enviado para ${email}.`}
-              </Text>
-
-              {/* ================================================== */}
-              {/* CAMPO DE E-MAIL OU CÓDIGO */}
-              {/* ================================================== */}
-
-              <View style={styles.inputBox}>
-                <Ionicons
-                  name={
-                    etapa === "email"
-                      ? "mail-outline"
-                      : "keypad-outline"
-                  }
-                  size={21}
-                  color="#8495B5"
-                  style={styles.inputIcon}
-                />
-
-                {etapa === "email" ? (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="E-mail corporativo"
-                    placeholderTextColor="#8495B5"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="email"
-                    editable={!enviando}
-                    returnKeyType="done"
-                    onSubmitEditing={handleEnviarCodigo}
-                  />
-                ) : (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Código de 6 dígitos"
-                    placeholderTextColor="#8495B5"
-                    value={codigo}
-                    onChangeText={(texto) =>
-                      setCodigo(
-                        texto.replace(/\D/g, "")
-                      )
-                    }
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    editable={!enviando}
-                  />
-                )}
-              </View>
-
-              {/* ================================================== */}
-              {/* BOTÃO PRINCIPAL */}
-              {/* ================================================== */}
-
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  enviando && styles.buttonDisabled,
-                ]}
-                onPress={
+            <View style={styles.inputBox}>
+              <Ionicons
+                name={
                   etapa === "email"
-                    ? handleEnviarCodigo
-                    : handleVerificarCodigo
+                    ? "mail-outline"
+                    : "keypad-outline"
                 }
-                disabled={enviando}
-                activeOpacity={0.8}
-              >
-                {enviando ? (
-                  <ActivityIndicator
-                    size="small"
-                    color="#FFFFFF"
-                  />
-                ) : (
-                  <Text style={styles.buttonText}>
-                    {etapa === "email"
-                      ? "Enviar Código"
-                      : "Verificar Código"}
-                  </Text>
-                )}
-              </TouchableOpacity>
+                size={21}
+                color="#8495B5"
+                style={styles.inputIcon}
+              />
 
-              {/* ================================================== */}
-              {/* REENVIAR CÓDIGO */}
-              {/* ================================================== */}
-
-              {etapa === "codigo" && (
-                <TouchableOpacity
-                  style={styles.backLoginButton}
-                  onPress={handleEnviarCodigo}
-                  disabled={enviando}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.backText}>
-                    Não recebeu? Reenviar código
-                  </Text>
-                </TouchableOpacity>
+              {etapa === "email" ? (
+                <TextInput
+                  style={styles.input}
+                  placeholder="E-mail corporativo"
+                  placeholderTextColor="#8495B5"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                  editable={!enviando}
+                  returnKeyType="done"
+                  onSubmitEditing={handleEnviarCodigo}
+                />
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Código de 6 dígitos"
+                  placeholderTextColor="#8495B5"
+                  value={codigo}
+                  onChangeText={(texto) =>
+                    setCodigo(texto.replace(/\D/g, ""))
+                  }
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  editable={!enviando}
+                />
               )}
+            </View>
 
-              {/* ================================================== */}
-              {/* VOLTAR PARA LOGIN */}
-              {/* ================================================== */}
+            {/* ============================================== */}
+            {/* BOTÃO PRINCIPAL */}
+            {/* ============================================== */}
 
+            <TouchableOpacity
+              style={[
+                styles.button,
+                enviando && styles.buttonDisabled,
+              ]}
+              onPress={
+                etapa === "email"
+                  ? handleEnviarCodigo
+                  : handleVerificarCodigo
+              }
+              disabled={enviando}
+              activeOpacity={0.8}
+            >
+              {enviando ? (
+                <ActivityIndicator
+                  size="small"
+                  color="#FFFFFF"
+                />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {etapa === "email"
+                    ? "Enviar Código"
+                    : "Verificar Código"}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* ============================================== */}
+            {/* REENVIAR CÓDIGO */}
+            {/* ============================================== */}
+
+            {etapa === "codigo" && (
               <TouchableOpacity
                 style={styles.backLoginButton}
-                onPress={() => {
-                  navigation.navigate("Login");
-                }}
+                onPress={handleEnviarCodigo}
                 disabled={enviando}
                 activeOpacity={0.7}
               >
                 <Text style={styles.backText}>
-                  Voltar para o Login
+                  Não recebeu? Reenviar código
                 </Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </View>
+            )}
+
+            {/* ============================================== */}
+            {/* VOLTAR AO LOGIN */}
+            {/* ============================================== */}
+
+            <TouchableOpacity
+              style={styles.backLoginButton}
+              onPress={() =>
+                navigation.navigate("Login")
+              }
+              disabled={enviando}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.backText}>
+                Voltar para o Login
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -365,54 +376,47 @@ export default function RecuperarSenhaScreen({ navigation }) {
 // ============================================================
 
 const styles = StyleSheet.create({
-  // ============================================================
+  // ==========================================================
   // CONTAINER PRINCIPAL
-  // ============================================================
+  // ==========================================================
 
-  container: {
+  background: {
     flex: 1,
     backgroundColor: "#080E21",
-    position: "relative",
   },
 
-  // ============================================================
-  // IMAGEM DE FUNDO
-  // ============================================================
+  // ==========================================================
+  // IMAGEM DE FUNDO - MESMO MÉTODO DO LOGIN
+  // ==========================================================
 
   backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: "100%",
     height: "100%",
   },
 
-  // ============================================================
-  // CAMADA ESCURA
-  // ============================================================
+  // ==========================================================
+  // CONTEÚDO NA FRENTE DA IMAGEM
+  // ==========================================================
 
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(4, 9, 28, 0.36)",
-  },
-
-  // ============================================================
-  // CONTEÚDO ACIMA DA IMAGEM
-  // ============================================================
-
-  contentContainer: {
+  container: {
     flex: 1,
-    width: "100%",
-    position: "relative",
-    zIndex: 10,
-    elevation: 10,
+    zIndex: 1,
+    elevation: 1,
     backgroundColor: "transparent",
   },
 
-  keyboardContainer: {
-    flex: 1,
-  },
+  // ==========================================================
+  // SCROLL
+  // ==========================================================
 
   scrollView: {
     flex: 1,
+    backgroundColor: "transparent",
   },
 
   scroll: {
@@ -423,9 +427,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // ============================================================
-  // CABEÇALHO
-  // ============================================================
+  // ==========================================================
+  // BOTÃO VOLTAR
+  // ==========================================================
 
   headerWrap: {
     width: "100%",
@@ -439,65 +443,67 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-
     backgroundColor: "rgba(19, 29, 55, 0.90)",
-
     borderWidth: 1,
     borderColor: "rgba(145, 143, 255, 0.30)",
   },
 
-  // ============================================================
+  // ==========================================================
   // CARD PRINCIPAL
-  // ============================================================
+  // ==========================================================
 
   card: {
     width: "100%",
-
-    backgroundColor: "rgba(12, 22, 47, 0.96)",
-
+    backgroundColor: "rgba(12, 22, 47, 0.91)",
     borderRadius: 28,
-
     paddingHorizontal: 22,
     paddingTop: 30,
     paddingBottom: 30,
-
     borderWidth: 1.5,
     borderColor: "#6658E8",
+    overflow: "hidden",
 
     shadowColor: "#5B4BFF",
     shadowOffset: {
       width: 0,
       height: 8,
     },
-
     shadowOpacity: 0.25,
     shadowRadius: 20,
-
-    elevation: 12,
+    elevation: 8,
   },
 
-  // ============================================================
+  // ==========================================================
+  // LINHA SUPERIOR
+  // ==========================================================
+
+  topLine: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: "#6554FF",
+  },
+
+  // ==========================================================
   // ÍCONE SUPERIOR
-  // ============================================================
+  // ==========================================================
 
   iconWrap: {
     width: 76,
     height: 76,
-
     borderRadius: 22,
-
     backgroundColor: "rgba(116, 111, 191, 0.28)",
-
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
-
     marginBottom: 24,
   },
 
-  // ============================================================
+  // ==========================================================
   // TÍTULO
-  // ============================================================
+  // ==========================================================
 
   title: {
     color: "#FFFFFF",
@@ -508,9 +514,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
 
-  // ============================================================
-  // DESCRIÇÃO
-  // ============================================================
+  // ==========================================================
+  // SUBTÍTULO
+  // ==========================================================
 
   subtitle: {
     color: "#A5B3D2",
@@ -520,23 +526,19 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
 
-  // ============================================================
+  // ==========================================================
   // CAMPO DE ENTRADA
-  // ============================================================
+  // ==========================================================
 
   inputBox: {
     width: "100%",
     height: 62,
-
     flexDirection: "row",
     alignItems: "center",
-
     backgroundColor: "rgba(21, 34, 59, 0.95)",
-
     borderWidth: 1,
     borderColor: "#364769",
     borderRadius: 18,
-
     marginBottom: 24,
   },
 
@@ -547,38 +549,30 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: "100%",
-
     color: "#FFFFFF",
     fontSize: 15,
-
     paddingHorizontal: 14,
   },
 
-  // ============================================================
+  // ==========================================================
   // BOTÃO PRINCIPAL
-  // ============================================================
+  // ==========================================================
 
   button: {
     width: "100%",
     minHeight: 60,
-
     borderRadius: 30,
-
     backgroundColor: "#5B4BFF",
-
     justifyContent: "center",
     alignItems: "center",
-
     paddingHorizontal: 12,
     marginBottom: 22,
 
     shadowColor: "#5B4BFF",
-
     shadowOffset: {
       width: 0,
       height: 5,
     },
-
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 6,
@@ -595,9 +589,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // ============================================================
+  // ==========================================================
   // LINKS INFERIORES
-  // ============================================================
+  // ==========================================================
 
   backLoginButton: {
     paddingVertical: 8,
