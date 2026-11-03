@@ -1,29 +1,38 @@
 
 import React, {
-  useCallback,
+  useState,
   useEffect,
   useRef,
-  useState,
+  useCallback,
 } from "react";
 
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
+  ScrollView,
   Image,
   Alert,
   ActivityIndicator,
-  StatusBar,
   Keyboard,
-  ScrollView,
+  StatusBar,
   Platform,
+  Linking,
 } from "react-native";
 
 import { Feather, MaterialIcons } from "@expo/vector-icons";
-import { CameraView, useCameraPermissions } from "expo-camera";
-import { useFocusEffect } from "@react-navigation/native";
+
+import {
+  CameraView,
+  useCameraPermissions,
+} from "expo-camera";
+
+import {
+  useFocusEffect,
+  useIsFocused,
+} from "@react-navigation/native";
 
 import { buscarProdutoPorCodigo } from "../services/produtosService";
 
@@ -54,31 +63,39 @@ export default function CameraScannerScreen({
   route,
 }) {
   // ==========================================================
-  // PERMISSÃO DE CÂMERA
+  // PERMISSÕES E FOCO
   // ==========================================================
 
   const [permission, requestPermission] =
     useCameraPermissions();
 
+  const isFocused = useIsFocused();
+
   // ==========================================================
   // ESTADOS
   // ==========================================================
 
-  const [torch, setTorch] = useState(false);
   const [facing, setFacing] = useState("back");
+  const [torch, setTorch] = useState(false);
+
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+
+  const [cameraKey, setCameraKey] = useState(0);
 
   const [codigoManual, setCodigoManual] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [scanned, setScanned] = useState(false);
 
-  const [produtoDetectado, setProdutoDetectado] =
-    useState(route?.params?.produto || null);
+  const [produtoDetectado, setProdutoDetectado] = useState(
+    route?.params?.produto || null
+  );
 
   const [notificacaoSucesso, setNotificacaoSucesso] =
     useState(null);
 
   const scanLock = useRef(false);
+  const searchingRef = useRef(false);
 
   // ==========================================================
   // SOLICITAR PERMISSÃO
@@ -86,6 +103,7 @@ export default function CameraScannerScreen({
 
   useEffect(() => {
     if (
+      isFocused &&
       permission &&
       !permission.granted &&
       permission.canAskAgain
@@ -93,170 +111,89 @@ export default function CameraScannerScreen({
       requestPermission();
     }
   }, [
+    isFocused,
     permission?.granted,
     permission?.canAskAgain,
     requestPermission,
   ]);
 
   // ==========================================================
-  // REINICIAR CÂMERA AO TROCAR LADO
-  // ==========================================================
-
-  useEffect(() => {
-    setCameraReady(false);
-  }, [facing]);
-
-  // ==========================================================
-  // REATIVAR LEITURA AO VOLTAR PARA A TELA
+  // CONTROLE DA TELA
   // ==========================================================
 
   useFocusEffect(
     useCallback(() => {
       scanLock.current = false;
+
       setScanned(false);
-      setNotificacaoSucesso(null);
+      setCameraError(null);
+      setCameraReady(false);
 
       return () => {
         scanLock.current = true;
+
         setTorch(false);
+        setCameraReady(false);
       };
     }, [])
   );
+
+  // ==========================================================
+  // REINICIAR CÂMERA
+  // ==========================================================
+
+  function reiniciarCamera() {
+    setTorch(false);
+    setCameraReady(false);
+    setCameraError(null);
+
+    scanLock.current = false;
+    setScanned(false);
+
+    setCameraKey((anterior) => anterior + 1);
+  }
 
   // ==========================================================
   // REINICIAR LEITOR
   // ==========================================================
 
   function reiniciarLeitura() {
-    if (isSearching) return;
+    if (searchingRef.current) return;
 
     scanLock.current = false;
+
     setScanned(false);
     setNotificacaoSucesso(null);
   }
 
   // ==========================================================
-  // BUSCAR PRODUTO POR CÓDIGO
+  // ERRO DA CÂMERA
   // ==========================================================
 
-  async function pesquisarProduto(codigoInformado) {
-    const codigo = String(codigoInformado || "").trim();
+  function handleCameraError(error) {
+    const mensagem =
+      error?.message || "Erro desconhecido na câmera";
 
-    if (!codigo) {
-      Alert.alert(
-        "Código obrigatório",
-        "Digite ou escaneie um código para buscar o produto."
-      );
-      return;
-    }
+    console.log("ERRO CAMERA KEEPSTOCK:", mensagem);
 
-    if (scanLock.current || isSearching) {
-      return;
-    }
-
-    Keyboard.dismiss();
-
-    scanLock.current = true;
-    setScanned(true);
-    setIsSearching(true);
-    setNotificacaoSucesso(null);
-
-    try {
-      const produtoEncontrado =
-        await buscarProdutoPorCodigo(codigo);
-
-      if (!produtoEncontrado) {
-        Alert.alert(
-          "Produto não encontrado",
-          `Nenhum produto cadastrado foi encontrado para o código "${codigo}".`,
-          [
-            {
-              text: "Tentar novamente",
-              onPress: reiniciarLeitura,
-            },
-          ]
-        );
-
-        return;
-      }
-
-      setProdutoDetectado(produtoEncontrado);
-
-      setCodigoManual(codigo);
-
-      const nome =
-        produtoEncontrado.nome ||
-        produtoEncontrado.name ||
-        "Produto identificado";
-
-      setNotificacaoSucesso(nome);
-
-      // Mantém a navegação utilizada no código original.
-
-      navigation.navigate("ResultadoLeitura", {
-        codigo:
-          produtoEncontrado.codigo ||
-          produtoEncontrado.sku ||
-          produtoEncontrado.codigo_barras ||
-          codigo,
-
-        produto: produtoEncontrado,
-      });
-    } catch (error) {
-      console.log(
-        "Erro ao buscar produto:",
-        error?.response?.data || error?.message
-      );
-
-      Alert.alert(
-        "Erro ao buscar produto",
-        "Não foi possível consultar esse código. Verifique sua conexão e tente novamente.",
-        [
-          {
-            text: "OK",
-            onPress: reiniciarLeitura,
-          },
-        ]
-      );
-    } finally {
-      setIsSearching(false);
-      scanLock.current = false;
-      setScanned(false);
-    }
+    setCameraReady(false);
+    setCameraError(mensagem);
   }
 
   // ==========================================================
-  // LEITURA PELA CÂMERA
+  // TROCAR CÂMERA
   // ==========================================================
 
-  function handleBarCodeScanned({ data }) {
-    if (scanLock.current || isSearching) {
-      return;
-    }
+  function toggleFacing() {
+    setTorch(false);
+    setCameraReady(false);
+    setCameraError(null);
 
-    const codigo = String(data || "").trim();
+    setFacing((anterior) =>
+      anterior === "back" ? "front" : "back"
+    );
 
-    if (!codigo) return;
-
-    pesquisarProduto(codigo);
-  }
-
-  // ==========================================================
-  // LEITURA MANUAL
-  // ==========================================================
-
-  function handleBuscarManual() {
-    const codigo = codigoManual.trim();
-
-    if (!codigo) {
-      Alert.alert(
-        "Digite um código",
-        "Informe o número do código de barras ou o conteúdo do QR Code."
-      );
-      return;
-    }
-
-    pesquisarProduto(codigo);
+    setCameraKey((anterior) => anterior + 1);
   }
 
   // ==========================================================
@@ -270,15 +207,126 @@ export default function CameraScannerScreen({
   }
 
   // ==========================================================
-  // TROCAR CÂMERA
+  // BUSCAR PRODUTO
   // ==========================================================
 
-  function toggleFacing() {
-    setTorch(false);
+  async function pesquisarProduto(codigoInformado) {
+    const codigo = String(codigoInformado || "").trim();
 
-    setFacing((anterior) =>
-      anterior === "back" ? "front" : "back"
-    );
+    if (!codigo) {
+      Alert.alert(
+        "Código obrigatório",
+        "Digite ou escaneie um código."
+      );
+      return;
+    }
+
+    if (searchingRef.current) return;
+
+    searchingRef.current = true;
+    scanLock.current = true;
+
+    Keyboard.dismiss();
+
+    setScanned(true);
+    setIsSearching(true);
+    setNotificacaoSucesso(null);
+
+    try {
+      const produtoEncontrado =
+        await buscarProdutoPorCodigo(codigo);
+
+      if (!produtoEncontrado) {
+        Alert.alert(
+          "Produto não encontrado",
+          `Nenhum produto encontrado para o código "${codigo}".`
+        );
+
+        return;
+      }
+
+      setProdutoDetectado(produtoEncontrado);
+      setCodigoManual(codigo);
+
+      const nome =
+        produtoEncontrado.nome ||
+        produtoEncontrado.name ||
+        "Produto identificado";
+
+      setNotificacaoSucesso(nome);
+
+      navigation.navigate("ResultadoLeitura", {
+        codigo:
+          produtoEncontrado.codigo ||
+          produtoEncontrado.sku ||
+          produtoEncontrado.codigo_barras ||
+          codigo,
+
+        produto: produtoEncontrado,
+      });
+    } catch (error) {
+      console.log(
+        "ERRO BUSCA PRODUTO:",
+        error?.response?.data || error?.message
+      );
+
+      Alert.alert(
+        "Erro ao buscar produto",
+        "Não foi possível consultar o código. Verifique sua conexão."
+      );
+    } finally {
+      searchingRef.current = false;
+
+      setIsSearching(false);
+      setScanned(false);
+
+      scanLock.current = !isFocused;
+    }
+  }
+
+  // ==========================================================
+  // LEITURA DE QR CODE E CÓDIGO DE BARRAS
+  // ==========================================================
+
+  function handleBarCodeScanned(resultado) {
+    if (
+      scanLock.current ||
+      searchingRef.current ||
+      !isFocused
+    ) {
+      return;
+    }
+
+    const codigo = String(resultado?.data || "").trim();
+
+    if (!codigo) return;
+
+    console.log("CODIGO ESCANEADO:", codigo);
+
+    scanLock.current = true;
+
+    pesquisarProduto(codigo);
+  }
+
+  // ==========================================================
+  // BUSCA MANUAL
+  // ==========================================================
+
+  function handleBuscarManual() {
+    if (searchingRef.current) return;
+
+    const codigo = codigoManual.trim();
+
+    if (!codigo) {
+      Alert.alert(
+        "Digite um código",
+        "Informe o código de barras ou QR Code."
+      );
+
+      return;
+    }
+
+    pesquisarProduto(codigo);
   }
 
   // ==========================================================
@@ -289,7 +337,7 @@ export default function CameraScannerScreen({
     if (!produtoDetectado) {
       Alert.alert(
         "Atenção",
-        "Leia ou pesquise um produto antes de continuar."
+        "Leia ou pesquise um produto primeiro."
       );
       return;
     }
@@ -327,7 +375,7 @@ export default function CameraScannerScreen({
     if (!produtoDetectado) {
       Alert.alert(
         "Atenção",
-        "Leia ou selecione um produto primeiro."
+        "Selecione um produto primeiro."
       );
       return;
     }
@@ -338,7 +386,7 @@ export default function CameraScannerScreen({
   }
 
   // ==========================================================
-  // DETALHES DO PRODUTO
+  // DETALHES
   // ==========================================================
 
   function handleVerDetalhes() {
@@ -350,25 +398,7 @@ export default function CameraScannerScreen({
   }
 
   // ==========================================================
-  // ERRO DA CÂMERA
-  // ==========================================================
-
-  function handleCameraError(error) {
-    console.log(
-      "Erro ao iniciar câmera:",
-      error?.message || error
-    );
-
-    setCameraReady(false);
-
-    Alert.alert(
-      "Erro na câmera",
-      "Não foi possível iniciar a câmera. Você ainda pode digitar o código manualmente."
-    );
-  }
-
-  // ==========================================================
-  // CONTROLE DE PERMISSÃO
+  // PERMISSÃO
   // ==========================================================
 
   const cameraPermitida = permission?.granted === true;
@@ -384,41 +414,59 @@ export default function CameraScannerScreen({
         backgroundColor={C.background}
       />
 
-      {/* ==================================================== */}
+      {/* ================================================== */}
       {/* ÁREA DA CÂMERA */}
-      {/* ==================================================== */}
+      {/* ================================================== */}
 
       <View style={styles.cameraArea}>
-        {cameraPermitida ? (
-          <CameraView
-            style={StyleSheet.absoluteFillObject}
-            facing={facing}
-            enableTorch={torch && facing === "back"}
-            barcodeScannerSettings={{
-              barcodeTypes: [
-                "qr",
-                "ean13",
-                "ean8",
-                "code128",
-                "code39",
-                "upc_a",
-                "upc_e",
-                "itf14",
-              ],
-            }}
-            onCameraReady={() => setCameraReady(true)}
-            onMountError={handleCameraError}
-            onBarcodeScanned={
-              scanned || isSearching
-                ? undefined
-                : handleBarCodeScanned
-            }
-          />
-        ) : (
+
+        {/* CÂMERA NATIVA */}
+
+        {cameraPermitida &&
+          isFocused &&
+          !cameraError && (
+            <CameraView
+              key={`${facing}-${cameraKey}`}
+              style={styles.cameraPreview}
+              facing={facing}
+              active={isFocused}
+              enableTorch={torch && facing === "back"}
+              barcodeScannerSettings={{
+                barcodeTypes: [
+                  "qr",
+                  "ean13",
+                  "ean8",
+                  "code128",
+                  "code39",
+                  "upc_a",
+                  "upc_e",
+                  "itf14",
+                ],
+              }}
+              onCameraReady={() => {
+                console.log(
+                  "CAMERA KEEPSTOCK INICIADA!"
+                );
+
+                setCameraReady(true);
+                setCameraError(null);
+              }}
+              onMountError={handleCameraError}
+              onBarcodeScanned={
+                scanned || isSearching
+                  ? undefined
+                  : handleBarCodeScanned
+              }
+            />
+          )}
+
+        {/* PERMISSÃO NÃO CONCEDIDA */}
+
+        {!cameraPermitida && (
           <View style={styles.cameraUnavailable}>
             <MaterialIcons
               name="qr-code-scanner"
-              size={56}
+              size={55}
               color={C.accent}
             />
 
@@ -427,18 +475,23 @@ export default function CameraScannerScreen({
             </Text>
 
             <Text style={styles.cameraUnavailableText}>
-              Autorize a câmera para escanear códigos ou
-              utilize a busca manual abaixo.
+              Autorize o acesso à câmera para escanear
+              QR Codes e códigos de barras.
             </Text>
 
             <TouchableOpacity
               style={styles.permissionButton}
-              onPress={requestPermission}
-              activeOpacity={0.8}
+              onPress={() => {
+                if (permission?.canAskAgain) {
+                  requestPermission();
+                } else {
+                  Linking.openSettings();
+                }
+              }}
             >
               <Feather
                 name="camera"
-                size={17}
+                size={18}
                 color="#FFFFFF"
               />
 
@@ -449,15 +502,55 @@ export default function CameraScannerScreen({
           </View>
         )}
 
-        {/* ================================================ */}
+        {/* ERRO AO INICIAR CÂMERA */}
+
+        {cameraPermitida && cameraError && (
+          <View style={styles.cameraUnavailable}>
+            <Feather
+              name="camera-off"
+              size={48}
+              color={C.red}
+            />
+
+            <Text style={styles.cameraUnavailableTitle}>
+              Câmera indisponível
+            </Text>
+
+            <Text style={styles.cameraUnavailableText}>
+              Não foi possível iniciar a câmera.
+              Você pode tentar novamente ou usar
+              a busca manual.
+            </Text>
+
+            <Text style={styles.errorDetails}>
+              {cameraError}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.permissionButton}
+              onPress={reiniciarCamera}
+            >
+              <Feather
+                name="refresh-cw"
+                size={17}
+                color="#FFFFFF"
+              />
+
+              <Text style={styles.permissionButtonText}>
+                Tentar novamente
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ================================================== */}
         {/* CABEÇALHO */}
-        {/* ================================================ */}
+        {/* ================================================== */}
 
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.headerIconBtn}
             onPress={() => navigation.goBack()}
-            activeOpacity={0.8}
           >
             <Feather
               name="arrow-left"
@@ -474,17 +567,14 @@ export default function CameraScannerScreen({
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={toggleFacing}
-              disabled={!cameraPermitida}
-              activeOpacity={0.8}
+              disabled={
+                !cameraPermitida || !!cameraError
+              }
             >
               <MaterialIcons
                 name="flip-camera-ios"
                 size={22}
-                color={
-                  cameraPermitida
-                    ? "#FFFFFF"
-                    : C.muted
-                }
+                color="#FFFFFF"
               />
             </TouchableOpacity>
 
@@ -496,128 +586,115 @@ export default function CameraScannerScreen({
               onPress={toggleTorch}
               disabled={
                 !cameraPermitida ||
-                facing !== "back"
+                facing !== "back" ||
+                !!cameraError
               }
-              activeOpacity={0.8}
             >
               <Feather
                 name="zap"
                 size={21}
-                color={
-                  torch
-                    ? C.amber
-                    : cameraPermitida
-                    ? "#FFFFFF"
-                    : C.muted
-                }
+                color={torch ? C.amber : "#FFFFFF"}
               />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* ================================================ */}
+        {/* ================================================== */}
         {/* QUADRO DO SCANNER */}
-        {/* ================================================ */}
+        {/* ================================================== */}
 
-        {cameraPermitida && (
-          <View
-            style={styles.scannerCenter}
-            pointerEvents="box-none"
-          >
+        {cameraPermitida &&
+          isFocused &&
+          !cameraError && (
             <View
-              style={[
-                styles.reticleBox,
-                scanned && styles.reticleScanned,
-              ]}
+              style={styles.scannerCenter}
+              pointerEvents="none"
             >
               <View
                 style={[
-                  styles.corner,
-                  styles.cornerTL,
+                  styles.reticleBox,
+                  scanned && { opacity: 0.6 },
                 ]}
-              />
-
-              <View
-                style={[
-                  styles.corner,
-                  styles.cornerTR,
-                ]}
-              />
-
-              <View
-                style={[
-                  styles.corner,
-                  styles.cornerBL,
-                ]}
-              />
-
-              <View
-                style={[
-                  styles.corner,
-                  styles.cornerBR,
-                ]}
-              />
-
-              <View style={styles.laserLine} />
-
-              <MaterialIcons
-                name="qr-code-scanner"
-                size={42}
-                color="rgba(255,255,255,0.40)"
-              />
-            </View>
-
-            {/* ORIENTAÇÃO DE LEITURA */}
-
-            <View style={styles.scanInstruction}>
-              <Text style={styles.scanInstructionTitle}>
-                Aponte a câmera para o código
-              </Text>
-
-              <Text style={styles.scanInstructionSubtitle}>
-                QR Code ou código de barras
-              </Text>
-            </View>
-
-            {scanned && (
-              <View style={styles.scanStatus}>
-                <ActivityIndicator
-                  size="small"
-                  color={C.accent}
+              >
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerTL,
+                  ]}
                 />
 
-                <Text style={styles.scanStatusText}>
-                  Consultando código...
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerTR,
+                  ]}
+                />
+
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerBL,
+                  ]}
+                />
+
+                <View
+                  style={[
+                    styles.corner,
+                    styles.cornerBR,
+                  ]}
+                />
+
+                <View style={styles.laserLine} />
+
+                <MaterialIcons
+                  name="qr-code-scanner"
+                  size={42}
+                  color="rgba(255,255,255,0.35)"
+                />
+              </View>
+
+              <View style={styles.scanInstruction}>
+                <Text style={styles.scanInstructionTitle}>
+                  Aponte a câmera para o código
+                </Text>
+
+                <Text style={styles.scanInstructionSubtitle}>
+                  QR Code ou código de barras
                 </Text>
               </View>
-            )}
-          </View>
-        )}
 
-        {/* ================================================ */}
-        {/* CARREGAMENTO DA CÂMERA */}
-        {/* ================================================ */}
+              {isSearching && (
+                <View style={styles.scanStatus}>
+                  <ActivityIndicator
+                    color={C.accent}
+                    size="small"
+                  />
 
-        {cameraPermitida && !cameraReady && (
-          <View
-            style={styles.cameraLoading}
-            pointerEvents="none"
-          >
-            <ActivityIndicator
-              size="large"
-              color={C.accent}
-            />
+                  <Text style={styles.scanStatusText}>
+                    Consultando código...
+                  </Text>
+                </View>
+              )}
 
-            <Text style={styles.cameraLoadingText}>
-              Inicializando câmera...
-            </Text>
-          </View>
-        )}
+              {!cameraReady && (
+                <View style={styles.loadingStatus}>
+                  <ActivityIndicator
+                    color={C.accent}
+                    size="small"
+                  />
+
+                  <Text style={styles.scanStatusText}>
+                    Inicializando câmera...
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
       </View>
 
-      {/* ==================================================== */}
+      {/* ================================================== */}
       {/* PAINEL INFERIOR */}
-      {/* ==================================================== */}
+      {/* ================================================== */}
 
       <View style={styles.bottomSheet}>
         <View style={styles.dragHandle} />
@@ -627,9 +704,8 @@ export default function CameraScannerScreen({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.bottomContent}
         >
-          {/* ================================================ */}
-          {/* DIGITAR CÓDIGO MANUALMENTE */}
-          {/* ================================================ */}
+
+          {/* BUSCA MANUAL */}
 
           <View style={styles.manualHeader}>
             <View style={styles.manualIcon}>
@@ -651,6 +727,8 @@ export default function CameraScannerScreen({
             </View>
           </View>
 
+          {/* CAMPO DO CÓDIGO */}
+
           <View style={styles.manualInputRow}>
             <View style={styles.manualInputBox}>
               <Feather
@@ -667,7 +745,6 @@ export default function CameraScannerScreen({
                 placeholderTextColor={C.muted}
                 autoCapitalize="none"
                 autoCorrect={false}
-                keyboardType="default"
                 returnKeyType="search"
                 onSubmitEditing={handleBuscarManual}
                 editable={!isSearching}
@@ -688,20 +765,12 @@ export default function CameraScannerScreen({
             </View>
 
             <TouchableOpacity
-              style={[
-                styles.manualSearchButton,
-                isSearching && styles.disabledButton,
-              ]}
+              style={styles.manualSearchButton}
               onPress={handleBuscarManual}
               disabled={isSearching}
-              activeOpacity={0.8}
-              accessibilityLabel="Buscar produto pelo código"
             >
               {isSearching ? (
-                <ActivityIndicator
-                  size="small"
-                  color="#FFFFFF"
-                />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Feather
                   name="search"
@@ -712,14 +781,15 @@ export default function CameraScannerScreen({
             </TouchableOpacity>
           </View>
 
+          {/* BOTÃO BUSCAR */}
+
           <TouchableOpacity
             style={[
               styles.searchButton,
-              isSearching && styles.disabledButton,
+              isSearching && { opacity: 0.6 },
             ]}
             onPress={handleBuscarManual}
             disabled={isSearching}
-            activeOpacity={0.8}
           >
             {isSearching ? (
               <ActivityIndicator color="#FFFFFF" />
@@ -738,9 +808,7 @@ export default function CameraScannerScreen({
             )}
           </TouchableOpacity>
 
-          {/* ================================================ */}
-          {/* RESULTADO DA BUSCA */}
-          {/* ================================================ */}
+          {/* NOTIFICAÇÃO */}
 
           {notificacaoSucesso && (
             <View style={styles.successNotice}>
@@ -750,14 +818,15 @@ export default function CameraScannerScreen({
                 color={C.green}
               />
 
-              <Text
-                style={styles.successNoticeText}
-                numberOfLines={2}
-              >
+              <Text style={styles.successNoticeText}>
                 {notificacaoSucesso}
               </Text>
             </View>
           )}
+
+          {/* ================================================== */}
+          {/* PRODUTO ENCONTRADO */}
+          {/* ================================================== */}
 
           {produtoDetectado && (
             <View style={styles.productSection}>
@@ -775,8 +844,6 @@ export default function CameraScannerScreen({
                 </Text>
               </View>
 
-              {/* PRODUTO */}
-
               <View style={styles.productRow}>
                 {produtoDetectado.imagem ? (
                   <Image
@@ -784,7 +851,6 @@ export default function CameraScannerScreen({
                       uri: produtoDetectado.imagem,
                     }}
                     style={styles.productThumb}
-                    resizeMode="cover"
                   />
                 ) : (
                   <View
@@ -802,19 +868,13 @@ export default function CameraScannerScreen({
                 )}
 
                 <View style={styles.productDetails}>
-                  <Text
-                    style={styles.productTitle}
-                    numberOfLines={2}
-                  >
+                  <Text style={styles.productTitle}>
                     {produtoDetectado.nome ||
                       produtoDetectado.name ||
                       "Produto"}
                   </Text>
 
-                  <Text
-                    style={styles.productCode}
-                    numberOfLines={2}
-                  >
+                  <Text style={styles.productCode}>
                     Código:{" "}
                     {produtoDetectado.codigo ||
                       produtoDetectado.sku ||
@@ -833,7 +893,6 @@ export default function CameraScannerScreen({
                 <TouchableOpacity
                   style={styles.detailsBtn}
                   onPress={handleVerDetalhes}
-                  activeOpacity={0.8}
                 >
                   <Feather
                     name="chevron-right"
@@ -848,7 +907,6 @@ export default function CameraScannerScreen({
               <TouchableOpacity
                 style={styles.qrCodeButton}
                 onPress={handleGenerateQR}
-                activeOpacity={0.8}
               >
                 <MaterialIcons
                   name="qr-code-2"
@@ -861,9 +919,7 @@ export default function CameraScannerScreen({
                 </Text>
               </TouchableOpacity>
 
-              {/* ============================================ */}
-              {/* AÇÕES DO ESTOQUE */}
-              {/* ============================================ */}
+              {/* AÇÕES DE ESTOQUE */}
 
               <View style={styles.actionsGrid}>
                 <TouchableOpacity
@@ -872,7 +928,6 @@ export default function CameraScannerScreen({
                     styles.actionCardIn,
                   ]}
                   onPress={() => handleAcao("Entrada")}
-                  activeOpacity={0.8}
                 >
                   <Feather
                     name="arrow-down"
@@ -900,7 +955,6 @@ export default function CameraScannerScreen({
                     styles.actionCardOut,
                   ]}
                   onPress={() => handleAcao("Saída")}
-                  activeOpacity={0.8}
                 >
                   <Feather
                     name="arrow-up"
@@ -928,7 +982,6 @@ export default function CameraScannerScreen({
                     styles.actionCardAdjust,
                   ]}
                   onPress={() => handleAcao("Ajuste")}
-                  activeOpacity={0.8}
                 >
                   <Feather
                     name="edit-2"
@@ -978,24 +1031,21 @@ export default function CameraScannerScreen({
 // ============================================================
 
 const styles = StyleSheet.create({
-  // ==========================================================
-  // CONTAINER
-  // ==========================================================
-
   container: {
     flex: 1,
     backgroundColor: C.background,
   },
 
-  // ==========================================================
-  // ÁREA DA CÂMERA
-  // ==========================================================
-
   cameraArea: {
     flex: 1,
     minHeight: 260,
     overflow: "hidden",
-    backgroundColor: "#030713",
+    backgroundColor: "transparent",
+  },
+
+  cameraPreview: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "transparent",
   },
 
   cameraUnavailable: {
@@ -1020,6 +1070,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 9,
     marginBottom: 17,
+  },
+
+  errorDetails: {
+    color: C.red,
+    fontSize: 11,
+    textAlign: "center",
+    marginBottom: 15,
   },
 
   permissionButton: {
@@ -1087,21 +1144,19 @@ const styles = StyleSheet.create({
 
   scannerCenter: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
     paddingTop: 70,
   },
 
   reticleBox: {
+    backgroundColor: "transparent",
     width: 210,
     height: 150,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-  },
-
-  reticleScanned: {
-    opacity: 0.65,
   },
 
   corner: {
@@ -1190,18 +1245,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  cameraLoading: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#030713",
+  loadingStatus: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-  },
-
-  cameraLoadingText: {
-    color: C.muted,
-    marginTop: 12,
-    fontSize: 13,
+    backgroundColor: "rgba(3,7,19,0.65)",
+    borderRadius: 12,
+    padding: 10,
+    gap: 9,
+    marginTop: 10,
   },
 
   // ==========================================================
@@ -1233,10 +1284,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 16,
   },
-
-  // ==========================================================
-  // BUSCA MANUAL
-  // ==========================================================
 
   manualHeader: {
     flexDirection: "row",
@@ -1324,14 +1371,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  disabledButton: {
-    opacity: 0.6,
-  },
-
-  // ==========================================================
-  // MENSAGENS
-  // ==========================================================
-
   successNotice: {
     flexDirection: "row",
     alignItems: "center",
@@ -1367,7 +1406,7 @@ const styles = StyleSheet.create({
   },
 
   // ==========================================================
-  // RESULTADO DO PRODUTO
+  // PRODUTO
   // ==========================================================
 
   sectionDivider: {
@@ -1452,10 +1491,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // ==========================================================
-  // GERAR QR CODE
-  // ==========================================================
-
   qrCodeButton: {
     minHeight: 47,
     borderRadius: 12,
@@ -1476,7 +1511,7 @@ const styles = StyleSheet.create({
   },
 
   // ==========================================================
-  // AÇÕES DE ESTOQUE
+  // MOVIMENTAÇÕES
   // ==========================================================
 
   actionsGrid: {

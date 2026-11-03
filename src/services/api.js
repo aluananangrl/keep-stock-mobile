@@ -8,7 +8,7 @@ import * as SecureStore from "expo-secure-store";
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
-  "http://10.59.159.11:3000/api/v1";
+  "http://10.89.234.148:3000/api/v1";
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
