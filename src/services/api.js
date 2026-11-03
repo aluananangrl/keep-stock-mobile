@@ -2,9 +2,13 @@
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 
+// ============================================================
+// CONFIGURAÇÃO DA API
+// ============================================================
+
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
-  "http://10.89.240.67:3000/api/v1";
+  "http://10.59.159.11:3000/api/v1";
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
@@ -15,12 +19,30 @@ export const http = axios.create({
   timeout: 15000,
 });
 
-const PUBLIC_ROUTES = ["/auth/login", "/auth/register"];
+// ============================================================
+// ROTAS PÚBLICAS
+// ============================================================
+
+const PUBLIC_ROUTES = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/forgot-password",
+  "/auth/verify-reset-code",
+  "/auth/reset-password",
+  "/auth/esqueci-senha",
+];
 
 const isPublicRoute = (url = "") => {
   const path = url.split("?")[0].replace(/\/+$/, "");
-  return PUBLIC_ROUTES.some((route) => path.endsWith(route));
+
+  return PUBLIC_ROUTES.some(
+    (route) => path === route || path.endsWith(route)
+  );
 };
+
+// ============================================================
+// LIMPAR SESSÃO
+// ============================================================
 
 const limparSessao = async () => {
   await Promise.all([
@@ -31,14 +53,20 @@ const limparSessao = async () => {
   ]);
 };
 
-// Adiciona o token JWT às requisições protegidas.
+// ============================================================
+// INTERCEPTOR DE REQUISIÇÃO
+// ============================================================
+
 http.interceptors.request.use(
   async (config) => {
-    if (!isPublicRoute(config.url)) {
+    config.headers = config.headers || {};
+
+    if (isPublicRoute(config.url)) {
+      delete config.headers.Authorization;
+    } else {
       const token = await SecureStore.getItemAsync("token");
 
       if (token) {
-        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
@@ -48,9 +76,13 @@ http.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Limpa a sessão quando a API retorna 401 em uma rota protegida.
+// ============================================================
+// INTERCEPTOR DE RESPOSTA
+// ============================================================
+
 http.interceptors.response.use(
   (response) => response,
+
   async (error) => {
     const config = error?.config;
 
@@ -62,7 +94,10 @@ http.interceptors.response.use(
       try {
         await limparSessao();
       } catch (storageError) {
-        console.warn("Não foi possível limpar a sessão:", storageError);
+        console.warn(
+          "Não foi possível limpar a sessão:",
+          storageError
+        );
       }
     }
 
@@ -70,19 +105,54 @@ http.interceptors.response.use(
   }
 );
 
+// ============================================================
+// SERVIÇOS DA API
+// ============================================================
+
 const apiService = {
+  // ==========================================================
   // AUTENTICAÇÃO
-  cadastrar: (dados) => http.post("/auth/register", dados),
+  // ==========================================================
 
-  login: (dados) => http.post("/auth/login", dados),
+  cadastrar: (dados) =>
+    http.post("/auth/register", dados),
 
-  me: () => http.get("/auth/me"),
+  login: (dados) =>
+    http.post("/auth/login", dados),
+
+  me: () =>
+    http.get("/auth/me"),
 
   logout: async () => {
     await limparSessao();
   },
 
+  // ==========================================================
+  // RECUPERAÇÃO DE SENHA
+  // ==========================================================
+
+  solicitarRecuperacao: (email) =>
+    http.post("/auth/forgot-password", {
+      email,
+    }),
+
+  verificarCodigo: (email, codigo) =>
+    http.post("/auth/verify-reset-code", {
+      email,
+      codigo,
+    }),
+
+  redefinirSenha: (email, codigo, novaSenha) =>
+    http.post("/auth/reset-password", {
+      email,
+      codigo,
+      novaSenha,
+    }),
+
+  // ==========================================================
   // USUÁRIOS
+  // ==========================================================
+
   listarUsuarios: (params = {}) =>
     http.get("/usuarios", { params }),
 
@@ -101,7 +171,10 @@ const apiService = {
   excluirUsuario: (id) =>
     http.delete(`/usuarios/${id}`),
 
+  // ==========================================================
   // ASSINATURAS
+  // ==========================================================
+
   minhaAssinatura: () =>
     http.get("/assinaturas/minha"),
 
@@ -117,7 +190,10 @@ const apiService = {
   atualizarStatusAssinatura: (id, dados) =>
     http.patch(`/assinaturas/${id}/status`, dados),
 
+  // ==========================================================
   // CATEGORIAS
+  // ==========================================================
+
   listarCategorias: (params = {}) =>
     http.get("/categorias", { params }),
 
@@ -133,7 +209,10 @@ const apiService = {
   excluirCategoria: (id) =>
     http.delete(`/categorias/${id}`),
 
+  // ==========================================================
   // FORNECEDORES
+  // ==========================================================
+
   listarFornecedores: (params = {}) =>
     http.get("/fornecedores", { params }),
 
@@ -149,7 +228,10 @@ const apiService = {
   excluirFornecedor: (id) =>
     http.delete(`/fornecedores/${id}`),
 
+  // ==========================================================
   // PRODUTOS
+  // ==========================================================
+
   listarProdutos: (params = {}) =>
     http.get("/produtos", { params }),
 
@@ -177,14 +259,21 @@ const apiService = {
       type: arquivo.type || "image/jpeg",
     });
 
-    return http.post(`/produtos/${id}/foto`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    return http.post(
+      `/produtos/${id}/foto`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
   },
 
+  // ==========================================================
   // MOVIMENTAÇÕES DE ESTOQUE
+  // ==========================================================
+
   listarMovimentacoes: (params = {}) =>
     http.get("/movimentacoes", { params }),
 
@@ -194,7 +283,10 @@ const apiService = {
   criarMovimentacao: (dados) =>
     http.post("/movimentacoes", dados),
 
+  // ==========================================================
   // HISTÓRICO
+  // ==========================================================
+
   listarHistorico: (params = {}) =>
     http.get("/historico", { params }),
 

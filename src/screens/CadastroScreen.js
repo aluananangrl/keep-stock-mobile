@@ -1,8 +1,4 @@
 
-// ============================================================
-// IMPORTAÇÕES
-// ============================================================
-
 import {
   View,
   Text,
@@ -13,14 +9,16 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from "react-native";
 
 import { useState } from "react";
-
 import { Ionicons } from "@expo/vector-icons";
 
 import api from "../services/api";
 
+// MESMO FUNDO DA TELA DE LOGIN
+import fundoLogin from "../../assets/fundo-login.png";
 
 // ============================================================
 // COMPONENTE PRINCIPAL
@@ -28,84 +26,66 @@ import api from "../services/api";
 
 export default function Cadastro({ navigation }) {
 
-  // Dados do usuário
+  // ==========================================================
+  // ESTADOS
+  // ==========================================================
+
   const [user, setUser] = useState({
     nome: "",
     email: "",
     senha: "",
   });
 
-  // Confirmação da senha
   const [confirmarSenha, setConfirmarSenha] = useState("");
 
-  // Termos
   const [aceitouTermos, setAceitouTermos] = useState(false);
 
-  // Mostrar senha
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
-  // Mostrar confirmação da senha
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] =
     useState(false);
 
+  const [carregando, setCarregando] = useState(false);
 
-  // ============================================================
+  // ==========================================================
   // ALTERAR CAMPOS
-  // ============================================================
+  // ==========================================================
 
   function onChange(name, value) {
-    setUser({
-      ...user,
+    setUser((prev) => ({
+      ...prev,
       [name]: value,
-    });
+    }));
   }
 
-
-  // ============================================================
+  // ==========================================================
   // FUNÇÃO DE CADASTRO
-  // ============================================================
+  // ==========================================================
 
   async function cadastrar() {
 
-    // ==========================================================
-    // VALIDAÇÕES
-    // ==========================================================
-
     if (!user.nome.trim()) {
-      Alert.alert(
-        "Erro",
-        "Digite seu nome." 
-      );
+      Alert.alert("Erro", "Digite seu nome.");
       return;
     }
 
     if (!user.email.trim()) {
-      Alert.alert(
-        "Erro",
-        "Digite seu e-mail."
-      );
+      Alert.alert("Erro", "Digite seu e-mail.");
       return;
     }
 
-    // Validação simples do e-mail
     const emailValido =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
         user.email.trim()
       );
 
     if (!emailValido) {
-      Alert.alert(
-        "E-mail inválido",
-        "Digite um e-mail válido."
-      );
+      Alert.alert("E-mail inválido", "Digite um e-mail válido.");
       return;
     }
 
     if (!user.senha) {
-      Alert.alert(
-        "Erro",
-        "Digite sua senha."
-      );
+      Alert.alert("Erro", "Digite sua senha.");
       return;
     }
 
@@ -118,10 +98,7 @@ export default function Cadastro({ navigation }) {
     }
 
     if (user.senha !== confirmarSenha) {
-      Alert.alert(
-        "Erro",
-        "As senhas não coincidem."
-      );
+      Alert.alert("Erro", "As senhas não coincidem.");
       return;
     }
 
@@ -133,144 +110,70 @@ export default function Cadastro({ navigation }) {
       return;
     }
 
-
-    // ==========================================================
-    // ENVIO PARA O BACKEND
-    // ==========================================================
-
     try {
+      setCarregando(true);
 
       const dados = {
         nome: user.nome.trim(),
-
-        email: user.email
-          .trim()
-          .toLowerCase(),
-
+        email: user.email.trim().toLowerCase(),
         senha: user.senha,
       };
 
+      console.log("ENVIANDO CADASTRO:", {
+        nome: dados.nome,
+        email: dados.email,
+      });
 
-      console.log(
-        "================================"
-      );
+      // CHAMADA PARA API
 
-      console.log(
-        "ENVIANDO CADASTRO:",
-        dados
-      );
+      const response = await api.cadastrar(dados);
 
+      console.log("STATUS:", response.status);
+      console.log("DATA:", response.data);
 
-      // Chamada para a API
-      const response =
-        await api.cadastrar(dados);
-
-
-      console.log(
-        "STATUS:",
-        response.status
-      );
-
-      console.log(
-        "DATA:",
-        response.data
-      );
-
-      console.log(
-        "================================"
-      );
-
-
-      // ========================================================
       // CADASTRO REALIZADO
-      // ========================================================
 
       Alert.alert(
         "Cadastro realizado!",
-
         response.data?.message ||
           "Usuário cadastrado com sucesso.",
-
         [
           {
             text: "OK",
-
-            onPress: () =>
-              navigation.navigate("Login"),
+            onPress: () => navigation.navigate("Login"),
           },
         ]
       );
 
     } catch (error) {
 
-      // ========================================================
-      // INFORMAÇÕES DO ERRO
-      // ========================================================
-
       console.log(
-        "================================"
+        "ERRO NO CADASTRO:",
+        error?.response?.data || error?.message || error
       );
 
-      console.log(
-        "STATUS:",
-        error?.response?.status
-      );
+      const status = error?.response?.status;
 
-      console.log(
-        "DATA:",
-        error?.response?.data
-      );
+      const errorData = error?.response?.data?.error;
 
-      console.log(
-        "MESSAGE:",
-        error?.message
-      );
-
-      console.log(
-        "================================"
-      );
-
-
-      // ========================================================
-      // PEGA OS DADOS DO BACKEND
-      // ========================================================
-
-      const status =
-        error?.response?.status;
-
-      const errorData =
-        error?.response?.data?.error;
-
-      const code =
-        errorData?.code;
+      const code = errorData?.code;
 
       const message =
-        errorData?.message;
+        errorData?.message ||
+        error?.response?.data?.message;
 
-
-      // ========================================================
       // E-MAIL JÁ CADASTRADO
-      // ========================================================
 
-      if (
-        status === 409 &&
-        code === "DUPLICATE_EMAIL"
-      ) {
-
+      if (status === 409 && code === "DUPLICATE_EMAIL") {
         Alert.alert(
           "E-mail já cadastrado",
-
           message ||
             "Já existe um usuário cadastrado com este e-mail.",
-
           [
             {
               text: "Ir para Login",
-
-              onPress: () =>
-                navigation.navigate("Login"),
+              onPress: () => navigation.navigate("Login"),
             },
-
             {
               text: "OK",
               style: "cancel",
@@ -281,668 +184,674 @@ export default function Cadastro({ navigation }) {
         return;
       }
 
-
-      // ========================================================
-      // OUTROS ERROS DO BACKEND
-      // ========================================================
+      // ERROS DO BACKEND
 
       if (message) {
-
-        Alert.alert(
-          "Erro no cadastro",
-          message
-        );
-
+        Alert.alert("Erro no cadastro", message);
         return;
       }
 
-
-      // ========================================================
       // ERRO DE CONEXÃO
-      // ========================================================
 
       if (!error?.response) {
-
         Alert.alert(
           "Erro de conexão",
-
           "Não foi possível conectar ao servidor. Verifique se o backend está funcionando e tente novamente."
         );
 
         return;
       }
 
-
-      // ========================================================
-      // ERRO DESCONHECIDO
-      // ========================================================
+      // OUTROS ERROS
 
       Alert.alert(
         "Erro no cadastro",
-
         "Não foi possível realizar o cadastro. Tente novamente."
       );
+
+    } finally {
+      setCarregando(false);
     }
   }
 
-
-  // ============================================================
+  // ==========================================================
   // INTERFACE
-  // ============================================================
+  // ==========================================================
 
   return (
+    <View style={styles.background}>
 
-    <KeyboardAvoidingView
-      style={styles.container}
+      {/* IMAGEM DE FUNDO */}
 
-      behavior={
-        Platform.OS === "ios"
-          ? "padding"
-          : undefined
-      }
-    >
+      <Image
+        source={fundoLogin}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+        pointerEvents="none"
+        accessible={false}
+      />
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
+      {/* CONTEÚDO */}
 
-        showsVerticalScrollIndicator={false}
-
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
 
-        <View style={styles.card}>
-
-          {/* ==================================================
-              LOGO
-          ================================================== */}
-
-          <View style={styles.logo}>
-
-            <Ionicons
-              name="file-tray"
-              size={25}
-              color="#c4c2ff"
-            />
-
-          </View>
-
-
-          {/* ==================================================
-              TÍTULO
-          ================================================== */}
-
-          <Text style={styles.title}>
-            Criar Conta
-          </Text>
-
-
-          <Text style={styles.subtitle}>
-            Junte-se ao KeepStock Inventory para gestão
-          </Text>
-
-          <Text style={styles.subtitle}>
-            avançada.
-          </Text>
-
-
-          {/* ==================================================
-              NOME
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Nome Completo
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="person-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="Digite seu nome"
-
-              placeholderTextColor="#777d94"
-
-              value={user.nome}
-
-              onChangeText={(value) =>
-                onChange("nome", value)
-              }
-
-              autoCapitalize="words"
-            />
-
-          </View>
-
-
-          {/* ==================================================
-              EMAIL
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Email
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="mail-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="nome@empresa.com"
-
-              placeholderTextColor="#777d94"
-
-              value={user.email}
-
-              onChangeText={(value) =>
-                onChange("email", value)
-              }
-
-              keyboardType="email-address"
-
-              autoCapitalize="none"
-
-              autoCorrect={false}
-            />
-
-          </View>
-
-
-          {/* ==================================================
-              SENHA
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Senha
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="lock-closed-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="••••••••"
-
-              placeholderTextColor="#777d94"
-
-              value={user.senha}
-
-              onChangeText={(value) =>
-                onChange("senha", value)
-              }
-
-              secureTextEntry={
-                !mostrarSenha
-              }
-
-              autoCapitalize="none"
-            />
-
-
-            <TouchableOpacity
-              onPress={() =>
-                setMostrarSenha(
-                  !mostrarSenha
-                )
-              }
-            >
-
-              <Ionicons
-                name={
-                  mostrarSenha
-                    ? "eye-outline"
-                    : "eye-off-outline"
-                }
-
-                size={17}
-
-                color="#9b9fbd"
-
-                style={styles.eye}
-              />
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          {/* ==================================================
-              CONFIRMAR SENHA
-          ================================================== */}
-
-          <Text style={styles.label}>
-            Confirmar Senha
-          </Text>
-
-
-          <View style={styles.inputBox}>
-
-            <Ionicons
-              name="lock-closed-outline"
-              size={17}
-              color="#9b9fbd"
-              style={styles.icon}
-            />
-
-
-            <TextInput
-              style={styles.input}
-
-              placeholder="••••••••"
-
-              placeholderTextColor="#777d94"
-
-              value={confirmarSenha}
-
-              onChangeText={
-                setConfirmarSenha
-              }
-
-              secureTextEntry={
-                !mostrarConfirmarSenha
-              }
-
-              autoCapitalize="none"
-            />
-
-
-            <TouchableOpacity
-              onPress={() =>
-                setMostrarConfirmarSenha(
-                  !mostrarConfirmarSenha
-                )
-              }
-            >
-
-              <Ionicons
-                name={
-                  mostrarConfirmarSenha
-                    ? "eye-outline"
-                    : "eye-off-outline"
-                }
-
-                size={17}
-
-                color="#9b9fbd"
-
-                style={styles.eye}
-              />
-
-            </TouchableOpacity>
-
-          </View>
-
-
-          {/* ==================================================
-              TERMOS
-          ================================================== */}
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+
+          {/* BOTÃO VOLTAR */}
 
           <TouchableOpacity
-            style={styles.terms}
-
-            onPress={() =>
-              setAceitouTermos(
-                !aceitouTermos
-              )
-            }
+            style={styles.backButton}
+            onPress={() => navigation.navigate("Login")}
+            activeOpacity={0.8}
           >
+            <Ionicons
+              name="arrow-back"
+              size={23}
+              color="#ffffff"
+            />
+          </TouchableOpacity>
 
-            <View
-              style={[
-                styles.checkbox,
+          {/* ==================================================
+              IDENTIDADE VISUAL
+          ================================================== */}
 
-                aceitouTermos &&
-                  styles.checkboxChecked,
-              ]}
-            >
+          <View style={styles.header}>
 
-              {aceitouTermos && (
+            <View style={styles.logo}>
+              <Ionicons
+                name="cube-outline"
+                size={38}
+                color="#a99fff"
+              />
+            </View>
 
+            <Text style={styles.brand}>
+              Keep<Text style={styles.brandAccent}>Stock</Text>
+            </Text>
+
+            <Text style={styles.subtitle}>
+              Crie sua conta e faça parte de uma
+            </Text>
+
+            <Text style={styles.subtitle}>
+              gestão de estoque mais inteligente.
+            </Text>
+
+          </View>
+
+          {/* ==================================================
+              CARD DE CADASTRO
+          ================================================== */}
+
+          <View style={styles.card}>
+
+            {/* TÍTULO DO CARD */}
+
+            <View style={styles.cardHeader}>
+
+              <View style={styles.cardIcon}>
                 <Ionicons
-                  name="checkmark"
-                  size={12}
-                  color="#fff"
+                  name="person-add-outline"
+                  size={29}
+                  color="#c4baff"
                 />
+              </View>
 
-              )}
+              <Text style={styles.title}>
+                Criar Conta
+              </Text>
 
             </View>
 
+            {/* ==================================================
+                NOME
+            ================================================== */}
 
-            <Text style={styles.termsText}>
-              I agree to the Terms and Conditions
+            <Text style={styles.label}>
+              Nome Completo
             </Text>
 
-          </TouchableOpacity>
+            <View style={styles.inputBox}>
 
+              <Ionicons
+                name="person-outline"
+                size={22}
+                color="#a4a9d8"
+                style={styles.icon}
+              />
 
-          {/* ==================================================
-              BOTÃO CADASTRAR
-          ================================================== */}
+              <TextInput
+                style={styles.input}
+                placeholder="Digite seu nome"
+                placeholderTextColor="#858db5"
+                value={user.nome}
+                onChangeText={(value) =>
+                  onChange("nome", value)
+                }
+                autoCapitalize="words"
+                editable={!carregando}
+              />
 
-          <TouchableOpacity
-            style={styles.button}
+            </View>
 
-            onPress={cadastrar}
+            {/* ==================================================
+                EMAIL
+            ================================================== */}
 
-            activeOpacity={0.8}
-          >
-
-            <Text style={styles.buttonText}>
-              Cadastrar
+            <Text style={styles.label}>
+              Email
             </Text>
 
+            <View style={styles.inputBox}>
 
-            <Ionicons
-              name="arrow-forward"
-              size={17}
-              color="#29258a"
-            />
+              <Ionicons
+                name="mail-outline"
+                size={22}
+                color="#a4a9d8"
+                style={styles.icon}
+              />
 
-          </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                placeholder="nome@empresa.com"
+                placeholderTextColor="#858db5"
+                value={user.email}
+                onChangeText={(value) =>
+                  onChange("email", value)
+                }
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!carregando}
+              />
 
+            </View>
 
-          {/* ==================================================
-              DIVISOR
-          ================================================== */}
+            {/* ==================================================
+                SENHA
+            ================================================== */}
 
-          <View style={styles.divider} />
-
-
-          {/* ==================================================
-              LOGIN
-          ================================================== */}
-
-          <View style={styles.loginContainer}>
-
-            <Text style={styles.loginText}>
-              Already have an account?{" "}
+            <Text style={styles.label}>
+              Senha
             </Text>
 
+            <View style={styles.inputBox}>
+
+              <Ionicons
+                name="lock-closed-outline"
+                size={22}
+                color="#a4a9d8"
+                style={styles.icon}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Crie uma senha"
+                placeholderTextColor="#858db5"
+                value={user.senha}
+                onChangeText={(value) =>
+                  onChange("senha", value)
+                }
+                secureTextEntry={!mostrarSenha}
+                autoCapitalize="none"
+                editable={!carregando}
+              />
+
+              <TouchableOpacity
+                onPress={() =>
+                  setMostrarSenha(!mostrarSenha)
+                }
+                disabled={carregando}
+              >
+                <Ionicons
+                  name={
+                    mostrarSenha
+                      ? "eye-outline"
+                      : "eye-off-outline"
+                  }
+                  size={22}
+                  color="#a4a9d8"
+                  style={styles.eye}
+                />
+              </TouchableOpacity>
+
+            </View>
+
+            {/* ==================================================
+                CONFIRMAR SENHA
+            ================================================== */}
+
+            <Text style={styles.label}>
+              Confirmar Senha
+            </Text>
+
+            <View style={styles.inputBox}>
+
+              <Ionicons
+                name="lock-closed-outline"
+                size={22}
+                color="#a4a9d8"
+                style={styles.icon}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Confirme sua senha"
+                placeholderTextColor="#858db5"
+                value={confirmarSenha}
+                onChangeText={setConfirmarSenha}
+                secureTextEntry={!mostrarConfirmarSenha}
+                autoCapitalize="none"
+                editable={!carregando}
+              />
+
+              <TouchableOpacity
+                onPress={() =>
+                  setMostrarConfirmarSenha(
+                    !mostrarConfirmarSenha
+                  )
+                }
+                disabled={carregando}
+              >
+                <Ionicons
+                  name={
+                    mostrarConfirmarSenha
+                      ? "eye-outline"
+                      : "eye-off-outline"
+                  }
+                  size={22}
+                  color="#a4a9d8"
+                  style={styles.eye}
+                />
+              </TouchableOpacity>
+
+            </View>
+
+            {/* ==================================================
+                TERMOS E CONDIÇÕES
+            ================================================== */}
 
             <TouchableOpacity
+              style={styles.terms}
               onPress={() =>
-                navigation.navigate("Login")
+                setAceitouTermos(!aceitouTermos)
               }
+              activeOpacity={0.8}
             >
 
-              <Text style={styles.loginLink}>
-                Log in
+              <View
+                style={[
+                  styles.checkbox,
+                  aceitouTermos && styles.checkboxChecked,
+                ]}
+              >
+                {aceitouTermos && (
+                  <Ionicons
+                    name="checkmark"
+                    size={15}
+                    color="#ffffff"
+                  />
+                )}
+              </View>
+
+              <Text style={styles.termsText}>
+                Eu concordo com os{" "}
+                <Text style={styles.termsHighlight}>
+                  Termos e Condições
+                </Text>
               </Text>
 
             </TouchableOpacity>
 
+            {/* ==================================================
+                BOTÃO CADASTRAR
+            ================================================== */}
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                carregando && styles.buttonDisabled,
+              ]}
+              onPress={cadastrar}
+              activeOpacity={0.8}
+              disabled={carregando}
+            >
+
+              <Text style={styles.buttonText}>
+                {carregando ? "Cadastrando..." : "Cadastrar"}
+              </Text>
+
+              {!carregando && (
+                <Ionicons
+                  name="arrow-forward"
+                  size={25}
+                  color="#ffffff"
+                />
+              )}
+
+            </TouchableOpacity>
+
+            {/* ==================================================
+                DIVISOR
+            ================================================== */}
+
+            <View style={styles.divider} />
+
+            {/* ==================================================
+                JÁ TEM CONTA?
+            ================================================== */}
+
+            <View style={styles.loginContainer}>
+
+              <Text style={styles.loginText}>
+                Já possui uma conta?
+              </Text>
+
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("Login")
+                }
+              >
+                <Text style={styles.loginLink}>
+                  Fazer Login
+                </Text>
+              </TouchableOpacity>
+
+            </View>
+
           </View>
 
-        </View>
+          {/* ==================================================
+              RODAPÉ
+          ================================================== */}
 
-      </ScrollView>
+          <Text style={styles.footer}>
+            © 2026 keepStock.
+          </Text>
 
-    </KeyboardAvoidingView>
+        </ScrollView>
+
+      </KeyboardAvoidingView>
+
+    </View>
   );
 }
 
-
 // ============================================================
-// ESTILOS
+// ESTILIZAÇÃO
 // ============================================================
 
 const styles = StyleSheet.create({
 
+  // FUNDO
+
+  background: {
+    flex: 1,
+    backgroundColor: "#0b1224",
+  },
+
+  backgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+  },
+
+  // CONTAINER
+
   container: {
     flex: 1,
-    backgroundColor: "#1b1b1d",
+    zIndex: 1,
+    elevation: 1,
+    backgroundColor: "transparent",
   },
 
   scroll: {
     flexGrow: 1,
     width: "100%",
-    padding: 0,
+    paddingHorizontal: 0,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
 
-  card: {
-    flex: 1,
-    width: "100%",
-    minHeight: "100%",
+  // VOLTAR
 
-    backgroundColor: "#151d32",
-
-    paddingHorizontal: 28,
-    paddingTop: 35,
-    paddingBottom: 30,
-
-    justifyContent: "center",
-  },
-
-  // ==========================================================
-  // LOGO
-  // ==========================================================
-
-  logo: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-
-    backgroundColor: "#303568",
-
+  backButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "rgba(43, 49, 105, 0.85)",
     justifyContent: "center",
     alignItems: "center",
-    alignSelf: "center",
-
-    marginBottom: 18,
+    marginLeft: 22,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(135, 120, 255, 0.20)",
   },
 
-  // ==========================================================
-  // TÍTULO
-  // ==========================================================
+  // HEADER
 
-  title: {
-    color: "#e1e3f0",
+  header: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+    marginBottom: 28,
+  },
 
-    fontSize: 25,
-    fontWeight: "600",
+  logo: {
+    width: 65,
+    height: 65,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
 
-    textAlign: "center",
+  brand: {
+    fontSize: 34,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: -1,
+    marginBottom: 12,
+  },
 
-    marginBottom: 9,
+  brandAccent: {
+    color: "#8666ff",
   },
 
   subtitle: {
-    color: "#858b9f",
-
-    fontSize: 12,
-
+    fontSize: 14,
+    color: "#a2a9d5",
     textAlign: "center",
-
-    lineHeight: 17,
+    lineHeight: 21,
   },
 
-  // ==========================================================
-  // LABEL
-  // ==========================================================
+  // CARD
 
-  label: {
-    color: "#d3d5df",
-
-    fontSize: 12,
-    fontWeight: "500",
-
-    marginTop: 18,
-    marginBottom: 7,
+  card: {
+    width: "92%",
+    alignSelf: "center",
+    backgroundColor: "rgba(12, 17, 43, 0.78)",
+    borderWidth: 1.3,
+    borderColor: "rgba(117, 101, 255, 0.32)",
+    borderRadius: 32,
+    paddingHorizontal: 22,
+    paddingTop: 26,
+    paddingBottom: 28,
+    overflow: "hidden",
   },
 
-  // ==========================================================
-  // INPUT
-  // ==========================================================
-
-  inputBox: {
-    height: 52,
-
-    width: "100%",
-
-    backgroundColor: "#20283b",
-
-    borderWidth: 1,
-    borderColor: "#303a55",
-
+  cardHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 24,
+    gap: 15,
+  },
 
-    borderRadius: 10,
+  cardIcon: {
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: "rgba(79, 58, 205, 0.48)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  title: {
+    color: "#f5f5ff",
+    fontSize: 27,
+    fontWeight: "700",
+  },
+
+  // LABELS
+
+  label: {
+    color: "#e0e3ff",
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 9,
+    marginTop: 17,
+  },
+
+  // INPUTS
+
+  inputBox: {
+    width: "100%",
+    height: 62,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(32, 40, 67, 0.82)",
+    borderWidth: 1.3,
+    borderColor: "#343b70",
+    borderRadius: 22,
   },
 
   icon: {
-    marginLeft: 13,
+    marginLeft: 15,
   },
 
   input: {
     flex: 1,
-
     height: "100%",
-
-    paddingHorizontal: 12,
-
-    fontSize: 13,
-
-    color: "#e1e3f0",
+    color: "#f4f4ff",
+    fontSize: 15,
+    paddingHorizontal: 14,
   },
 
   eye: {
-    marginRight: 13,
+    marginRight: 15,
   },
 
-  // ==========================================================
   // TERMOS
-  // ==========================================================
 
   terms: {
     flexDirection: "row",
-
     alignItems: "center",
-
-    marginTop: 18,
-    marginBottom: 20,
+    marginTop: 24,
+    marginBottom: 25,
   },
 
   checkbox: {
-    width: 18,
-    height: 18,
-
-    borderRadius: 4,
-
-    borderWidth: 1,
-    borderColor: "#4c5369",
-
-    backgroundColor: "#20283b",
-
+    width: 23,
+    height: 23,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#858bd1",
+    backgroundColor: "rgba(32, 40, 67, 0.7)",
     justifyContent: "center",
     alignItems: "center",
-
-    marginRight: 9,
+    marginRight: 12,
   },
 
   checkboxChecked: {
-    backgroundColor: "#7775ff",
-    borderColor: "#7775ff",
+    backgroundColor: "#7052f5",
+    borderColor: "#a99aff",
   },
 
   termsText: {
-    color: "#9297aa",
-
-    fontSize: 11,
+    color: "#aab0d7",
+    fontSize: 12,
+    flexShrink: 1,
   },
 
-  // ==========================================================
+  termsHighlight: {
+    color: "#9a79ff",
+    fontWeight: "700",
+  },
+
   // BOTÃO
-  // ==========================================================
 
   button: {
     width: "100%",
-
-    height: 52,
-
-    borderRadius: 26,
-
-    backgroundColor: "#aaa8ff",
-
+    height: 66,
+    borderRadius: 35,
+    backgroundColor: "#7451f5",
     flexDirection: "row",
-
     alignItems: "center",
     justifyContent: "center",
+    gap: 14,
+    borderWidth: 1,
+    borderColor: "#9d8bff",
+  },
+
+  buttonDisabled: {
+    opacity: 0.6,
   },
 
   buttonText: {
-    color: "#29258a",
-
-    fontSize: 13,
-
-    fontWeight: "600",
-
-    marginRight: 8,
+    color: "#ffffff",
+    fontSize: 17,
+    fontWeight: "700",
   },
 
-  // ==========================================================
   // DIVISOR
-  // ==========================================================
 
   divider: {
     height: 1,
-
-    backgroundColor: "#293146",
-
-    marginTop: 28,
-    marginBottom: 22,
+    backgroundColor: "rgba(111, 120, 177, 0.30)",
+    marginTop: 27,
+    marginBottom: 23,
   },
 
-  // ==========================================================
   // LOGIN
-  // ==========================================================
 
   loginContainer: {
     flexDirection: "row",
-
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 5,
   },
 
   loginText: {
-    color: "#858b9e",
-
-    fontSize: 11,
+    color: "#929bc5",
+    fontSize: 12,
   },
 
   loginLink: {
-    color: "#aaa8ff",
+    color: "#a99aff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
 
-    fontSize: 11,
+  // RODAPÉ
 
-    fontWeight: "600",
+  footer: {
+    color: "#929bc5",
+    fontSize: 10,
+    textAlign: "center",
+    marginTop: 25,
+    marginBottom: 12,
+    paddingHorizontal: 15,
   },
 
 });

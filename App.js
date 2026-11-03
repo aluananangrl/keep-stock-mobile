@@ -26,6 +26,7 @@ import NotificacoesScreen from "./src/screens/NotificacoesScreen";
 import RecuperarSenhaScreen from "./src/screens/RecuperarSenhaScreen";
 import QRCodeProdutoScreen from "./src/screens/QRCodeProdutoScreen";
 import CadastroProdutoScreen from "./src/screens/CadastroProdutoScreen";
+import NovaSenhaScreen from "./src/screens/NovaSenhaScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -36,7 +37,7 @@ function AppNavigator() {
     <NavigationContainer theme={theme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack.Navigator
         initialRouteName="Login"
-        screenOptions={{ headerShown: true }}
+        screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Cadastro" component={CadastroScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -68,6 +69,7 @@ function AppNavigator() {
         <Stack.Screen name="QRCodeProduto" component={QRCodeProdutoScreen}
           options={{ title: "QR Code do produto" }}/>
         <Stack.Screen name="CadastroProduto" component={CadastroProdutoScreen} />
+        <Stack.Screen name="NovaSenha" component={NovaSenhaScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

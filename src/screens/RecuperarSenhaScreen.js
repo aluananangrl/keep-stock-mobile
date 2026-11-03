@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+
 import {
   View,
   Text,
@@ -9,204 +10,552 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
+  ActivityIndicator,
+  StatusBar,
 } from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import api from "../services/api";
+import fundoLogin from "../../assets/fundo-login.png";
+
+// ============================================================
+// COMPONENTE PRINCIPAL
+// ============================================================
 
 export default function RecuperarSenhaScreen({ navigation }) {
   const [email, setEmail] = useState("");
+  const [codigo, setCodigo] = useState("");
+
+  const [etapa, setEtapa] = useState("email");
   const [enviando, setEnviando] = useState(false);
 
-  function handleEnviarLink() {
-    const emailFormatado = email.trim();
+  // ============================================================
+  // ENVIAR CÓDIGO DE RECUPERAÇÃO
+  // ============================================================
 
-    if (!emailFormatado) {
-      Alert.alert("Erro", "Digite seu e-mail corporativo.");
-      return;
-    }
+  async function handleEnviarCodigo() {
+    if (enviando) return;
 
-    if (!emailFormatado.includes("@")) {
-      Alert.alert("Erro", "Informe um e-mail válido.");
+    const emailFormatado = email.trim().toLowerCase();
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(emailFormatado)) {
+      Alert.alert("E-mail inválido", "Por favor, informe um e-mail válido.");
       return;
     }
 
     setEnviando(true);
 
-    Alert.alert(
-      "Link enviado",
-      `A recuperação foi solicitada para ${emailFormatado}. Verifique sua caixa de entrada.`,
-      [
-        {
-          text: "OK",
-          onPress: () => {
-            setEnviando(false);
-            navigation.goBack();
-          },
-        },
-      ]
-    );
+    try {
+      await api.solicitarRecuperacao(emailFormatado);
+
+      setEmail(emailFormatado);
+      setCodigo("");
+      setEtapa("codigo");
+
+      Alert.alert(
+        "Solicitação recebida",
+        "Se o e-mail estiver cadastrado, você receberá um código de recuperação.",
+      );
+    } catch (error) {
+      console.log(
+        "Erro ao enviar código:",
+        error.response?.data || error.message,
+      );
+
+      Alert.alert(
+        "Erro ao enviar código",
+        error.response?.data?.message ||
+          "Não foi possível solicitar o código. Tente novamente.",
+      );
+    } finally {
+      setEnviando(false);
+    }
   }
 
+  // ============================================================
+  // VERIFICAR CÓDIGO RECEBIDO
+  // ============================================================
+
+  async function handleVerificarCodigo() {
+    if (enviando) return;
+
+    const codigoFormatado = codigo.trim();
+
+    if (!/^\d{6}$/.test(codigoFormatado)) {
+      Alert.alert(
+        "Código inválido",
+        "Digite o código de 6 dígitos recebido por e-mail.",
+      );
+      return;
+    }
+
+    setEnviando(true);
+
+    try {
+      await api.verificarCodigo(email, codigoFormatado);
+
+      navigation.navigate("NovaSenha", {
+        email,
+        codigo: codigoFormatado,
+      });
+    } catch (error) {
+      console.log(
+        "Erro ao verificar código:",
+        error.response?.data || error.message,
+      );
+
+      Alert.alert(
+        "Código inválido",
+        error.response?.data?.message || "O código está incorreto ou expirou.",
+      );
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  // ============================================================
+  // VOLTAR
+  // ============================================================
+
+  function handleVoltar() {
+    if (etapa === "codigo") {
+      setCodigo("");
+      setEtapa("email");
+      return;
+    }
+
+    navigation.goBack();
+  }
+
+  // ============================================================
+  // INTERFACE
+  // ============================================================
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.headerWrap}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={22} color="#e1e3f0" />
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="#080E21"
+        translucent={false}
+      />
 
-        <View style={styles.card}>
-          <View style={styles.iconWrap}>
-            <Ionicons name="lock-closed-outline" size={28} color="#dfe1ff" />
-          </View>
+      {/* =============================================== */}
+      {/* IMAGEM DE FUNDO - CAMADA INDEPENDENTE */}
+      {/* =============================================== */}
 
-          <Text style={styles.title}>Recuperar Senha</Text>
+      <View style={styles.backgroundContainer} pointerEvents="none">
+        <Image
+          source={fundoLogin}
+          style={styles.backgroundImage}
+          resizeMode="cover"
+        />
 
-          <Text style={styles.subtitle}>
-            Insira seu e-mail corporativo para receber as instruções de redefinição.
-          </Text>
+        <View style={styles.overlay} />
+      </View>
 
-          <View style={styles.inputBox}>
-            <Ionicons name="mail-outline" size={17} color="#858ba7" style={styles.icon} />
-            <TextInput
-              style={styles.input}
-              placeholder="E-mail corporativo"
-              placeholderTextColor="#777d98"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!enviando}
-            />
-          </View>
+      {/* =============================================== */}
+      {/* CONTEÚDO DA TELA */}
+      {/* =============================================== */}
 
-          <TouchableOpacity
-            style={[styles.button, enviando && styles.buttonDisabled]}
-            onPress={handleEnviarLink}
-            activeOpacity={0.8}
-            disabled={enviando}
+      <SafeAreaView style={styles.safeArea}>
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            <Text style={styles.buttonText}>
-              {enviando ? "Enviando..." : "Enviar Link de Recuperação"}
-            </Text>
-          </TouchableOpacity>
+            {/* ======================================= */}
+            {/* BOTÃO VOLTAR */}
+            {/* ======================================= */}
 
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>Voltar para o Login</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <View style={styles.headerWrap}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={handleVoltar}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-back" size={25} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* ======================================= */}
+            {/* CARD DE RECUPERAÇÃO */}
+            {/* ======================================= */}
+
+            <View style={styles.card}>
+              {/* ÍCONE SUPERIOR */}
+
+              <View style={styles.iconWrap}>
+                <Ionicons
+                  name={
+                    etapa === "email"
+                      ? "lock-closed-outline"
+                      : "shield-checkmark-outline"
+                  }
+                  size={36}
+                  color="#DCD9FF"
+                />
+              </View>
+
+              {/* TÍTULO */}
+
+              <Text style={styles.title}>
+                {etapa === "email" ? "Recuperar Senha" : "Verificar Código"}
+              </Text>
+
+              {/* DESCRIÇÃO */}
+
+              <Text style={styles.subtitle}>
+                {etapa === "email"
+                  ? "Insira seu e-mail corporativo para receber um código de recuperação."
+                  : `Digite o código de 6 dígitos enviado para ${email}.`}
+              </Text>
+
+              {/* =================================== */}
+              {/* CAMPO DE E-MAIL */}
+              {/* =================================== */}
+
+              {etapa === "email" ? (
+                <View style={styles.inputBox}>
+                  <Ionicons
+                    name="mail-outline"
+                    size={21}
+                    color="#8495B5"
+                    style={styles.inputIcon}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="E-mail corporativo"
+                    placeholderTextColor="#8495B5"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="email"
+                    editable={!enviando}
+                    returnKeyType="done"
+                    onSubmitEditing={handleEnviarCodigo}
+                  />
+                </View>
+              ) : (
+                /* ================================= */
+                /* CAMPO DO CÓDIGO */
+                /* ================================= */
+
+                <View style={styles.inputBox}>
+                  <Ionicons
+                    name="keypad-outline"
+                    size={23}
+                    color="#8495B5"
+                    style={styles.inputIcon}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Código de 6 dígitos"
+                    placeholderTextColor="#8495B5"
+                    value={codigo}
+                    onChangeText={(texto) =>
+                      setCodigo(texto.replace(/\D/g, ""))
+                    }
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    editable={!enviando}
+                  />
+                </View>
+              )}
+
+              {/* =================================== */}
+              {/* BOTÃO PRINCIPAL */}
+              {/* =================================== */}
+
+              <TouchableOpacity
+                style={[styles.button, enviando && styles.buttonDisabled]}
+                onPress={
+                  etapa === "email" ? handleEnviarCodigo : handleVerificarCodigo
+                }
+                activeOpacity={0.8}
+                disabled={enviando}
+              >
+                {enviando ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    {etapa === "email" ? "Enviar Código" : "Verificar Código"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {/* =================================== */}
+              {/* REENVIAR CÓDIGO */}
+              {/* =================================== */}
+
+              {etapa === "codigo" && (
+                <TouchableOpacity
+                  style={styles.backLoginButton}
+                  onPress={handleEnviarCodigo}
+                  activeOpacity={0.7}
+                  disabled={enviando}
+                >
+                  <Text style={styles.backText}>
+                    Não recebeu? Reenviar código
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* =================================== */}
+              {/* VOLTAR PARA LOGIN */}
+              {/* =================================== */}
+
+              <TouchableOpacity
+                style={styles.backLoginButton}
+                onPress={() => navigation.navigate("Login")}
+                activeOpacity={0.7}
+                disabled={enviando}
+              >
+                <Text style={styles.backText}>Voltar para o Login</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 }
 
+// ============================================================
+// ESTILOS
+// ============================================================
+
 const styles = StyleSheet.create({
+  // ==========================================================
+  // CONTAINER PRINCIPAL
+  // ==========================================================
+
   container: {
     flex: 1,
-    backgroundColor: "#1b1b1d",
+    backgroundColor: "#080E21",
   },
+
+  // ==========================================================
+  // FUNDO DA TELA
+  // ==========================================================
+
+  backgroundContainer: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
+  },
+
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+  },
+
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(4, 9, 28, 0.36)",
+  },
+
+  // ==========================================================
+  // CAMADA DO CONTEÚDO
+  // ==========================================================
+
+  safeArea: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+
+  keyboardContainer: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+
+  scrollView: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
+
   scroll: {
     flexGrow: 1,
     justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 40,
+    paddingHorizontal: 22,
+    paddingTop: 35,
+    paddingBottom: 40,
   },
+
+  // ==========================================================
+  // BOTÃO VOLTAR
+  // ==========================================================
+
   headerWrap: {
     width: "100%",
     alignItems: "flex-start",
-    marginBottom: 18,
+    marginBottom: 24,
   },
+
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "rgba(19, 29, 55, 0.90)",
+    borderWidth: 1,
+    borderColor: "rgba(145, 143, 255, 0.30)",
   },
+
+  // ==========================================================
+  // CARD PRINCIPAL
+  // ==========================================================
+
   card: {
     width: "100%",
-    backgroundColor: "#172035",
-    borderRadius: 18,
-    paddingHorizontal: 18,
-    paddingTop: 22,
-    paddingBottom: 20,
-    borderWidth: 1,
-    borderColor: "#2e3a52",
+    backgroundColor: "rgba(12, 22, 47, 0.96)",
+    borderRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 30,
+    paddingBottom: 30,
+    borderWidth: 1.5,
+    borderColor: "#6658E8",
+
+    shadowColor: "#5B4BFF",
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 12,
   },
+
+  // ==========================================================
+  // ÍCONE SUPERIOR
+  // ==========================================================
+
   iconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: "#2c334c",
+    width: 76,
+    height: 76,
+    borderRadius: 22,
+    backgroundColor: "rgba(116, 111, 191, 0.28)",
     justifyContent: "center",
     alignItems: "center",
     alignSelf: "center",
-    marginBottom: 18,
+    marginBottom: 24,
   },
+
+  // ==========================================================
+  // TÍTULO
+  // ==========================================================
+
   title: {
-    color: "#e1e3f0",
-    fontSize: 20,
-    fontWeight: "700",
+    color: "#FFFFFF",
+    fontSize: 26,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 14,
+    letterSpacing: -0.5,
   },
+
+  // ==========================================================
+  // DESCRIÇÃO
+  // ==========================================================
+
   subtitle: {
-    color: "#858b9f",
-    fontSize: 12,
-    lineHeight: 18,
+    color: "#A5B3D2",
+    fontSize: 14,
+    lineHeight: 23,
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 30,
   },
+
+  // ==========================================================
+  // CAMPO DE ENTRADA
+  // ==========================================================
+
   inputBox: {
     width: "100%",
-    height: 52,
+    height: 62,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#20283b",
+    backgroundColor: "rgba(21, 34, 59, 0.95)",
     borderWidth: 1,
-    borderColor: "#303a55",
-    borderRadius: 10,
-    marginBottom: 18,
+    borderColor: "#364769",
+    borderRadius: 18,
+    marginBottom: 24,
   },
-  icon: {
-    marginLeft: 14,
+
+  inputIcon: {
+    marginLeft: 18,
   },
+
   input: {
     flex: 1,
     height: "100%",
-    color: "#e1e3f0",
-    fontSize: 13,
-    paddingHorizontal: 12,
+    color: "#FFFFFF",
+    fontSize: 15,
+    paddingHorizontal: 14,
   },
+
+  // ==========================================================
+  // BOTÃO PRINCIPAL
+  // ==========================================================
+
   button: {
     width: "100%",
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#aaa8ff",
+    minHeight: 60,
+    borderRadius: 30,
+    backgroundColor: "#5B4BFF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
+    paddingHorizontal: 12,
+    marginBottom: 22,
+
+    shadowColor: "#5B4BFF",
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
+
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.65,
   },
+
   buttonText: {
-    color: "#1e1b48",
-    fontSize: 13,
+    color: "#FFFFFF",
+    fontSize: 15,
     fontWeight: "700",
+    textAlign: "center",
   },
+
+  // ==========================================================
+  // LINKS INFERIORES
+  // ==========================================================
+
+  backLoginButton: {
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+
   backText: {
-    color: "#aaa8ff",
-    fontSize: 12,
+    color: "#AAA8FF",
+    fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
   },
 });
