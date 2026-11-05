@@ -8,7 +8,7 @@ import * as SecureStore from "expo-secure-store";
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL ||
-  "http://10.89.234.148:3000/api/v1";
+  "http://10.89.240.26:3000/api/v1";
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
@@ -43,6 +43,13 @@ const isPublicRoute = (url = "") => {
 // ============================================================
 // LIMPAR SESSÃO
 // ============================================================
+
+let onSessaoExpirada;
+let sessaoSendoLimpa;
+
+export function setOnSessaoExpirada(handler) {
+  onSessaoExpirada = handler;
+}
 
 const limparSessao = async () => {
   await Promise.all([
@@ -91,14 +98,20 @@ http.interceptors.response.use(
       config &&
       !isPublicRoute(config.url)
     ) {
-      try {
-        await limparSessao();
-      } catch (storageError) {
-        console.warn(
-          "Não foi possível limpar a sessão:",
-          storageError
-        );
+      if (!sessaoSendoLimpa) {
+        sessaoSendoLimpa = (async () => {
+          try {
+            const tokenAtual = await SecureStore.getItemAsync("token");
+            const autorizacaoAtual = tokenAtual ? `Bearer ${tokenAtual}` : undefined;
+            if (config.headers?.Authorization !== autorizacaoAtual) return;
+            await limparSessao();
+          } catch (storageError) {
+            console.warn("Não foi possível limpar a sessão:", storageError);
+          }
+          onSessaoExpirada?.();
+        })().finally(() => { sessaoSendoLimpa = undefined; });
       }
+      await sessaoSendoLimpa;
     }
 
     return Promise.reject(error);

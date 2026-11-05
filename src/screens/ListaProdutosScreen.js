@@ -1,5 +1,5 @@
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -56,11 +56,15 @@ function obterIdProduto(produto) {
 export default function ListaProdutosScreen({ navigation }) {
   const [produtos, setProdutos] = useState([]);
   const [busca, setBusca] = useState("");
+  const [categorias, setCategorias] = useState([]);
+  const [categoriaId, setCategoriaId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState("");
+  const requisicao = useRef(0);
 
   const carregar = useCallback(async (pull = false) => {
+    const versao = ++requisicao.current;
     if (pull) {
       setRefreshing(true);
     } else {
@@ -70,13 +74,10 @@ export default function ListaProdutosScreen({ navigation }) {
     setErro("");
 
     try {
-      const response = await api.listarProdutos({ limit: 100 });
-      const lista = extractList(response);
-
-      console.log("LISTA DE PRODUTOS RECEBIDA DA API:", lista.length);
-
-      setProdutos(lista);
+      const response = await api.listarProdutos({ limit: 100, categoria_id: categoriaId });
+      if (versao === requisicao.current) setProdutos(extractList(response));
     } catch (error) {
+      if (versao !== requisicao.current) return;
       setErro(
         getErrorMessage(
           error,
@@ -84,15 +85,24 @@ export default function ListaProdutosScreen({ navigation }) {
         )
       );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (versao === requisicao.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
+  }, [categoriaId]);
+
+  useEffect(() => {
+    api.listarCategorias({ limit: 100 })
+      .then((response) => setCategorias(extractList(response)))
+      .catch((error) => console.warn("Erro ao carregar categorias", error.code));
   }, []);
 
   // Atualiza a lista ao entrar na tela ou voltar dos detalhes.
   useFocusEffect(
     useCallback(() => {
       carregar();
+      return () => { requisicao.current += 1; };
     }, [carregar])
   );
 
@@ -107,7 +117,7 @@ export default function ListaProdutosScreen({ navigation }) {
       const categoria =
         typeof produto?.categoria === "object"
           ? produto?.categoria?.nome ?? ""
-          : produto?.categoria ?? "";
+          : produto?.categoria ?? produto?.categoria_nome ?? "";
 
       const texto = `
         ${getProductName(produto)}
@@ -190,6 +200,22 @@ export default function ListaProdutosScreen({ navigation }) {
           returnKeyType="search"
         />
       </View>
+
+      {categorias.length > 0 && (
+        <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 14, paddingHorizontal: 18, paddingVertical: 10 }}>
+            {[{ id: null, nome: "Todas as categorias" }, ...categorias].map((item) => (
+              <TouchableOpacity key={String(item.id)} onPress={() => setCategoriaId(item.id)}
+                accessibilityRole="button" accessibilityState={{ selected: item.id === categoriaId }}>
+                <Text style={{ color: item.id === categoriaId ? COLORS.accent : COLORS.muted }}>
+                  {item.nome}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>

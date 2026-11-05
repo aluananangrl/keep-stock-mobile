@@ -1,12 +1,12 @@
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useState,
 } from "react";
 
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -16,8 +16,10 @@ import {
   View,
 } from "react-native";
 
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import api from "../services/api";
+import { usePermissoesEstoque } from "../services/usePermissoesEstoque";
 
 import {
   extractList,
@@ -34,7 +36,10 @@ const C = {
   red: "#fb7185",
 };
 
-export default function FornecedoresScreen({ navigation }) {
+export default function FornecedoresScreen({ navigation, route }) {
+  const categoria = route.name === "Categorias";
+  const tipo = categoria ? "categoria" : "fornecedor";
+  const { podeEditar, podeExcluir } = usePermissoesEstoque();
   const [items, setItems] = useState([]);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
@@ -52,27 +57,53 @@ export default function FornecedoresScreen({ navigation }) {
     setErro("");
 
     try {
-      const resposta = await api.listarFornecedores({
-        limit: 200,
-      });
+      const listar = categoria ? api.listarCategorias : api.listarFornecedores;
+      const resposta = await listar({ limit: 100 });
 
       setItems(extractList(resposta));
     } catch (e) {
       setErro(
         getErrorMessage(
           e,
-          "Não foi possível carregar os fornecedores."
+          "Não foi possível carregar os registros."
         )
       );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [categoria]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     carregar();
-  }, [carregar]);
+  }, [carregar]));
+
+  function abrirFormulario(registro) {
+    navigation.navigate("RegistroForm", { tipo, registro });
+  }
+
+  function confirmarExclusao(registro) {
+    Alert.alert("Excluir registro?", `Deseja excluir "${registro.nome}"?`, [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          setLoading(true);
+          try {
+            const excluir = categoria ? api.excluirCategoria : api.excluirFornecedor;
+            await excluir(registro.id);
+            await carregar();
+          } catch (error) {
+            const emUso = error.response?.data?.error?.code === "RESTRICTED_RELATION";
+            Alert.alert(emUso ? "Registro em uso" : "Erro ao excluir", getErrorMessage(error));
+          } finally {
+            setLoading(false);
+          }
+        },
+      },
+    ]);
+  }
 
   // Filtra os fornecedores conforme o texto digitado.
   const filtrados = useMemo(
@@ -113,7 +144,7 @@ export default function FornecedoresScreen({ navigation }) {
           </Text>
 
           <Text style={s.title}>
-            Fornecedores
+            {categoria ? "Categorias" : "Fornecedores"}
           </Text>
         </View>
 
@@ -141,7 +172,7 @@ export default function FornecedoresScreen({ navigation }) {
           style={s.input}
           value={busca}
           onChangeText={setBusca}
-          placeholder="Nome, CNPJ ou contato"
+          placeholder={categoria ? "Nome da categoria" : "Nome, CNPJ ou contato"}
           placeholderTextColor="#64748b"
         />
       </View>
@@ -149,12 +180,15 @@ export default function FornecedoresScreen({ navigation }) {
       {/* Resumo dos fornecedores */}
       <View style={s.summary}>
         <Text style={s.summaryLabel}>
-          Fornecedores cadastrados
+          {categoria ? "Categorias cadastradas" : "Fornecedores cadastrados"}
         </Text>
 
         <Text style={s.summaryValue}>
           {items.length}
         </Text>
+        {podeEditar && <TouchableOpacity style={s.icon} onPress={() => abrirFormulario()} accessibilityLabel="Novo registro">
+          <Feather name="plus" size={20} color={C.green} />
+        </TouchableOpacity>}
       </View>
 
       {/* Carregamento */}
@@ -163,7 +197,7 @@ export default function FornecedoresScreen({ navigation }) {
           <ActivityIndicator color={C.green} />
 
           <Text style={s.muted}>
-            Carregando fornecedores...
+            Carregando registros...
           </Text>
         </View>
       ) : erro ? (
@@ -202,7 +236,7 @@ export default function FornecedoresScreen({ navigation }) {
         >
           {filtrados.length === 0 ? (
             <Text style={s.muted}>
-              Nenhum fornecedor encontrado na API.
+              Nenhum registro encontrado.
             </Text>
           ) : (
             filtrados.map((fornecedor, index) => {
@@ -225,7 +259,7 @@ export default function FornecedoresScreen({ navigation }) {
                   {/* Ícone */}
                   <View style={s.avatar}>
                     <Feather
-                      name="truck"
+                      name={categoria ? "tag" : "truck"}
                       size={19}
                       color={C.green}
                     />
@@ -239,6 +273,7 @@ export default function FornecedoresScreen({ navigation }) {
                         "Fornecedor sem nome"}
                     </Text>
 
+                    {categoria ? <Text style={s.detail}>{fornecedor.descricao}</Text> : <>
                     <Text style={s.detail}>
                       {fornecedor.cnpj
                         ? `CNPJ: ${fornecedor.cnpj}`
@@ -251,10 +286,11 @@ export default function FornecedoresScreen({ navigation }) {
                         fornecedor.contato ||
                         "Sem contato cadastrado"}
                     </Text>
+                    </>}
                   </View>
 
                   {/* Situação do fornecedor */}
-                  <View
+                  {!categoria && <View
                     style={[
                       s.status,
                       {
@@ -275,7 +311,13 @@ export default function FornecedoresScreen({ navigation }) {
                     >
                       {inativo ? "Inativo" : "Ativo"}
                     </Text>
-                  </View>
+                  </View>}
+                  {podeEditar && <TouchableOpacity accessibilityLabel="Editar registro" onPress={() => abrirFormulario(fornecedor)}>
+                    <Feather name="edit-2" size={18} color={C.text} />
+                  </TouchableOpacity>}
+                  {podeExcluir && <TouchableOpacity accessibilityLabel="Excluir registro" onPress={() => confirmarExclusao(fornecedor)}>
+                    <Feather name="trash-2" size={18} color={C.red} />
+                  </TouchableOpacity>}
                 </View>
               );
             })

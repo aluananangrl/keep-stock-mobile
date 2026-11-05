@@ -17,6 +17,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 
 import api from "../services/api";
+import { usePermissoesEstoque } from "../services/usePermissoesEstoque";
 
 import {
   extractList,
@@ -39,6 +40,7 @@ const C = {
 };
 
 export default function InventarioScreen({ navigation }) {
+  const { podeEditar } = usePermissoesEstoque();
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -140,7 +142,7 @@ export default function InventarioScreen({ navigation }) {
         </View>
 
         <View style={s.headerActions}>
-          <TouchableOpacity
+          {podeEditar && <TouchableOpacity
             style={s.addButton}
             onPress={abrirCadastro}
             activeOpacity={0.8}
@@ -155,7 +157,7 @@ export default function InventarioScreen({ navigation }) {
             <Text style={s.addButtonText}>
               Novo produto
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity>}
 
           <TouchableOpacity
             style={s.icon}
@@ -266,11 +268,10 @@ export default function InventarioScreen({ navigation }) {
               </Text>
 
               <Text style={s.muted}>
-                Cadastre seu primeiro produto para
-                começar a controlar o estoque.
+                {podeEditar ? "Cadastre seu primeiro produto para começar a controlar o estoque." : "Ainda não há produtos para exibir."}
               </Text>
 
-              <TouchableOpacity
+              {podeEditar && <TouchableOpacity
                 style={s.emptyButton}
                 onPress={abrirCadastro}
                 activeOpacity={0.8}
@@ -284,7 +285,7 @@ export default function InventarioScreen({ navigation }) {
                 <Text style={s.emptyButtonText}>
                   Cadastrar produto
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity>}
             </View>
           ) : (
             produtos.map((produto, i) => {

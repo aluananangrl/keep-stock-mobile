@@ -1,10 +1,4 @@
-
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import {
   View,
@@ -24,15 +18,9 @@ import {
 
 import { Feather, MaterialIcons } from "@expo/vector-icons";
 
-import {
-  CameraView,
-  useCameraPermissions,
-} from "expo-camera";
+import { CameraView, useCameraPermissions } from "expo-camera";
 
-import {
-  useFocusEffect,
-  useIsFocused,
-} from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 
 import { buscarProdutoPorCodigo } from "../services/produtosService";
 
@@ -58,16 +46,12 @@ const C = {
 // COMPONENTE PRINCIPAL
 // ============================================================
 
-export default function CameraScannerScreen({
-  navigation,
-  route,
-}) {
+export default function CameraScannerScreen({ navigation, route }) {
   // ==========================================================
   // PERMISSÕES E FOCO
   // ==========================================================
 
-  const [permission, requestPermission] =
-    useCameraPermissions();
+  const [permission, requestPermission] = useCameraPermissions();
 
   const isFocused = useIsFocused();
 
@@ -88,11 +72,10 @@ export default function CameraScannerScreen({
   const [scanned, setScanned] = useState(false);
 
   const [produtoDetectado, setProdutoDetectado] = useState(
-    route?.params?.produto || null
+    route?.params?.produto || null,
   );
 
-  const [notificacaoSucesso, setNotificacaoSucesso] =
-    useState(null);
+  const [notificacaoSucesso, setNotificacaoSucesso] = useState(null);
 
   const scanLock = useRef(false);
   const searchingRef = useRef(false);
@@ -135,7 +118,7 @@ export default function CameraScannerScreen({
         setTorch(false);
         setCameraReady(false);
       };
-    }, [])
+    }, []),
   );
 
   // ==========================================================
@@ -171,8 +154,7 @@ export default function CameraScannerScreen({
   // ==========================================================
 
   function handleCameraError(error) {
-    const mensagem =
-      error?.message || "Erro desconhecido na câmera";
+    const mensagem = error?.message || "Erro desconhecido na câmera";
 
     console.log("ERRO CAMERA KEEPSTOCK:", mensagem);
 
@@ -189,9 +171,7 @@ export default function CameraScannerScreen({
     setCameraReady(false);
     setCameraError(null);
 
-    setFacing((anterior) =>
-      anterior === "back" ? "front" : "back"
-    );
+    setFacing((anterior) => (anterior === "back" ? "front" : "back"));
 
     setCameraKey((anterior) => anterior + 1);
   }
@@ -214,10 +194,7 @@ export default function CameraScannerScreen({
     const codigo = String(codigoInformado || "").trim();
 
     if (!codigo) {
-      Alert.alert(
-        "Código obrigatório",
-        "Digite ou escaneie um código."
-      );
+      Alert.alert("Código obrigatório", "Digite ou escaneie um código.");
       return;
     }
 
@@ -233,13 +210,12 @@ export default function CameraScannerScreen({
     setNotificacaoSucesso(null);
 
     try {
-      const produtoEncontrado =
-        await buscarProdutoPorCodigo(codigo);
+      const produtoEncontrado = await buscarProdutoPorCodigo(codigo);
 
       if (!produtoEncontrado) {
         Alert.alert(
           "Produto não encontrado",
-          `Nenhum produto encontrado para o código "${codigo}".`
+          `Nenhum produto encontrado para o código "${codigo}".`,
         );
 
         return;
@@ -267,12 +243,12 @@ export default function CameraScannerScreen({
     } catch (error) {
       console.log(
         "ERRO BUSCA PRODUTO:",
-        error?.response?.data || error?.message
+        error?.response?.data || error?.message,
       );
 
       Alert.alert(
         "Erro ao buscar produto",
-        "Não foi possível consultar o código. Verifique sua conexão."
+        "Não foi possível consultar o código. Verifique sua conexão.",
       );
     } finally {
       searchingRef.current = false;
@@ -289,11 +265,7 @@ export default function CameraScannerScreen({
   // ==========================================================
 
   function handleBarCodeScanned(resultado) {
-    if (
-      scanLock.current ||
-      searchingRef.current ||
-      !isFocused
-    ) {
+    if (scanLock.current || searchingRef.current || !isFocused) {
       return;
     }
 
@@ -318,10 +290,7 @@ export default function CameraScannerScreen({
     const codigo = codigoManual.trim();
 
     if (!codigo) {
-      Alert.alert(
-        "Digite um código",
-        "Informe o código de barras ou QR Code."
-      );
+      Alert.alert("Digite um código", "Informe o código de barras ou QR Code.");
 
       return;
     }
@@ -335,10 +304,7 @@ export default function CameraScannerScreen({
 
   function handleAcao(tipo) {
     if (!produtoDetectado) {
-      Alert.alert(
-        "Atenção",
-        "Leia ou pesquise um produto primeiro."
-      );
+      Alert.alert("Atenção", "Leia ou pesquise um produto primeiro.");
       return;
     }
 
@@ -351,9 +317,7 @@ export default function CameraScannerScreen({
           produtoDetectado._id ||
           produtoDetectado.produto_id,
 
-        nome:
-          produtoDetectado.nome ||
-          produtoDetectado.name,
+        nome: produtoDetectado.nome || produtoDetectado.name,
 
         codigo:
           produtoDetectado.codigo ||
@@ -373,10 +337,7 @@ export default function CameraScannerScreen({
 
   function handleGenerateQR() {
     if (!produtoDetectado) {
-      Alert.alert(
-        "Atenção",
-        "Selecione um produto primeiro."
-      );
+      Alert.alert("Atenção", "Selecione um produto primeiro.");
       return;
     }
 
@@ -409,74 +370,58 @@ export default function CameraScannerScreen({
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor={C.background}
-      />
+      <StatusBar barStyle="light-content" backgroundColor={C.background} />
 
       {/* ================================================== */}
       {/* ÁREA DA CÂMERA */}
       {/* ================================================== */}
 
       <View style={styles.cameraArea}>
-
         {/* CÂMERA NATIVA */}
 
-        {cameraPermitida &&
-          isFocused &&
-          !cameraError && (
-            <CameraView
-              key={`${facing}-${cameraKey}`}
-              style={styles.cameraPreview}
-              facing={facing}
-              active={isFocused}
-              enableTorch={torch && facing === "back"}
-              barcodeScannerSettings={{
-                barcodeTypes: [
-                  "qr",
-                  "ean13",
-                  "ean8",
-                  "code128",
-                  "code39",
-                  "upc_a",
-                  "upc_e",
-                  "itf14",
-                ],
-              }}
-              onCameraReady={() => {
-                console.log(
-                  "CAMERA KEEPSTOCK INICIADA!"
-                );
+        {cameraPermitida && isFocused && !cameraError && (
+          <CameraView
+            key={`${facing}-${cameraKey}`}
+            style={styles.cameraPreview}
+            facing={facing}
+            active={isFocused}
+            enableTorch={torch && facing === "back"}
+            barcodeScannerSettings={{
+              barcodeTypes: [
+                "qr",
+                "ean13",
+                "ean8",
+                "code128",
+                "code39",
+                "upc_a",
+                "upc_e",
+                "itf14",
+              ],
+            }}
+            onCameraReady={() => {
+              console.log("CAMERA KEEPSTOCK INICIADA!");
 
-                setCameraReady(true);
-                setCameraError(null);
-              }}
-              onMountError={handleCameraError}
-              onBarcodeScanned={
-                scanned || isSearching
-                  ? undefined
-                  : handleBarCodeScanned
-              }
-            />
-          )}
+              setCameraReady(true);
+              setCameraError(null);
+            }}
+            onMountError={handleCameraError}
+            onBarcodeScanned={
+              scanned || isSearching ? undefined : handleBarCodeScanned
+            }
+          />
+        )}
 
         {/* PERMISSÃO NÃO CONCEDIDA */}
 
         {!cameraPermitida && (
           <View style={styles.cameraUnavailable}>
-            <MaterialIcons
-              name="qr-code-scanner"
-              size={55}
-              color={C.accent}
-            />
+            <MaterialIcons name="qr-code-scanner" size={55} color={C.accent} />
 
-            <Text style={styles.cameraUnavailableTitle}>
-              Leitor de códigos
-            </Text>
+            <Text style={styles.cameraUnavailableTitle}>Leitor de códigos</Text>
 
             <Text style={styles.cameraUnavailableText}>
-              Autorize o acesso à câmera para escanear
-              QR Codes e códigos de barras.
+              Autorize o acesso à câmera para escanear QR Codes e códigos de
+              barras.
             </Text>
 
             <TouchableOpacity
@@ -489,15 +434,9 @@ export default function CameraScannerScreen({
                 }
               }}
             >
-              <Feather
-                name="camera"
-                size={18}
-                color="#FFFFFF"
-              />
+              <Feather name="camera" size={18} color="#FFFFFF" />
 
-              <Text style={styles.permissionButtonText}>
-                Permitir câmera
-              </Text>
+              <Text style={styles.permissionButtonText}>Permitir câmera</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -506,39 +445,26 @@ export default function CameraScannerScreen({
 
         {cameraPermitida && cameraError && (
           <View style={styles.cameraUnavailable}>
-            <Feather
-              name="camera-off"
-              size={48}
-              color={C.red}
-            />
+            <Feather name="camera-off" size={48} color={C.red} />
 
             <Text style={styles.cameraUnavailableTitle}>
               Câmera indisponível
             </Text>
 
             <Text style={styles.cameraUnavailableText}>
-              Não foi possível iniciar a câmera.
-              Você pode tentar novamente ou usar
-              a busca manual.
+              Não foi possível iniciar a câmera. Você pode tentar novamente ou
+              usar a busca manual.
             </Text>
 
-            <Text style={styles.errorDetails}>
-              {cameraError}
-            </Text>
+            <Text style={styles.errorDetails}>{cameraError}</Text>
 
             <TouchableOpacity
               style={styles.permissionButton}
               onPress={reiniciarCamera}
             >
-              <Feather
-                name="refresh-cw"
-                size={17}
-                color="#FFFFFF"
-              />
+              <Feather name="refresh-cw" size={17} color="#FFFFFF" />
 
-              <Text style={styles.permissionButtonText}>
-                Tentar novamente
-              </Text>
+              <Text style={styles.permissionButtonText}>Tentar novamente</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -552,43 +478,24 @@ export default function CameraScannerScreen({
             style={styles.headerIconBtn}
             onPress={() => navigation.goBack()}
           >
-            <Feather
-              name="arrow-left"
-              size={22}
-              color="#FFFFFF"
-            />
+            <Feather name="arrow-left" size={22} color="#FFFFFF" />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>
-            Scanner KeepStock
-          </Text>
+          <Text style={styles.headerTitle}>Scanner KeepStock</Text>
 
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={toggleFacing}
-              disabled={
-                !cameraPermitida || !!cameraError
-              }
+              disabled={!cameraPermitida || !!cameraError}
             >
-              <MaterialIcons
-                name="flip-camera-ios"
-                size={22}
-                color="#FFFFFF"
-              />
+              <MaterialIcons name="flip-camera-ios" size={22} color="#FFFFFF" />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[
-                styles.headerIconBtn,
-                { marginLeft: 8 },
-              ]}
+              style={[styles.headerIconBtn, { marginLeft: 8 }]}
               onPress={toggleTorch}
-              disabled={
-                !cameraPermitida ||
-                facing !== "back" ||
-                !!cameraError
-              }
+              disabled={!cameraPermitida || facing !== "back" || !!cameraError}
             >
               <Feather
                 name="zap"
@@ -603,93 +510,47 @@ export default function CameraScannerScreen({
         {/* QUADRO DO SCANNER */}
         {/* ================================================== */}
 
-        {cameraPermitida &&
-          isFocused &&
-          !cameraError && (
-            <View
-              style={styles.scannerCenter}
-              pointerEvents="none"
-            >
-              <View
-                style={[
-                  styles.reticleBox,
-                  scanned && { opacity: 0.6 },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.corner,
-                    styles.cornerTL,
-                  ]}
-                />
+        {cameraPermitida && isFocused && !cameraError && (
+          <View style={styles.scannerCenter} pointerEvents="none">
+            <View style={[styles.reticleBox, scanned && { opacity: 0.6 }]}>
+              <View style={[styles.corner, styles.cornerTL]} />
 
-                <View
-                  style={[
-                    styles.corner,
-                    styles.cornerTR,
-                  ]}
-                />
+              <View style={[styles.corner, styles.cornerTR]} />
 
-                <View
-                  style={[
-                    styles.corner,
-                    styles.cornerBL,
-                  ]}
-                />
+              <View style={[styles.corner, styles.cornerBL]} />
 
-                <View
-                  style={[
-                    styles.corner,
-                    styles.cornerBR,
-                  ]}
-                />
-
-                <View style={styles.laserLine} />
-
-                <MaterialIcons
-                  name="qr-code-scanner"
-                  size={42}
-                  color="rgba(255,255,255,0.35)"
-                />
-              </View>
-
-              <View style={styles.scanInstruction}>
-                <Text style={styles.scanInstructionTitle}>
-                  Aponte a câmera para o código
-                </Text>
-
-                <Text style={styles.scanInstructionSubtitle}>
-                  QR Code ou código de barras
-                </Text>
-              </View>
-
-              {isSearching && (
-                <View style={styles.scanStatus}>
-                  <ActivityIndicator
-                    color={C.accent}
-                    size="small"
-                  />
-
-                  <Text style={styles.scanStatusText}>
-                    Consultando código...
-                  </Text>
-                </View>
-              )}
-
-              {!cameraReady && (
-                <View style={styles.loadingStatus}>
-                  <ActivityIndicator
-                    color={C.accent}
-                    size="small"
-                  />
-
-                  <Text style={styles.scanStatusText}>
-                    Inicializando câmera...
-                  </Text>
-                </View>
-              )}
+              <View style={[styles.corner, styles.cornerBR]} />
             </View>
-          )}
+
+            <View style={styles.scanInstruction}>
+              <Text style={styles.scanInstructionTitle}>
+                Aponte a câmera para o código
+              </Text>
+
+              <Text style={styles.scanInstructionSubtitle}>
+                QR Code ou código de barras
+              </Text>
+            </View>
+
+            {isSearching && (
+              <View style={styles.scanStatus}>
+                <ActivityIndicator color={C.accent} size="small" />
+
+                <Text style={styles.scanStatusText}>Consultando código...</Text>
+              </View>
+            )}
+
+            {!cameraReady && (
+              <View style={styles.loadingStatus}>
+                <ActivityIndicator color={C.accent} size="small" />
+
+                <Text style={styles.scanStatusText}>
+                  Inicializando câmera...
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       {/* ================================================== */}
@@ -704,22 +565,15 @@ export default function CameraScannerScreen({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.bottomContent}
         >
-
           {/* BUSCA MANUAL */}
 
           <View style={styles.manualHeader}>
             <View style={styles.manualIcon}>
-              <Feather
-                name="edit-3"
-                size={18}
-                color={C.accent}
-              />
+              <Feather name="edit-3" size={18} color={C.accent} />
             </View>
 
             <View style={styles.manualHeaderText}>
-              <Text style={styles.manualTitle}>
-                Digitar código manualmente
-              </Text>
+              <Text style={styles.manualTitle}>Digitar código manualmente</Text>
 
               <Text style={styles.manualSubtitle}>
                 QR Code ou código de barras
@@ -731,11 +585,7 @@ export default function CameraScannerScreen({
 
           <View style={styles.manualInputRow}>
             <View style={styles.manualInputBox}>
-              <Feather
-                name="hash"
-                size={19}
-                color={C.muted}
-              />
+              <Feather name="hash" size={19} color={C.muted} />
 
               <TextInput
                 style={styles.manualInput}
@@ -755,11 +605,7 @@ export default function CameraScannerScreen({
                   onPress={() => setCodigoManual("")}
                   disabled={isSearching}
                 >
-                  <Feather
-                    name="x-circle"
-                    size={18}
-                    color={C.muted}
-                  />
+                  <Feather name="x-circle" size={18} color={C.muted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -772,11 +618,7 @@ export default function CameraScannerScreen({
               {isSearching ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Feather
-                  name="search"
-                  size={21}
-                  color="#FFFFFF"
-                />
+                <Feather name="search" size={21} color="#FFFFFF" />
               )}
             </TouchableOpacity>
           </View>
@@ -784,10 +626,7 @@ export default function CameraScannerScreen({
           {/* BOTÃO BUSCAR */}
 
           <TouchableOpacity
-            style={[
-              styles.searchButton,
-              isSearching && { opacity: 0.6 },
-            ]}
+            style={[styles.searchButton, isSearching && { opacity: 0.6 }]}
             onPress={handleBuscarManual}
             disabled={isSearching}
           >
@@ -795,15 +634,9 @@ export default function CameraScannerScreen({
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
-                <Feather
-                  name="search"
-                  size={18}
-                  color="#FFFFFF"
-                />
+                <Feather name="search" size={18} color="#FFFFFF" />
 
-                <Text style={styles.searchButtonText}>
-                  Buscar produto
-                </Text>
+                <Text style={styles.searchButtonText}>Buscar produto</Text>
               </>
             )}
           </TouchableOpacity>
@@ -812,15 +645,9 @@ export default function CameraScannerScreen({
 
           {notificacaoSucesso && (
             <View style={styles.successNotice}>
-              <Feather
-                name="check-circle"
-                size={18}
-                color={C.green}
-              />
+              <Feather name="check-circle" size={18} color={C.green} />
 
-              <Text style={styles.successNoticeText}>
-                {notificacaoSucesso}
-              </Text>
+              <Text style={styles.successNoticeText}>{notificacaoSucesso}</Text>
             </View>
           )}
 
@@ -833,11 +660,7 @@ export default function CameraScannerScreen({
               <View style={styles.sectionDivider} />
 
               <View style={styles.productSectionHeader}>
-                <Feather
-                  name="check-circle"
-                  size={17}
-                  color={C.green}
-                />
+                <Feather name="check-circle" size={17} color={C.green} />
 
                 <Text style={styles.productSectionTitle}>
                   Produto identificado
@@ -853,17 +676,8 @@ export default function CameraScannerScreen({
                     style={styles.productThumb}
                   />
                 ) : (
-                  <View
-                    style={[
-                      styles.productThumb,
-                      styles.imagePlaceholder,
-                    ]}
-                  >
-                    <Feather
-                      name="package"
-                      size={27}
-                      color={C.muted}
-                    />
+                  <View style={[styles.productThumb, styles.imagePlaceholder]}>
+                    <Feather name="package" size={27} color={C.muted} />
                   </View>
                 )}
 
@@ -894,11 +708,7 @@ export default function CameraScannerScreen({
                   style={styles.detailsBtn}
                   onPress={handleVerDetalhes}
                 >
-                  <Feather
-                    name="chevron-right"
-                    size={21}
-                    color={C.accent}
-                  />
+                  <Feather name="chevron-right" size={21} color={C.accent} />
                 </TouchableOpacity>
               </View>
 
@@ -908,11 +718,7 @@ export default function CameraScannerScreen({
                 style={styles.qrCodeButton}
                 onPress={handleGenerateQR}
               >
-                <MaterialIcons
-                  name="qr-code-2"
-                  size={21}
-                  color={C.accent}
-                />
+                <MaterialIcons name="qr-code-2" size={21} color={C.accent} />
 
                 <Text style={styles.qrCodeButtonText}>
                   Gerar QR Code do produto
@@ -923,84 +729,42 @@ export default function CameraScannerScreen({
 
               <View style={styles.actionsGrid}>
                 <TouchableOpacity
-                  style={[
-                    styles.actionCard,
-                    styles.actionCardIn,
-                  ]}
+                  style={[styles.actionCard, styles.actionCardIn]}
                   onPress={() => handleAcao("Entrada")}
                 >
-                  <Feather
-                    name="arrow-down"
-                    size={21}
-                    color={C.green}
-                  />
+                  <Feather name="arrow-down" size={21} color={C.green} />
 
-                  <Text
-                    style={[
-                      styles.actionTitle,
-                      { color: C.green },
-                    ]}
-                  >
+                  <Text style={[styles.actionTitle, { color: C.green }]}>
                     Entrada
                   </Text>
 
-                  <Text style={styles.actionSubtitle}>
-                    Adicionar
-                  </Text>
+                  <Text style={styles.actionSubtitle}>Adicionar</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[
-                    styles.actionCard,
-                    styles.actionCardOut,
-                  ]}
+                  style={[styles.actionCard, styles.actionCardOut]}
                   onPress={() => handleAcao("Saída")}
                 >
-                  <Feather
-                    name="arrow-up"
-                    size={21}
-                    color={C.red}
-                  />
+                  <Feather name="arrow-up" size={21} color={C.red} />
 
-                  <Text
-                    style={[
-                      styles.actionTitle,
-                      { color: C.red },
-                    ]}
-                  >
+                  <Text style={[styles.actionTitle, { color: C.red }]}>
                     Saída
                   </Text>
 
-                  <Text style={styles.actionSubtitle}>
-                    Remover
-                  </Text>
+                  <Text style={styles.actionSubtitle}>Remover</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[
-                    styles.actionCard,
-                    styles.actionCardAdjust,
-                  ]}
+                  style={[styles.actionCard, styles.actionCardAdjust]}
                   onPress={() => handleAcao("Ajuste")}
                 >
-                  <Feather
-                    name="edit-2"
-                    size={19}
-                    color={C.accent}
-                  />
+                  <Feather name="edit-2" size={19} color={C.accent} />
 
-                  <Text
-                    style={[
-                      styles.actionTitle,
-                      { color: C.accent },
-                    ]}
-                  >
+                  <Text style={[styles.actionTitle, { color: C.accent }]}>
                     Ajuste
                   </Text>
 
-                  <Text style={styles.actionSubtitle}>
-                    Quantidade
-                  </Text>
+                  <Text style={styles.actionSubtitle}>Quantidade</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1008,15 +772,11 @@ export default function CameraScannerScreen({
 
           {!produtoDetectado && !isSearching && (
             <View style={styles.emptyNotice}>
-              <Feather
-                name="info"
-                size={17}
-                color={C.muted}
-              />
+              <Feather name="info" size={17} color={C.muted} />
 
               <Text style={styles.emptyNoticeText}>
-                Escaneie ou digite o código de um produto
-                cadastrado no KeepStock.
+                Escaneie ou digite o código de um produto cadastrado no
+                KeepStock.
               </Text>
             </View>
           )}
@@ -1105,9 +865,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingTop:
-      Platform.OS === "android"
-        ? (StatusBar.currentHeight || 24) + 14
-        : 55,
+      Platform.OS === "android" ? (StatusBar.currentHeight || 24) + 14 : 55,
     paddingHorizontal: 18,
     paddingBottom: 16,
     flexDirection: "row",
@@ -1196,14 +954,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     borderRightWidth: 3,
     borderBottomRightRadius: 12,
-  },
-
-  laserLine: {
-    position: "absolute",
-    width: "80%",
-    height: 2,
-    backgroundColor: C.accent,
-    opacity: 0.85,
   },
 
   scanInstruction: {

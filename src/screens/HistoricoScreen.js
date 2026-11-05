@@ -1,13 +1,13 @@
  
 import React, {
   useCallback,
-  useEffect,
-  useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 
 import api from "../services/api";
@@ -38,11 +39,18 @@ const C = {
 export default function HistoricoScreen({ navigation }) {
   const [items, setItems] = useState([]);
   const [busca, setBusca] = useState("");
+  const [inicio, setInicio] = useState("");
+  const [fim, setFim] = useState("");
+  const [filtros, setFiltros] = useState({});
+  const [pagina, setPagina] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const requisicao = useRef(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [erro, setErro] = useState("");
 
   const carregar = useCallback(async (pull = false) => {
+    const versao = ++requisicao.current;
     if (pull) {
       setRefreshing(true);
     } else {
@@ -52,20 +60,12 @@ export default function HistoricoScreen({ navigation }) {
     setErro("");
 
     try {
-      const historico = extractList(
-        await api.listarHistorico({ limit: 100 })
-      );
-
-      if (historico.length > 0) {
-        setItems(historico);
-      } else {
-        const movimentacoes = extractList(
-          await api.listarMovimentacoes({ limit: 100 })
-        );
-
-        setItems(movimentacoes);
-      }
+      const resposta = await api.listarMovimentacoes({ ...filtros, page: pagina, limit: 20 });
+      if (versao !== requisicao.current) return;
+      setItems(extractList(resposta));
+      setTotalPaginas(Math.max(1, resposta.data?.pagination?.totalPages ?? 1));
     } catch (e) {
+      if (versao !== requisicao.current) return;
       setErro(
         getErrorMessage(
           e,
@@ -73,29 +73,55 @@ export default function HistoricoScreen({ navigation }) {
         )
       );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (versao === requisicao.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  }, []);
+  }, [filtros, pagina]);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     carregar();
-  }, [carregar]);
+    return () => { requisicao.current += 1; };
+  }, [carregar]));
 
-  const filtrados = useMemo(() => {
-    const termo = busca.toLocaleLowerCase("pt-BR");
-
-    return items.filter((x) => {
-      const texto = `
-        ${x.produto?.nome || x.produto_nome || x.nome_produto || ""}
-        ${x.usuario?.nome || x.responsavel || ""}
-        ${x.tipo || ""}
-        ${x.observacoes || ""}
-      `.toLocaleLowerCase("pt-BR");
-
-      return texto.includes(termo);
+  function aplicarFiltros() {
+    const datasValidas = [inicio, fim].every((data) => {
+      if (!data) return true;
+      const valor = new Date(data);
+      return /^\d{4}-\d{2}-\d{2}$/.test(data) &&
+        Number.isFinite(valor.getTime()) && valor.toISOString().slice(0, 10) === data;
     });
-  }, [items, busca]);
+
+    if (!datasValidas || (inicio && fim && inicio > fim)) {
+      Alert.alert("Período inválido", "Use AAAA-MM-DD e informe a data inicial antes da final.");
+      return;
+    }
+
+    setPagina(1);
+    setFiltros({
+      search: busca.trim(),
+      data_inicio: inicio || undefined,
+      data_fim: fim ? `${fim} 23:59:59` : undefined,
+    });
+  }
+
+  async function exibirDetalhes(id) {
+    try {
+      const { data } = await api.obterMovimentacao(id);
+      const detalhes = data?.data ?? data;
+      Alert.alert("Detalhes da movimentação", [
+        `Produto: ${detalhes.produto_nome ?? "—"}`,
+        `Tipo: ${detalhes.tipo ?? "—"}`,
+        `Quantidade: ${detalhes.quantidade ?? "—"}`,
+        `Responsável: ${detalhes.usuario_nome ?? "—"}`,
+        `Data: ${detalhes.data_hora ?? "—"}`,
+        `Observação: ${detalhes.observacao || "—"}`,
+      ].join("\n"));
+    } catch (error) {
+      Alert.alert("Erro ao consultar detalhes", getErrorMessage(error));
+    }
+  }
 
   return (
     <View style={s.container}>
@@ -142,13 +168,22 @@ export default function HistoricoScreen({ navigation }) {
           value={busca}
           onChangeText={setBusca}
           placeholder="Produto, usuário ou tipo"
+          onSubmitEditing={aplicarFiltros}
           placeholderTextColor="#64748b"
         />
       </View>
 
-      <Text style={s.count}>
-        {filtrados.length} registro(s)
-      </Text>
+      <View style={s.search}>
+        <TextInput style={s.input} value={inicio} onChangeText={setInicio}
+          accessibilityLabel="Data inicial" placeholder="Início AAAA-MM-DD" placeholderTextColor="#64748b" />
+        <TextInput style={s.input} value={fim} onChangeText={setFim}
+          accessibilityLabel="Data final" placeholder="Fim AAAA-MM-DD" placeholderTextColor="#64748b" />
+      </View>
+      <View style={s.pagination}>
+        <TouchableOpacity style={s.button} onPress={aplicarFiltros}>
+          <Text style={s.buttonText}>Aplicar filtros</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Carregamento */}
       {loading ? (
@@ -191,12 +226,12 @@ export default function HistoricoScreen({ navigation }) {
             />
           }
         >
-          {filtrados.length === 0 ? (
+          {items.length === 0 ? (
             <Text style={s.muted}>
               Nenhum registro encontrado.
             </Text>
           ) : (
-            filtrados.map((x, i) => {
+            items.map((x, i) => {
               const tipo = String(
                 x.tipo || x.acao || "Movimentação"
               ).toUpperCase();
@@ -211,6 +246,7 @@ export default function HistoricoScreen({ navigation }) {
 
               const nomeUsuario =
                 x.usuario?.nome ||
+                x.usuario_nome ||
                 x.responsavel ||
                 "Usuário não informado";
 
@@ -221,9 +257,11 @@ export default function HistoricoScreen({ navigation }) {
                 "Data não informada";
 
               return (
-                <View
+                <TouchableOpacity
                   key={String(x.id ?? x._id ?? i)}
                   style={s.card}
+                  onPress={() => exibirDetalhes(x.id ?? x._id)}
+                  disabled={x.id == null && x._id == null}
                 >
                   {/* Ícone do tipo de movimentação */}
                   <View
@@ -261,9 +299,9 @@ export default function HistoricoScreen({ navigation }) {
                       {data}
                     </Text>
 
-                    {x.observacoes ? (
+                    {x.observacao ? (
                       <Text style={s.detail}>
-                        {x.observacoes}
+                        {x.observacao}
                       </Text>
                     ) : null}
                   </View>
@@ -279,9 +317,20 @@ export default function HistoricoScreen({ navigation }) {
                   >
                     {x.quantidade ?? "—"}
                   </Text>
-                </View>
+                </TouchableOpacity>
               );
             })
+          )}
+          {totalPaginas > 1 && (
+            <View style={s.pagination}>
+              <TouchableOpacity disabled={pagina <= 1} onPress={() => setPagina(pagina - 1)}>
+                <Text style={pagina <= 1 ? s.muted : s.buttonText}>Anterior</Text>
+              </TouchableOpacity>
+              <Text style={s.muted}>{pagina} / {totalPaginas}</Text>
+              <TouchableOpacity disabled={pagina >= totalPaginas} onPress={() => setPagina(pagina + 1)}>
+                <Text style={pagina >= totalPaginas ? s.muted : s.buttonText}>Próxima</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </ScrollView>
       )}
@@ -290,6 +339,7 @@ export default function HistoricoScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
+  pagination: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 18, padding: 12 },
   container: {
     flex: 1,
     backgroundColor: C.bg,

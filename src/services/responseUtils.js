@@ -43,6 +43,12 @@ export function getMinimumStock(product) {
 
 export function getErrorMessage(error, fallback = "Ocorreu um erro inesperado.") {
   const data = error?.response?.data;
+  if (!error?.response && error?.request) {
+    if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
+      return "A conexão com a API demorou demais. Tente novamente.";
+    }
+    return "Não foi possível conectar à API. Confira o endereço do servidor e a conexão.";
+  }
 
   // Mensagens retornadas pela API
   const mensagem =
@@ -77,14 +83,6 @@ export function getErrorMessage(error, fallback = "Ocorreu um erro inesperado.")
 
   if (data && typeof data === "object") {
     return JSON.stringify(data);
-  }
-
-  if (error?.code === "ECONNABORTED") {
-    return "A conexão com a API demorou demais. Tente novamente.";
-  }
-
-  if (!error?.response) {
-    return "Não foi possível conectar à API. Confira o endereço do servidor e a conexão.";
   }
 
   return fallback;

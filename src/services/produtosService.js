@@ -288,17 +288,25 @@ export async function buscarProdutoPorCodigo(codigoOuPayload) {
   const dadosQr = tentarParseQrCode(texto);
   const idQr = dadosQr?.id || dadosQr?._id || dadosQr?.produto_id;
   if (idQr) {
-    const response = await api.obterProduto(idQr);
-    return response?.data?.produto || response?.data?.data || response?.data || null;
+    try {
+      const response = await api.obterProduto(idQr);
+      return response?.data?.produto || response?.data?.data || response?.data || null;
+    } catch (error) {
+      if (error.response?.status === 404) return null;
+      throw error;
+    }
   }
 
-  // Consulta o catálogo oficial do Keep Stock. Não inventa saldo para códigos desconhecidos.
-  const response = await api.listarProdutos({ busca: texto, codigo: texto, limit: 100 });
-  const produtos = extractList(response);
   const codigoBusca = texto.toLocaleUpperCase("pt-BR");
-  const encontrado = produtos.find((produto) =>
-    String(getProductCode(produto)).trim().toLocaleUpperCase("pt-BR") === codigoBusca ||
-    String(produto.codigo_barras || produto.codigoBarras || "").trim() === texto
-  );
-  return encontrado || null;
+  let totalPaginas = 1;
+  for (let pagina = 1; pagina <= totalPaginas; pagina += 1) {
+    const response = await api.listarProdutos({ search: texto, page: pagina, limit: 100 });
+    const encontrado = extractList(response).find((produto) =>
+      String(getProductCode(produto)).trim().toLocaleUpperCase("pt-BR") === codigoBusca ||
+      String(produto.codigo_barras || produto.codigoBarras || "").trim() === texto
+    );
+    if (encontrado) return encontrado;
+    totalPaginas = response.data?.pagination?.totalPages ?? 1;
+  }
+  return null;
 }

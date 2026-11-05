@@ -32,13 +32,15 @@ const C = {
   red: "#fb7185",
 };
 
-export default function CadastroProdutoScreen({ navigation }) {
-  const [nome, setNome] = useState("");
-  const [codigo, setCodigo] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [codigoBarras, setCodigoBarras] = useState("");
+export default function CadastroProdutoScreen({ navigation, route }) {
+  const produto = route?.params?.produto;
+  const editando = produto?.id != null;
+  const [nome, setNome] = useState(produto?.nome ?? "");
+  const [codigo, setCodigo] = useState(produto?.codigo ?? "");
+  const [descricao, setDescricao] = useState(produto?.descricao ?? "");
+  const [codigoBarras, setCodigoBarras] = useState(produto?.codigo_barras ?? "");
   const [quantidade, setQuantidade] = useState("0");
-  const [minimo, setMinimo] = useState("0");
+  const [minimo, setMinimo] = useState(String(produto?.quantidade_minima ?? 0));
 
   const [categorias, setCategorias] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
@@ -61,8 +63,22 @@ export default function CadastroProdutoScreen({ navigation }) {
         api.listarFornecedores({ limit: 200 }),
       ]);
 
-      setCategorias(extractList(resCategorias));
-      setFornecedores(extractList(resFornecedores));
+      const listaCategorias = extractList(resCategorias);
+      const listaFornecedores = extractList(resFornecedores);
+      setCategorias(listaCategorias);
+      setFornecedores(listaFornecedores);
+      if (produto?.categoria_id != null) {
+        setCategoria((atual) => atual ?? {
+          id: produto.categoria_id,
+          nome: produto.categoria_nome ?? produto.categoria?.nome,
+        });
+      }
+      if (produto?.fornecedor_id != null) {
+        setFornecedor((atual) => atual ?? {
+          id: produto.fornecedor_id,
+          nome: produto.fornecedor_nome ?? produto.fornecedor?.nome,
+        });
+      }
     } catch (e) {
       setErro(
         getErrorMessage(
@@ -73,7 +89,7 @@ export default function CadastroProdutoScreen({ navigation }) {
     } finally {
       setCarregandoListas(false);
     }
-  }, []);
+  }, [produto]);
 
   useEffect(() => {
     carregarListas();
@@ -135,7 +151,7 @@ export default function CadastroProdutoScreen({ navigation }) {
       descricao: descricao.trim() || null,
       categoria_id: obterId(categoria),
       fornecedor_id: obterId(fornecedor),
-      quantidade_atual: quantidadeInicial,
+      ...(!editando && { quantidade_atual: quantidadeInicial }),
       quantidade_minima: quantidadeMinima,
       codigo_barras: codigoBarras.trim() || null,
     };
@@ -144,10 +160,14 @@ export default function CadastroProdutoScreen({ navigation }) {
     setErro("");
 
     try {
-      await api.criarProduto(dados);
+      if (editando) {
+        await api.atualizarProduto(produto.id, dados);
+      } else {
+        await api.criarProduto(dados);
+      }
 
       Alert.alert(
-        "Produto cadastrado",
+        editando ? "Produto atualizado" : "Produto cadastrado",
         "O produto foi salvo com sucesso.",
         [
           {
@@ -159,11 +179,11 @@ export default function CadastroProdutoScreen({ navigation }) {
     } catch (e) {
       const mensagem = getErrorMessage(
         e,
-        "Não foi possível cadastrar o produto."
+        "Não foi possível salvar o produto."
       );
 
       setErro(mensagem);
-      Alert.alert("Erro no cadastro", mensagem);
+      Alert.alert("Erro ao salvar", mensagem);
     } finally {
       setSalvando(false);
     }
@@ -230,7 +250,7 @@ export default function CadastroProdutoScreen({ navigation }) {
 
         <View style={{ flex: 1 }}>
           <Text style={s.kicker}>GESTÃO DE ESTOQUE</Text>
-          <Text style={s.title}>Novo produto</Text>
+          <Text style={s.title}>{editando ? "Editar produto" : "Novo produto"}</Text>
         </View>
 
         <View style={s.headerIcon}>
@@ -377,7 +397,7 @@ export default function CadastroProdutoScreen({ navigation }) {
         </Text>
 
         <View style={s.quantityRow}>
-          <View style={{ flex: 1 }}>
+          {!editando && <View style={{ flex: 1 }}>
             {campo(
               "Estoque inicial",
               quantidade,
@@ -385,7 +405,7 @@ export default function CadastroProdutoScreen({ navigation }) {
               "0",
               { keyboardType: "numeric" }
             )}
-          </View>
+          </View>}
 
           <View style={{ flex: 1 }}>
             {campo(
@@ -421,7 +441,7 @@ export default function CadastroProdutoScreen({ navigation }) {
           )}
 
           <Text style={s.saveText}>
-            {salvando ? "Salvando produto..." : "Cadastrar produto"}
+            {salvando ? "Salvando produto..." : "Salvar produto"}
           </Text>
         </TouchableOpacity>
 

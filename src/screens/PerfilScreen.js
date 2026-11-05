@@ -1,9 +1,4 @@
-
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import React, { useCallback, useState } from "react";
 
 import {
   View,
@@ -16,6 +11,7 @@ import {
 } from "react-native";
 
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 
 import api from "../services/api";
@@ -91,38 +87,25 @@ export default function PerfilScreen({ navigation }) {
 
         // Salva os dados atualizados localmente.
         try {
-          await SecureStore.setItemAsync(
-            "user",
-            JSON.stringify(dados)
-          );
+          await SecureStore.setItemAsync("user", JSON.stringify(dados));
 
           if (dados.nome) {
-            await SecureStore.setItemAsync(
-              "nome",
-              String(dados.nome)
-            );
+            await SecureStore.setItemAsync("nome", String(dados.nome));
           }
 
           if (dados.email) {
-            await SecureStore.setItemAsync(
-              "email",
-              String(dados.email)
-            );
+            await SecureStore.setItemAsync("email", String(dados.email));
           }
         } catch (storageError) {
-          console.warn(
-            "Não foi possível salvar os dados do perfil."
-          );
+          console.warn("Não foi possível salvar os dados do perfil.");
         }
       } else {
-        throw new Error(
-          "A API não retornou os dados do usuário."
-        );
+        throw new Error("A API não retornou os dados do usuário.");
       }
     } catch (error) {
       console.warn(
         "Erro ao carregar perfil:",
-        error?.response?.data || error?.message
+        error?.response?.data || error?.message,
       );
 
       // ======================================================
@@ -130,14 +113,11 @@ export default function PerfilScreen({ navigation }) {
       // ======================================================
 
       try {
-        const usuarioSalvo =
-          await SecureStore.getItemAsync("user");
+        const usuarioSalvo = await SecureStore.getItemAsync("user");
 
-        const nomeSalvo =
-          await SecureStore.getItemAsync("nome");
+        const nomeSalvo = await SecureStore.getItemAsync("nome");
 
-        const emailSalvo =
-          await SecureStore.getItemAsync("email");
+        const emailSalvo = await SecureStore.getItemAsync("email");
 
         let dadosSalvos = null;
 
@@ -149,10 +129,7 @@ export default function PerfilScreen({ navigation }) {
           }
         }
 
-        if (
-          !dadosSalvos ||
-          typeof dadosSalvos !== "object"
-        ) {
+        if (!dadosSalvos || typeof dadosSalvos !== "object") {
           dadosSalvos = {};
         }
 
@@ -168,21 +145,19 @@ export default function PerfilScreen({ navigation }) {
           setPerfil(dadosSalvos);
 
           setErroPerfil(
-            "Não foi possível atualizar os dados. Exibindo as informações salvas."
+            "Não foi possível atualizar os dados. Exibindo as informações salvas.",
           );
         } else {
           setPerfil(null);
 
           setErroPerfil(
-            "Não foi possível carregar seu perfil. Verifique sua conexão e tente novamente."
+            "Não foi possível carregar seu perfil. Verifique sua conexão e tente novamente.",
           );
         }
       } catch (storageError) {
         setPerfil(null);
 
-        setErroPerfil(
-          "Não foi possível carregar seu perfil."
-        );
+        setErroPerfil("Não foi possível carregar seu perfil.");
       }
     } finally {
       setCarregando(false);
@@ -193,22 +168,19 @@ export default function PerfilScreen({ navigation }) {
   // CARREGAR AO ABRIR A TELA
   // ==========================================================
 
-  useEffect(() => {
-    carregarPerfil();
-  }, [carregarPerfil]);
+  useFocusEffect(
+    useCallback(() => {
+      carregarPerfil();
+    }, [carregarPerfil]),
+  );
 
   // ==========================================================
   // INFORMAÇÕES DO USUÁRIO
   // ==========================================================
 
-  const nomeCompleto =
-    perfil?.nome ||
-    perfil?.name ||
-    "Usuário";
+  const nomeCompleto = perfil?.nome || perfil?.name || "Usuário";
 
-  const email =
-    perfil?.email ||
-    "Não informado";
+  const email = perfil?.email || "Não informado";
 
   const cargo =
     perfil?.perfil ||
@@ -217,26 +189,18 @@ export default function PerfilScreen({ navigation }) {
     perfil?.role ||
     "Funcionário";
 
-  const telefone =
-    perfil?.telefone ||
-    "Não informado";
+  const telefone = perfil?.telefone || "Não informado";
 
-  const unidade =
-    perfil?.unidade ||
-    "Não informada";
+  const unidade = perfil?.unidade || "Não informada";
 
-  const departamento =
-    perfil?.departamento ||
-    "Não informado";
+  const departamento = perfil?.departamento || "Não informado";
 
   const iniciais =
     nomeCompleto
       .trim()
       .split(/\s+/)
       .slice(0, 2)
-      .map((parte) =>
-        parte[0]?.toUpperCase() || ""
-      )
+      .map((parte) => parte[0]?.toUpperCase() || "")
       .join("") || "US";
 
   // ==========================================================
@@ -270,7 +234,7 @@ export default function PerfilScreen({ navigation }) {
           style: "destructive",
           onPress: executarLogout,
         },
-      ]
+      ],
     );
   }
 
@@ -292,14 +256,11 @@ export default function PerfilScreen({ navigation }) {
         routes: [{ name: "Login" }],
       });
     } catch (error) {
-      console.warn(
-        "Erro ao encerrar sessão:",
-        error?.message
-      );
+      console.warn("Erro ao encerrar sessão:", error?.message);
 
       Alert.alert(
         "Erro ao sair",
-        "Não foi possível limpar os dados da sessão. Tente novamente."
+        "Não foi possível limpar os dados da sessão. Tente novamente.",
       );
     } finally {
       setSaindo(false);
@@ -310,12 +271,10 @@ export default function PerfilScreen({ navigation }) {
   // FUNCIONALIDADES NÃO IMPLEMENTADAS
   // ==========================================================
 
-  function informarFuncionalidadeIndisponivel(
-    funcionalidade
-  ) {
+  function informarFuncionalidadeIndisponivel(funcionalidade) {
     Alert.alert(
       "Funcionalidade indisponível",
-      `${funcionalidade} ainda não está implementada.`
+      `${funcionalidade} ainda não está implementada.`,
     );
   }
 
@@ -349,11 +308,7 @@ export default function PerfilScreen({ navigation }) {
           accessibilityRole="button"
           accessibilityLabel="Voltar"
         >
-          <Feather
-            name="arrow-left"
-            size={20}
-            color={palette.text}
-          />
+          <Feather name="arrow-left" size={20} color={palette.text} />
         </TouchableOpacity>
 
         <Text
@@ -368,19 +323,17 @@ export default function PerfilScreen({ navigation }) {
         </Text>
 
         <TouchableOpacity
+          disabled={perfil?.id == null || carregando}
           onPress={() =>
-            informarFuncionalidadeIndisponivel(
-              "A edição do perfil"
-            )
+            navigation.navigate("RegistroForm", {
+              tipo: "perfil",
+              registro: perfil,
+            })
           }
           accessibilityRole="button"
           accessibilityLabel="Editar perfil"
         >
-          <Feather
-            name="edit-2"
-            size={18}
-            color={palette.text}
-          />
+          <Feather name="edit-2" size={18} color={palette.text} />
         </TouchableOpacity>
       </View>
 
@@ -515,11 +468,7 @@ export default function PerfilScreen({ navigation }) {
           {/* E-MAIL */}
 
           <View style={styles.infoRow}>
-            <Ionicons
-              name="mail-outline"
-              size={18}
-              color={palette.accent}
-            />
+            <Ionicons name="mail-outline" size={18} color={palette.accent} />
 
             <Text
               style={[
@@ -536,11 +485,7 @@ export default function PerfilScreen({ navigation }) {
           {/* TELEFONE */}
 
           <View style={styles.infoRow}>
-            <Ionicons
-              name="call-outline"
-              size={18}
-              color={palette.accent}
-            />
+            <Ionicons name="call-outline" size={18} color={palette.accent} />
 
             <Text
               style={[
@@ -556,12 +501,7 @@ export default function PerfilScreen({ navigation }) {
 
           {/* UNIDADE */}
 
-          <View
-            style={[
-              styles.infoRow,
-              styles.lastInfoRow,
-            ]}
-          >
+          <View style={[styles.infoRow, styles.lastInfoRow]}>
             <Ionicons
               name="location-outline"
               size={18}
@@ -758,11 +698,7 @@ export default function PerfilScreen({ navigation }) {
               Alterar senha
             </Text>
 
-            <Feather
-              name="chevron-right"
-              size={18}
-              color={palette.action}
-            />
+            <Feather name="chevron-right" size={18} color={palette.action} />
           </TouchableOpacity>
 
           {/* DISPOSITIVOS CONECTADOS */}
@@ -771,7 +707,7 @@ export default function PerfilScreen({ navigation }) {
             style={styles.linkRow}
             onPress={() =>
               informarFuncionalidadeIndisponivel(
-                "A consulta de dispositivos conectados"
+                "A consulta de dispositivos conectados",
               )
             }
             activeOpacity={0.8}
@@ -787,11 +723,7 @@ export default function PerfilScreen({ navigation }) {
               Dispositivos conectados
             </Text>
 
-            <Feather
-              name="chevron-right"
-              size={18}
-              color={palette.action}
-            />
+            <Feather name="chevron-right" size={18} color={palette.action} />
           </TouchableOpacity>
         </View>
 
@@ -813,16 +745,10 @@ export default function PerfilScreen({ navigation }) {
           accessibilityLabel="Sair da conta"
         >
           {saindo ? (
-            <ActivityIndicator
-              color={palette.danger}
-            />
+            <ActivityIndicator color={palette.danger} />
           ) : (
             <View style={styles.logoutContent}>
-              <Feather
-                name="log-out"
-                size={18}
-                color={palette.danger}
-              />
+              <Feather name="log-out" size={18} color={palette.danger} />
 
               <Text
                 style={[

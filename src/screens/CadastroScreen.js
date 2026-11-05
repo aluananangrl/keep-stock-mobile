@@ -119,17 +119,9 @@ export default function Cadastro({ navigation }) {
         senha: user.senha,
       };
 
-      console.log("ENVIANDO CADASTRO:", {
-        nome: dados.nome,
-        email: dados.email,
-      });
-
       // CHAMADA PARA API
 
       const response = await api.cadastrar(dados);
-
-      console.log("STATUS:", response.status);
-      console.log("DATA:", response.data);
 
       // CADASTRO REALIZADO
 
@@ -147,12 +139,13 @@ export default function Cadastro({ navigation }) {
 
     } catch (error) {
 
-      console.log(
-        "ERRO NO CADASTRO:",
-        error?.response?.data || error?.message || error
-      );
-
       const status = error?.response?.status;
+      console.warn("Erro no cadastro", {
+        code: error?.code,
+        status,
+        message: error?.message,
+        baseURL: error?.config?.baseURL,
+      });
 
       const errorData = error?.response?.data?.error;
 
@@ -193,10 +186,14 @@ export default function Cadastro({ navigation }) {
 
       // ERRO DE CONEXÃO
 
-      if (!error?.response) {
+      if (!error?.response && error?.request) {
+        const tempoEsgotado =
+          error.code === "ECONNABORTED" || error.code === "ETIMEDOUT";
         Alert.alert(
           "Erro de conexão",
-          "Não foi possível conectar ao servidor. Verifique se o backend está funcionando e tente novamente."
+          tempoEsgotado
+            ? "O servidor demorou para responder. Tente entrar com o e-mail informado antes de repetir o cadastro."
+            : "O app não recebeu resposta do servidor. Verifique se o endereço da API abre no navegador deste dispositivo."
         );
 
         return;

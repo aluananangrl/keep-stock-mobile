@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -10,8 +11,10 @@ import {
   View,
 } from "react-native";
 
+import { useFocusEffect } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import api from "../services/api";
+import { usePermissoesEstoque } from "../services/usePermissoesEstoque";
 
 import {
   extractList,
@@ -141,6 +144,7 @@ const dateText = (value) => {
 // ============================================================
 
 export default function DetalhesProdutoScreen({ navigation, route }) {
+  const { podeEditar, podeExcluir } = usePermissoesEstoque();
   const params = route?.params || {};
 
   const produtoInicial = getInitialProduct(params);
@@ -263,9 +267,26 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
   // CARREGAR AO ABRIR A TELA
   // ==========================================================
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     carregar();
-  }, [carregar]);
+  }, [carregar]));
+
+  function confirmarExclusao() {
+    Alert.alert("Excluir produto?", "Esta ação não pode ser desfeita.", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Excluir", style: "destructive", onPress: async () => {
+        setLoading(true);
+        try {
+          await api.excluirProduto(produtoId);
+          navigation.goBack();
+        } catch (error) {
+          Alert.alert("Erro ao excluir", getErrorMessage(error));
+        } finally {
+          setLoading(false);
+        }
+      } },
+    ]);
+  }
 
   // ==========================================================
   // DADOS PARA EXIBIÇÃO
@@ -503,6 +524,17 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
           </View>
 
           {/* AÇÕES DE ESTOQUE */}
+
+          {podeEditar && <View style={s.actions}>
+            <TouchableOpacity style={s.iconButton} accessibilityLabel="Editar produto"
+              onPress={() => navigation.navigate("CadastroProduto", { produto })}>
+              <Feather name="edit-2" size={20} color={C.text} />
+            </TouchableOpacity>
+            {podeExcluir && <TouchableOpacity style={s.iconButton} accessibilityLabel="Excluir produto"
+              onPress={confirmarExclusao}>
+              <Feather name="trash-2" size={20} color={C.red} />
+            </TouchableOpacity>}
+          </View>}
 
           <View style={s.actions}>
             <TouchableOpacity

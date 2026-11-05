@@ -109,15 +109,9 @@ export default function LoginScreen({ navigation }) {
         senha: form.senha,
       };
 
-      console.log("Enviando login:", {
-        email: dados.email,
-      });
-
       // CHAMA A API
 
       const response = await api.login(dados);
-
-      console.log("RESPOSTA DO LOGIN:", response.data);
 
       // VERIFICA TOKEN
 
@@ -175,6 +169,18 @@ export default function LoginScreen({ navigation }) {
 
       const status = error?.response?.status;
       const errorData = error?.response?.data?.error;
+
+      if (!error?.response && error?.request) {
+        const tempoEsgotado =
+          error.code === "ECONNABORTED" || error.code === "ETIMEDOUT";
+        Alert.alert(
+          "Falha de conexão",
+          tempoEsgotado
+            ? "O tempo de espera pela API se esgotou. Verifique a conexão com o servidor e tente novamente."
+            : "O app não conseguiu acessar a API. Verifique se o servidor está acessível neste dispositivo.",
+        );
+        return;
+      }
 
       // CREDENCIAIS INVÁLIDAS
 

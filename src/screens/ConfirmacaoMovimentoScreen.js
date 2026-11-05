@@ -136,7 +136,7 @@ export default function ConfirmacaoMovimentoScreen({
         produto_id: produtoId,
         tipo: tipoNormalizado,
         quantidade: quantidadeNumerica,
-        observacoes:
+        observacao:
           "Movimentação registrada pelo aplicativo Keep Stock Mobile",
       });
 

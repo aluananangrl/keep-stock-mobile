@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 
 import {
@@ -40,6 +39,11 @@ const MENU_PRINCIPAL = [
     label: "Lista de Produtos",
     icon: "list",
     screen: "ListaProdutos",
+  },
+  {
+    label: "Categorias",
+    icon: "tag",
+    screen: "Categorias",
   },
   {
     label: "Meus Fornecedores",
@@ -147,10 +151,7 @@ export default function SidebarModal({
           setUsuario(dados);
         }
       } catch (error) {
-        console.log(
-          "Erro ao carregar usuário do menu:",
-          error?.message
-        );
+        console.log("Erro ao carregar usuário do menu:", error?.message);
       }
     }
 
@@ -167,23 +168,15 @@ export default function SidebarModal({
   // INFORMAÇÕES DO PERFIL
   // ==========================================================
 
-  const nomeUsuario = String(
-    usuario?.nome ||
-    usuario?.name ||
-    "Usuário"
-  );
+  const nomeUsuario = String(usuario?.nome || usuario?.name || "Usuário");
 
   const cargoUsuario = String(
-    usuario?.perfil ||
-    usuario?.role ||
-    usuario?.cargo ||
-    "Operador"
+    usuario?.perfil || usuario?.role || usuario?.cargo || "Operador",
   )
     .replace(/_/g, " ")
     .toUpperCase();
 
-  const primeiroNome =
-    nomeUsuario.trim().split(/\s+/)[0] || "Usuário";
+  const primeiroNome = nomeUsuario.trim().split(/\s+/)[0] || "Usuário";
 
   const iniciais = nomeUsuario
     .trim()
@@ -252,7 +245,7 @@ export default function SidebarModal({
 
       Alert.alert(
         "Erro ao sair",
-        "Não foi possível encerrar sua sessão. Tente novamente."
+        "Não foi possível encerrar sua sessão. Tente novamente.",
       );
     } finally {
       setSaindo(false);
@@ -279,7 +272,7 @@ export default function SidebarModal({
           style: "destructive",
           onPress: executarLogout,
         },
-      ]
+      ],
     );
   }
 
@@ -322,11 +315,7 @@ export default function SidebarModal({
           <Feather
             name={item.icon}
             size={20}
-            color={
-              isActive
-                ? palette.accent
-                : palette.muted
-            }
+            color={isActive ? palette.accent : palette.muted}
           />
         </View>
 
@@ -336,9 +325,7 @@ export default function SidebarModal({
           style={[
             styles.menuLabel,
             {
-              color: isActive
-                ? palette.selectedText
-                : palette.text,
+              color: isActive ? palette.selectedText : palette.text,
               fontWeight: isActive ? "700" : "500",
             },
           ]}
@@ -350,11 +337,7 @@ export default function SidebarModal({
         {/* SETA DA PÁGINA ATIVA */}
 
         {isActive && (
-          <Feather
-            name="chevron-right"
-            size={17}
-            color={palette.accent}
-          />
+          <Feather name="chevron-right" size={17} color={palette.accent} />
         )}
       </TouchableOpacity>
     );
@@ -377,7 +360,6 @@ export default function SidebarModal({
       }}
     >
       <View style={styles.modalOverlay}>
-
         {/* ================================================== */}
         {/* FUNDO ESCURO ATRÁS DO MENU */}
         {/* ================================================== */}
@@ -410,7 +392,6 @@ export default function SidebarModal({
           {/* ================================================== */}
 
           <View style={styles.header}>
-
             <View style={styles.logoContainer}>
               <View
                 style={[
@@ -420,19 +401,10 @@ export default function SidebarModal({
                   },
                 ]}
               >
-                <Feather
-                  name="layers"
-                  size={22}
-                  color={palette.accent}
-                />
+                <Feather name="layers" size={22} color={palette.accent} />
               </View>
 
-              <Text
-                style={[
-                  styles.logoTitle,
-                  { color: palette.text },
-                ]}
-              >
+              <Text style={[styles.logoTitle, { color: palette.text }]}>
                 KeepStock
               </Text>
             </View>
@@ -449,13 +421,8 @@ export default function SidebarModal({
               accessibilityLabel="Fechar menu"
               accessibilityRole="button"
             >
-              <Feather
-                name="x"
-                size={20}
-                color={palette.muted}
-              />
+              <Feather name="x" size={20} color={palette.muted} />
             </TouchableOpacity>
-
           </View>
 
           {/* ================================================== */}
@@ -486,29 +453,21 @@ export default function SidebarModal({
                 },
               ]}
             >
-              <Text style={styles.avatarText}>
-                {iniciais || "U"}
-              </Text>
+              <Text style={styles.avatarText}>{iniciais || "U"}</Text>
             </View>
 
             {/* NOME E CARGO */}
 
             <View style={styles.profileTextWrap}>
               <Text
-                style={[
-                  styles.userName,
-                  { color: palette.text },
-                ]}
+                style={[styles.userName, { color: palette.text }]}
                 numberOfLines={1}
               >
                 Olá, {primeiroNome}!
               </Text>
 
               <Text
-                style={[
-                  styles.userRole,
-                  { color: palette.accent },
-                ]}
+                style={[styles.userRole, { color: palette.accent }]}
                 numberOfLines={1}
               >
                 {cargoUsuario}
@@ -517,11 +476,7 @@ export default function SidebarModal({
 
             {/* SETA PARA ACESSAR PERFIL */}
 
-            <Feather
-              name="chevron-right"
-              size={20}
-              color={palette.accent}
-            />
+            <Feather name="chevron-right" size={20} color={palette.accent} />
           </TouchableOpacity>
 
           {/* ================================================== */}
@@ -535,12 +490,7 @@ export default function SidebarModal({
           >
             {/* MENU PRINCIPAL */}
 
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: palette.section },
-              ]}
-            >
+            <Text style={[styles.sectionTitle, { color: palette.section }]}>
               PRINCIPAL
             </Text>
 
@@ -559,12 +509,7 @@ export default function SidebarModal({
 
             {/* MENU SISTEMA */}
 
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: palette.section },
-              ]}
-            >
+            <Text style={[styles.sectionTitle, { color: palette.section }]}>
               SISTEMA
             </Text>
 
@@ -586,26 +531,16 @@ export default function SidebarModal({
             >
               <View style={styles.menuIcon}>
                 {saindo ? (
-                  <ActivityIndicator
-                    size="small"
-                    color="#FB8C9C"
-                  />
+                  <ActivityIndicator size="small" color="#FB8C9C" />
                 ) : (
-                  <Feather
-                    name="log-out"
-                    size={20}
-                    color="#FB8C9C"
-                  />
+                  <Feather name="log-out" size={20} color="#FB8C9C" />
                 )}
               </View>
 
               <Text style={styles.logoutMenuText}>
-                {saindo
-                  ? "Encerrando sessão..."
-                  : "Sair da conta"}
+                {saindo ? "Encerrando sessão..." : "Sair da conta"}
               </Text>
             </TouchableOpacity>
-
           </ScrollView>
 
           {/* ================================================== */}
@@ -620,25 +555,14 @@ export default function SidebarModal({
               },
             ]}
           >
-            <Text
-              style={[
-                styles.footerText,
-                { color: palette.section },
-              ]}
-            >
+            <Text style={[styles.footerText, { color: palette.section }]}>
               KeepStock • Gestão inteligente
             </Text>
 
-            <Text
-              style={[
-                styles.versionText,
-                { color: palette.section },
-              ]}
-            >
+            <Text style={[styles.versionText, { color: palette.section }]}>
               © 2026 keepStock Tech
             </Text>
           </View>
-
         </View>
       </View>
     </Modal>
@@ -676,9 +600,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1428",
 
     paddingTop:
-      Platform.OS === "android"
-        ? (StatusBar.currentHeight || 24) + 28
-        : 58,
+      Platform.OS === "android" ? (StatusBar.currentHeight || 24) + 28 : 58,
 
     paddingHorizontal: 17,
     paddingBottom: 16,

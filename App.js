@@ -1,4 +1,7 @@
+import { useEffect } from "react";
+import { Alert } from "react-native";
 import {
+  createNavigationContainerRef,
   NavigationContainer,
   DefaultTheme,
   DarkTheme,
@@ -28,13 +31,29 @@ import QRCodeProdutoScreen from "./src/screens/QRCodeProdutoScreen";
 import CadastroProdutoScreen from "./src/screens/CadastroProdutoScreen";
 import NovaSenhaScreen from "./src/screens/NovaSenhaScreen";
 
+import RegistroFormScreen from "./src/screens/RegistroFormScreen";
+import { setOnSessaoExpirada } from "./src/services/api";
+
 const Stack = createNativeStackNavigator();
+const navigationRef = createNavigationContainerRef();
 
 function AppNavigator() {
   const { theme } = useTheme();
 
+  useEffect(() => {
+    setOnSessaoExpirada(() => {
+      if (!navigationRef.isReady()) return;
+      const tela = navigationRef.getCurrentRoute()?.name;
+      if (["Login", "Cadastro", "RecuperarSenha", "NovaSenha"].includes(tela)) return;
+
+      navigationRef.resetRoot({ index: 0, routes: [{ name: "Login" }] });
+      Alert.alert("Sessão expirada", "Entre novamente para continuar.");
+    });
+    return () => setOnSessaoExpirada(undefined);
+  }, []);
+
   return (
-    <NavigationContainer theme={theme === "dark" ? DarkTheme : DefaultTheme}>
+    <NavigationContainer ref={navigationRef} theme={theme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack.Navigator
         initialRouteName="Login"
         screenOptions={{ headerShown: true }}
@@ -63,6 +82,8 @@ function AppNavigator() {
         <Stack.Screen name="Historico" component={HistoricoScreen} />
         <Stack.Screen name="ListaProdutos" component={ListaProdutosScreen} />
         <Stack.Screen name="Fornecedores" component={FornecedoresScreen} />
+        <Stack.Screen name="Categorias" component={FornecedoresScreen} />
+        <Stack.Screen name="RegistroForm" component={RegistroFormScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Configuracoes" component={ConfiguracoesScreen} />
         <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
         <Stack.Screen name="RecuperarSenha" component={RecuperarSenhaScreen} />
