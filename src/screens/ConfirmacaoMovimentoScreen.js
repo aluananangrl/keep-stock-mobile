@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -27,7 +29,7 @@ const COLORS = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   red: "#fb7185",
 };
 
@@ -59,7 +61,7 @@ export default function ConfirmacaoMovimentoScreen({
 
   const corOperacao = operacaoEhSaida
     ? COLORS.red
-    : COLORS.green;
+    : COLORS.highlight;
 
   async function registrarMovimentacao() {
     Keyboard.dismiss();
@@ -171,9 +173,10 @@ export default function ConfirmacaoMovimentoScreen({
   }
 
   return (
-    <>
+    <ScreenBackground>
+<>
     <ScrollView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: "transparent" }]}
       contentContainerStyle={styles.container}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
@@ -210,7 +213,7 @@ export default function ConfirmacaoMovimentoScreen({
             styles.iconCircle,
             {
               backgroundColor: concluido
-                ? "#18332b"
+                ? BRAND_COLORS.soft
                 : "#1a2d42",
             },
           ]}
@@ -218,7 +221,7 @@ export default function ConfirmacaoMovimentoScreen({
           <Feather
             name={concluido ? "check-circle" : "package"}
             size={30}
-            color={concluido ? COLORS.green : "#93c5fd"}
+            color={concluido ? COLORS.highlight : "#93c5fd"}
           />
         </View>
 
@@ -387,6 +390,7 @@ export default function ConfirmacaoMovimentoScreen({
       </InputAccessoryView>
     )}
     </>
+    </ScreenBackground>
   );
 }
 
@@ -408,7 +412,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   keyboardDoneText: {
-    color: COLORS.green,
+    color: COLORS.highlight,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -555,7 +559,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 9,
-    backgroundColor: COLORS.green,
+    backgroundColor: COLORS.highlight,
     borderRadius: 13,
     paddingVertical: 14,
     marginTop: 2,

@@ -1,3 +1,4 @@
+import { BRAND_COLORS } from "../context/colors";
 
 import {
   View,
@@ -265,7 +266,7 @@ export default function Cadastro({ navigation }) {
               <Ionicons
                 name="cube-outline"
                 size={38}
-                color="#a99fff"
+                color={BRAND_COLORS.highlight}
               />
             </View>
 
@@ -297,7 +298,7 @@ export default function Cadastro({ navigation }) {
                 <Ionicons
                   name="person-add-outline"
                   size={29}
-                  color="#c4baff"
+                  color={BRAND_COLORS.pale}
                 />
               </View>
 
@@ -661,7 +662,7 @@ const styles = StyleSheet.create({
   },
 
   brandAccent: {
-    color: "#8666ff",
+    color: BRAND_COLORS.primary,
   },
 
   subtitle: {
@@ -770,8 +771,8 @@ const styles = StyleSheet.create({
   },
 
   checkboxChecked: {
-    backgroundColor: "#7052f5",
-    borderColor: "#a99aff",
+    backgroundColor: BRAND_COLORS.primary,
+    borderColor: BRAND_COLORS.highlight,
   },
 
   termsText: {
@@ -781,7 +782,7 @@ const styles = StyleSheet.create({
   },
 
   termsHighlight: {
-    color: "#9a79ff",
+    color: BRAND_COLORS.highlight,
     fontWeight: "700",
   },
 
@@ -791,13 +792,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 66,
     borderRadius: 35,
-    backgroundColor: "#7451f5",
+    backgroundColor: BRAND_COLORS.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 14,
     borderWidth: 1,
-    borderColor: "#9d8bff",
+    borderColor: BRAND_COLORS.highlight,
   },
 
   buttonDisabled: {
@@ -835,7 +836,7 @@ const styles = StyleSheet.create({
   },
 
   loginLink: {
-    color: "#a99aff",
+    color: BRAND_COLORS.highlight,
     fontSize: 12,
     fontWeight: "700",
   },

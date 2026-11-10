@@ -1,3 +1,4 @@
+import { BRAND_COLORS } from "../context/colors";
 import React, { useEffect, useState } from "react";
 
 import {
@@ -105,10 +106,10 @@ export default function SidebarModal({
         text: "#F4F5FF",
         muted: "#A4B1CD",
         section: "#8997B5",
-        accent: "#AAA8FF",
-        selected: "#292755",
-        selectedText: "#DCD5FF",
-        avatar: "#6554CF",
+        accent: BRAND_COLORS.highlight,
+        selected: BRAND_COLORS.soft,
+        selectedText: BRAND_COLORS.onSoft,
+        avatar: BRAND_COLORS.primary,
       }
     : {
         background: "#F7F9FF",
@@ -117,10 +118,10 @@ export default function SidebarModal({
         text: "#20273C",
         muted: "#64748B",
         section: "#77849C",
-        accent: "#6254E8",
-        selected: "#E6E1FF",
-        selectedText: "#5945C8",
-        avatar: "#7664E9",
+        accent: BRAND_COLORS.primary,
+        selected: BRAND_COLORS.softLight,
+        selectedText: BRAND_COLORS.primary,
+        avatar: BRAND_COLORS.primary,
       };
 
   // ==========================================================

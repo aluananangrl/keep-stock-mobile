@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, { useCallback, useEffect, useState } from "react";
 
 import {
@@ -28,7 +30,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   red: "#fb7185",
 };
 
@@ -235,8 +237,9 @@ export default function CadastroProdutoScreen({ navigation, route }) {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={s.container}
+    <ScreenBackground>
+<KeyboardAvoidingView
+      style={[s.container, { backgroundColor: "transparent" }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={s.header}>
@@ -254,7 +257,7 @@ export default function CadastroProdutoScreen({ navigation, route }) {
         </View>
 
         <View style={s.headerIcon}>
-          <Feather name="package" size={21} color={C.green} />
+          <Feather name="package" size={21} color={C.highlight} />
         </View>
       </View>
 
@@ -353,7 +356,7 @@ export default function CadastroProdutoScreen({ navigation, route }) {
 
         {carregandoListas ? (
           <View style={s.inlineLoading}>
-            <ActivityIndicator color={C.green} />
+            <ActivityIndicator color={C.highlight} />
             <Text style={s.helper}>
               Carregando categorias e fornecedores...
             </Text>
@@ -495,7 +498,7 @@ export default function CadastroProdutoScreen({ navigation, route }) {
                       <Feather
                         name="check"
                         size={18}
-                        color={C.green}
+                        color={C.highlight}
                       />
                     ) : null}
                   </TouchableOpacity>
@@ -512,6 +515,7 @@ export default function CadastroProdutoScreen({ navigation, route }) {
         </View>
       </Modal>
     </KeyboardAvoidingView>
+    </ScreenBackground>
   );
 }
 
@@ -544,13 +548,13 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: "#18332b",
+    backgroundColor: BRAND_COLORS.soft,
     alignItems: "center",
     justifyContent: "center",
   },
 
   kicker: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.2,
@@ -657,7 +661,7 @@ const s = StyleSheet.create({
   },
 
   retryText: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -699,7 +703,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 9,
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     borderRadius: 13,
     marginTop: 10,
   },

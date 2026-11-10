@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -6,7 +8,8 @@ export default function ErroScannerScreen({ navigation, route }) {
   const codigo = route?.params?.codigo || "WHS-01";
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground>
+<View style={[styles.container, { backgroundColor: "transparent" }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Feather name="arrow-left" size={20} color="#e2e8f0" />
@@ -41,6 +44,7 @@ export default function ErroScannerScreen({ navigation, route }) {
         </TouchableOpacity>
       </View>
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -112,7 +116,7 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     width: "100%",
-    backgroundColor: "#aaa8ff",
+    backgroundColor: BRAND_COLORS.highlight,
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",

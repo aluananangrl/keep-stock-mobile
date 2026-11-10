@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, {
   useCallback,
   useEffect,
@@ -34,7 +36,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   amber: "#fbbf24",
   red: "#fb7185",
 };
@@ -115,7 +117,8 @@ export default function InventarioScreen({ navigation }) {
   };
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
@@ -168,7 +171,7 @@ export default function InventarioScreen({ navigation }) {
             <Feather
               name="refresh-cw"
               size={18}
-              color={C.green}
+              color={C.highlight}
             />
           </TouchableOpacity>
         </View>
@@ -197,7 +200,7 @@ export default function InventarioScreen({ navigation }) {
               {
                 color: baixo.length
                   ? C.amber
-                  : C.green,
+                  : C.highlight,
               },
             ]}
           >
@@ -210,7 +213,7 @@ export default function InventarioScreen({ navigation }) {
       {loading ? (
         <View style={s.center}>
           <ActivityIndicator
-            color={C.green}
+            color={C.highlight}
             size="large"
           />
 
@@ -249,8 +252,8 @@ export default function InventarioScreen({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => carregar(true)}
-              tintColor={C.green}
-              colors={[C.green]}
+              tintColor={C.highlight}
+              colors={[C.highlight]}
             />
           }
           showsVerticalScrollIndicator={false}
@@ -320,7 +323,7 @@ export default function InventarioScreen({ navigation }) {
                     <Feather
                       name="package"
                       size={18}
-                      color={C.green}
+                      color={C.highlight}
                     />
                   </View>
 
@@ -352,7 +355,7 @@ export default function InventarioScreen({ navigation }) {
                         {
                           color: estoqueBaixo
                             ? C.amber
-                            : C.green,
+                            : C.highlight,
                         },
                       ]}
                     >
@@ -372,6 +375,7 @@ export default function InventarioScreen({ navigation }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -415,7 +419,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     paddingHorizontal: 9,
     height: 42,
     borderRadius: 13,
@@ -429,7 +433,7 @@ const s = StyleSheet.create({
 
   kicker: {
     fontSize: 10,
-    color: C.green,
+    color: C.highlight,
     fontWeight: "800",
     letterSpacing: 1.2,
   },
@@ -491,7 +495,7 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: "#18332b",
+    backgroundColor: BRAND_COLORS.soft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -550,7 +554,7 @@ const s = StyleSheet.create({
   },
 
   retryText: {
-    color: C.green,
+    color: C.highlight,
     fontWeight: "700",
   },
 
@@ -575,7 +579,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 12,

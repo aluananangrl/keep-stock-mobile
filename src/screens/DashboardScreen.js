@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,7 +27,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   amber: "#fbbf24",
   red: "#fb7185",
 };
@@ -84,7 +86,8 @@ export default function DashboardScreen({ navigation }) {
   );
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
@@ -110,7 +113,7 @@ export default function DashboardScreen({ navigation }) {
           <Feather
             name="refresh-cw"
             size={18}
-            color={C.green}
+            color={C.highlight}
           />
         </TouchableOpacity>
       </View>
@@ -119,7 +122,7 @@ export default function DashboardScreen({ navigation }) {
       {loading ? (
         <View style={s.center}>
           <ActivityIndicator
-            color={C.green}
+            color={C.highlight}
             size="large"
           />
           <Text style={s.muted}>
@@ -133,7 +136,7 @@ export default function DashboardScreen({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => carregar(true)}
-              tintColor={C.green}
+              tintColor={C.highlight}
             />
           }
         >
@@ -153,7 +156,7 @@ export default function DashboardScreen({ navigation }) {
               >
                 <Text
                   style={{
-                    color: C.green,
+                    color: C.highlight,
                     fontWeight: "700",
                   }}
                 >
@@ -174,7 +177,7 @@ export default function DashboardScreen({ navigation }) {
               <View style={s.metricTop}>
                 <Feather
                   name="package"
-                  color={C.green}
+                  color={C.highlight}
                   size={18}
                 />
                 <Text style={s.metricLabel}>
@@ -291,7 +294,7 @@ export default function DashboardScreen({ navigation }) {
               <Feather
                 name="check-circle"
                 size={22}
-                color={C.green}
+                color={C.highlight}
               />
 
               <View style={{ flex: 1 }}>
@@ -399,7 +402,7 @@ export default function DashboardScreen({ navigation }) {
                         s.alertIcon,
                         {
                           backgroundColor: entrada
-                            ? "#18332b"
+                            ? BRAND_COLORS.soft
                             : "#3a202b",
                         },
                       ]}
@@ -412,7 +415,7 @@ export default function DashboardScreen({ navigation }) {
                         }
                         size={17}
                         color={
-                          entrada ? C.green : C.red
+                          entrada ? C.highlight : C.red
                         }
                       />
                     </View>
@@ -439,7 +442,7 @@ export default function DashboardScreen({ navigation }) {
                         s.movementQty,
                         {
                           color: entrada
-                            ? C.green
+                            ? C.highlight
                             : C.red,
                         },
                       ]}
@@ -473,6 +476,7 @@ export default function DashboardScreen({ navigation }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -503,7 +507,7 @@ const s = StyleSheet.create({
 
   kicker: {
     fontSize: 10,
-    color: C.green,
+    color: C.highlight,
     fontWeight: "800",
     letterSpacing: 1.3,
   },
@@ -580,7 +584,7 @@ const s = StyleSheet.create({
   },
 
   link: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -644,7 +648,7 @@ const s = StyleSheet.create({
   },
 
   action: {
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     borderRadius: 14,
     padding: 15,
     marginTop: 20,

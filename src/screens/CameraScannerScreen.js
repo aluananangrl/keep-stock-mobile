@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 import {
@@ -38,9 +40,9 @@ const C = {
   border: "#344263",
   text: "#F4F5FF",
   muted: "#9DA9C4",
-  accent: "#AAA8FF",
-  primary: "#6554FF",
-  green: "#34D399",
+  accent: BRAND_COLORS.highlight,
+  primary: BRAND_COLORS.primary,
+  highlight: BRAND_COLORS.highlight,
   red: "#FB7185",
   amber: "#FBBF24",
 };
@@ -419,7 +421,8 @@ export default function CameraScannerScreen({ navigation, route }) {
   // ==========================================================
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground>
+<View style={[styles.container, { backgroundColor: "transparent" }]}>
       <StatusBar barStyle="light-content" backgroundColor={C.background} />
 
       {/* ================================================== */}
@@ -738,7 +741,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 
           {notificacaoSucesso && (
             <View style={styles.successNotice}>
-              <Feather name="check-circle" size={18} color={C.green} />
+              <Feather name="check-circle" size={18} color={C.highlight} />
 
               <Text style={styles.successNoticeText}>{notificacaoSucesso}</Text>
             </View>
@@ -753,7 +756,7 @@ export default function CameraScannerScreen({ navigation, route }) {
               <View style={styles.sectionDivider} />
 
               <View style={styles.productSectionHeader}>
-                <Feather name="check-circle" size={17} color={C.green} />
+                <Feather name="check-circle" size={17} color={C.highlight} />
 
                 <Text style={styles.productSectionTitle}>
                   Produto identificado
@@ -825,9 +828,9 @@ export default function CameraScannerScreen({ navigation, route }) {
                   style={[styles.actionCard, styles.actionCardIn]}
                   onPress={() => handleAcao("Entrada")}
                 >
-                  <Feather name="arrow-down" size={21} color={C.green} />
+                  <Feather name="arrow-down" size={21} color={C.highlight} />
 
-                  <Text style={[styles.actionTitle, { color: C.green }]}>
+                  <Text style={[styles.actionTitle, { color: C.highlight }]}>
                     Entrada
                   </Text>
 
@@ -876,6 +879,7 @@ export default function CameraScannerScreen({ navigation, route }) {
         </ScrollView>
       </View>
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -1161,7 +1165,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: "rgba(170,168,255,0.13)",
+    backgroundColor: "rgba(96,165,250,0.13)",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 11,
@@ -1241,16 +1245,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    backgroundColor: "rgba(52,211,153,0.10)",
+    backgroundColor: "rgba(96,165,250,0.10)",
     borderWidth: 1,
-    borderColor: "rgba(52,211,153,0.24)",
+    borderColor: "rgba(96,165,250,0.24)",
     borderRadius: 13,
     padding: 12,
     marginTop: 10,
   },
 
   successNoticeText: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 12,
     fontWeight: "700",
     flex: 1,
@@ -1293,7 +1297,7 @@ const styles = StyleSheet.create({
   },
 
   productSectionTitle: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 12,
     fontWeight: "800",
   },
@@ -1360,9 +1364,9 @@ const styles = StyleSheet.create({
   qrCodeButton: {
     minHeight: 47,
     borderRadius: 12,
-    backgroundColor: "rgba(170,168,255,0.13)",
+    backgroundColor: "rgba(96,165,250,0.13)",
     borderWidth: 1,
-    borderColor: "rgba(170,168,255,0.27)",
+    borderColor: "rgba(96,165,250,0.27)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -1397,8 +1401,8 @@ const styles = StyleSheet.create({
   },
 
   actionCardIn: {
-    backgroundColor: "rgba(52,211,153,0.08)",
-    borderColor: "rgba(52,211,153,0.24)",
+    backgroundColor: "rgba(96,165,250,0.08)",
+    borderColor: "rgba(96,165,250,0.24)",
   },
 
   actionCardOut: {
@@ -1407,8 +1411,8 @@ const styles = StyleSheet.create({
   },
 
   actionCardAdjust: {
-    backgroundColor: "rgba(170,168,255,0.08)",
-    borderColor: "rgba(170,168,255,0.24)",
+    backgroundColor: "rgba(96,165,250,0.08)",
+    borderColor: "rgba(96,165,250,0.24)",
   },
 
   actionTitle: {

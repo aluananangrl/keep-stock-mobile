@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, { useCallback, useState } from "react";
 
 import {
@@ -35,7 +37,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   amber: "#fbbf24",
   red: "#fb7185",
 };
@@ -106,7 +108,7 @@ const getInitialProduct = (params) => {
     recebido.data ??
     recebido;
 
-  return produto && typeof produto === "object" && !Array.isArray(produto)
+  return produto && typeof produto === "object" && !Array.isArray(produto) && Object.keys(produto).length > 0
     ? produto
     : null;
 };
@@ -173,21 +175,19 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
     setLoading(true);
     setErro("");
 
-    try {
-      if (
+    if (
         produtoId === undefined ||
         produtoId === null ||
         String(produtoId).trim() === ""
       ) {
-        console.log("PARÂMETROS RECEBIDOS:", params);
-        console.log("PRODUTO RECEBIDO:", produtoInicial);
-        console.log("ID RECEBIDO:", produtoId);
+      setProduto(null);
+      setMovimentacoes([]);
+      setErro("Selecione um produto na lista para visualizar os detalhes.");
+      setLoading(false);
+      return;
+    }
 
-        throw new Error(
-          "O produto foi recebido, mas não contém um ID válido. Confira o retorno da API e a navegação."
-        );
-      }
-
+    try {
       // Busca os dados atualizados do produto.
       const produtoResponse = await api.obterProduto(produtoId);
 
@@ -353,7 +353,8 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
   // ==========================================================
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* CABEÇALHO */}
 
       <View style={s.header}>
@@ -382,7 +383,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
           <Feather
             name="refresh-cw"
             size={18}
-            color={C.green}
+            color={C.highlight}
           />
         </TouchableOpacity>
       </View>
@@ -392,7 +393,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
       {loading && !produto ? (
         <View style={s.center}>
           <ActivityIndicator
-            color={C.green}
+            color={C.highlight}
             size="large"
           />
           <Text style={s.muted}>
@@ -411,16 +412,18 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
 
           <TouchableOpacity
             style={s.primary}
-            onPress={carregar}
+            onPress={() => produtoId == null || String(produtoId).trim() === ""
+              ? navigation.navigate("ListaProdutos")
+              : carregar()}
           >
             <Text style={s.primaryText}>
-              Tentar novamente
+              {produtoId == null || String(produtoId).trim() === "" ? "Selecionar produto" : "Tentar novamente"}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={s.secondary}
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate("ListaProdutos")}
           >
             <Text style={s.secondaryText}>
               Voltar à lista
@@ -434,7 +437,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
             <RefreshControl
               refreshing={loading}
               onRefresh={carregar}
-              tintColor={C.green}
+              tintColor={C.highlight}
             />
           }
         >
@@ -458,7 +461,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
               <Feather
                 name="package"
                 size={27}
-                color={C.green}
+                color={C.highlight}
               />
             </View>
 
@@ -477,13 +480,13 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
                   {
                     backgroundColor: estoqueBaixo
                       ? "#3a2d18"
-                      : "#18332b",
+                      : BRAND_COLORS.soft,
                   },
                 ]}
               >
                 <Text
                   style={{
-                    color: estoqueBaixo ? C.amber : C.green,
+                    color: estoqueBaixo ? C.amber : C.highlight,
                     fontSize: 11,
                     fontWeight: "700",
                   }}
@@ -678,7 +681,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
                           s.movementIcon,
                           {
                             backgroundColor: entrada
-                              ? "#18332b"
+                              ? BRAND_COLORS.soft
                               : "#3a2029",
                           },
                         ]}
@@ -690,7 +693,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
                               : "arrow-up-right"
                           }
                           size={17}
-                          color={entrada ? C.green : C.red}
+                          color={entrada ? C.highlight : C.red}
                         />
                       </View>
 
@@ -713,7 +716,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
                         style={[
                           s.movementQty,
                           {
-                            color: entrada ? C.green : C.red,
+                            color: entrada ? C.highlight : C.red,
                           },
                         ]}
                       >
@@ -729,6 +732,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -777,7 +781,7 @@ const s = StyleSheet.create({
   },
 
   kicker: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.3,
@@ -810,7 +814,7 @@ const s = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 16,
-    backgroundColor: "#18332b",
+    backgroundColor: BRAND_COLORS.soft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -875,7 +879,7 @@ const s = StyleSheet.create({
   },
 
   entryButton: {
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: "row",
@@ -924,7 +928,7 @@ const s = StyleSheet.create({
 
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: C.green,
+    borderBottomColor: C.highlight,
   },
 
   tabText: {
@@ -934,7 +938,7 @@ const s = StyleSheet.create({
   },
 
   activeTabText: {
-    color: C.green,
+    color: C.highlight,
   },
 
   infoCard: {
@@ -1033,7 +1037,7 @@ const s = StyleSheet.create({
   },
 
   primary: {
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 10,

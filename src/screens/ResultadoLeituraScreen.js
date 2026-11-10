@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React from "react";
 import {
   ScrollView,
@@ -21,7 +23,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   amber: "#fbbf24",
   red: "#fb7185",
 };
@@ -41,7 +43,8 @@ export default function ResultadoLeituraScreen({
   // Exibe uma mensagem caso o produto não seja válido.
   if (!produto || !idOf(produto)) {
     return (
-      <View style={s.container}>
+      <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
         <View style={s.header}>
           <TouchableOpacity
             style={s.back}
@@ -88,6 +91,7 @@ export default function ResultadoLeituraScreen({
           </TouchableOpacity>
         </View>
       </View>
+    </ScreenBackground>
     );
   }
 
@@ -113,7 +117,8 @@ export default function ResultadoLeituraScreen({
   };
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
@@ -140,7 +145,7 @@ export default function ResultadoLeituraScreen({
           <Feather
             name="camera"
             size={18}
-            color={C.green}
+            color={C.highlight}
           />
         </TouchableOpacity>
       </View>
@@ -154,7 +159,7 @@ export default function ResultadoLeituraScreen({
             <Feather
               name="package"
               size={30}
-              color={C.green}
+              color={C.highlight}
             />
           </View>
 
@@ -172,13 +177,13 @@ export default function ResultadoLeituraScreen({
               {
                 backgroundColor: baixo
                   ? "#302716"
-                  : "#18332b",
+                  : BRAND_COLORS.soft,
               },
             ]}
           >
             <Text
               style={{
-                color: baixo ? C.amber : C.green,
+                color: baixo ? C.amber : C.highlight,
                 fontWeight: "700",
                 fontSize: 12,
               }}
@@ -267,6 +272,7 @@ export default function ResultadoLeituraScreen({
         </View>
       </ScrollView>
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -320,7 +326,7 @@ const s = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 21,
-    backgroundColor: "#18332b",
+    backgroundColor: BRAND_COLORS.soft,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 18,
@@ -388,7 +394,7 @@ const s = StyleSheet.create({
 
   entry: {
     width: "100%",
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: "row",
@@ -436,7 +442,7 @@ const s = StyleSheet.create({
   },
 
   primary: {
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     borderRadius: 12,
     paddingVertical: 13,
     paddingHorizontal: 20,

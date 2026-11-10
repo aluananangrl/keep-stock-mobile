@@ -1,3 +1,4 @@
+import { BRAND_COLORS } from "../context/colors";
 
 import React, { useState } from "react";
 
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
     borderColor: "#6658E8",
     overflow: "hidden",
 
-    shadowColor: "#5B4BFF",
+    shadowColor: BRAND_COLORS.primary,
     shadowOffset: {
       width: 0,
       height: 8,
@@ -456,7 +457,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: "#6554FF",
+    backgroundColor: BRAND_COLORS.primary,
   },
 
   // ==========================================================
@@ -531,7 +532,7 @@ const styles = StyleSheet.create({
     width: "100%",
     minHeight: 60,
     borderRadius: 30,
-    backgroundColor: "#5B4BFF",
+    backgroundColor: BRAND_COLORS.primary,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 8,
@@ -558,7 +559,7 @@ const styles = StyleSheet.create({
   },
 
   backText: {
-    color: "#AAA8FF",
+    color: BRAND_COLORS.highlight,
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",

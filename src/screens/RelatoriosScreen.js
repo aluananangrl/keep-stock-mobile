@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,7 +27,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   amber: "#fbbf24",
   red: "#fb7185",
 };
@@ -97,7 +99,8 @@ export default function RelatoriosScreen({ navigation }) {
   );
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
@@ -123,14 +126,14 @@ export default function RelatoriosScreen({ navigation }) {
           <Feather
             name="refresh-cw"
             size={18}
-            color={C.green}
+            color={C.highlight}
           />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator color={C.green} />
+          <ActivityIndicator color={C.highlight} />
           <Text style={s.muted}>
             Calculando indicadores...
           </Text>
@@ -142,7 +145,7 @@ export default function RelatoriosScreen({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => carregar(true)}
-              tintColor={C.green}
+              tintColor={C.highlight}
             />
           }
         >
@@ -160,7 +163,7 @@ export default function RelatoriosScreen({ navigation }) {
               <TouchableOpacity onPress={() => carregar()}>
                 <Text
                   style={{
-                    color: C.green,
+                    color: C.highlight,
                     fontWeight: "700",
                   }}
                 >
@@ -178,7 +181,7 @@ export default function RelatoriosScreen({ navigation }) {
               <Feather
                 name="package"
                 size={19}
-                color={C.green}
+                color={C.highlight}
               />
 
               <Text style={s.value}>
@@ -258,7 +261,7 @@ export default function RelatoriosScreen({ navigation }) {
               <Text
                 style={[
                   s.statValue,
-                  { color: C.green },
+                  { color: C.highlight },
                 ]}
               >
                 {entradas}
@@ -374,6 +377,7 @@ export default function RelatoriosScreen({ navigation }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -403,7 +407,7 @@ const s = StyleSheet.create({
   },
 
   kicker: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.4,
@@ -501,7 +505,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 9,
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     borderRadius: 13,
     padding: 14,
     marginBottom: 24,

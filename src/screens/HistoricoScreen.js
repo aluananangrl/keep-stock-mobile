@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
  
 import React, {
   useCallback,
@@ -32,7 +34,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   red: "#fb7185",
 };
 
@@ -124,7 +126,8 @@ export default function HistoricoScreen({ navigation }) {
   }
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
@@ -150,7 +153,7 @@ export default function HistoricoScreen({ navigation }) {
           <Feather
             name="refresh-cw"
             size={18}
-            color={C.green}
+            color={C.highlight}
           />
         </TouchableOpacity>
       </View>
@@ -188,7 +191,7 @@ export default function HistoricoScreen({ navigation }) {
       {/* Carregamento */}
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator color={C.green} />
+          <ActivityIndicator color={C.highlight} />
 
           <Text style={s.muted}>
             Carregando histórico...
@@ -222,7 +225,7 @@ export default function HistoricoScreen({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => carregar(true)}
-              tintColor={C.green}
+              tintColor={C.highlight}
             />
           }
         >
@@ -269,7 +272,7 @@ export default function HistoricoScreen({ navigation }) {
                       s.badge,
                       {
                         backgroundColor: entrada
-                          ? "#18332b"
+                          ? BRAND_COLORS.soft
                           : "#3a202b",
                       },
                     ]}
@@ -281,7 +284,7 @@ export default function HistoricoScreen({ navigation }) {
                           : "arrow-up-right"
                       }
                       size={18}
-                      color={entrada ? C.green : C.red}
+                      color={entrada ? C.highlight : C.red}
                     />
                   </View>
 
@@ -311,7 +314,7 @@ export default function HistoricoScreen({ navigation }) {
                     style={[
                       s.qty,
                       {
-                        color: entrada ? C.green : C.red,
+                        color: entrada ? C.highlight : C.red,
                       },
                     ]}
                   >
@@ -335,6 +338,7 @@ export default function HistoricoScreen({ navigation }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -365,7 +369,7 @@ const s = StyleSheet.create({
   },
 
   kicker: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.4,
@@ -470,7 +474,7 @@ const s = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     paddingHorizontal: 18,
     paddingVertical: 11,
     borderRadius: 10,

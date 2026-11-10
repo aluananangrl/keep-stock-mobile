@@ -1,3 +1,6 @@
+import { BRAND_COLORS } from "../context/colors";
+import ProfilePhoto from "../components/ProfilePhoto";
+import ScreenBackground from "../components/ScreenBackground";
 import React, { useCallback, useState } from "react";
 
 import {
@@ -39,7 +42,7 @@ export default function PerfilScreen({ navigation }) {
         card: "#1A2437",
         cardSoft: "#1F2950",
         border: "#2B3954",
-        accent: "#7C83FF",
+        accent: BRAND_COLORS.highlight,
         action: "#DBEAFE",
         danger: "#FB7185",
       }
@@ -51,7 +54,7 @@ export default function PerfilScreen({ navigation }) {
         card: "#FFFFFF",
         cardSoft: "#EDF3FF",
         border: "#DFE6F3",
-        accent: "#4B5DE0",
+        accent: BRAND_COLORS.primary,
         action: "#2D436A",
         danger: "#E5485D",
       };
@@ -189,10 +192,6 @@ export default function PerfilScreen({ navigation }) {
     perfil?.role ||
     "Funcionário";
 
-  const telefone = perfil?.telefone || "Não informado";
-
-  const unidade = perfil?.unidade || "Não informada";
-
   const departamento = perfil?.departamento || "Não informado";
 
   const iniciais =
@@ -268,28 +267,18 @@ export default function PerfilScreen({ navigation }) {
   }
 
   // ==========================================================
-  // FUNCIONALIDADES NÃO IMPLEMENTADAS
-  // ==========================================================
-
-  function informarFuncionalidadeIndisponivel(funcionalidade) {
-    Alert.alert(
-      "Funcionalidade indisponível",
-      `${funcionalidade} ainda não está implementada.`,
-    );
-  }
-
-  // ==========================================================
   // INTERFACE PRINCIPAL
   // ==========================================================
 
   return (
-    <View
-      style={[
+    <ScreenBackground adaptive>
+<View
+      style={[[
         styles.container,
         {
           backgroundColor: palette.background,
         },
-      ]}
+      ], { backgroundColor: "transparent" }]}
     >
       {/* ==================================================== */}
       {/* CABEÇALHO */}
@@ -299,7 +288,7 @@ export default function PerfilScreen({ navigation }) {
         style={[
           styles.header,
           {
-            backgroundColor: palette.header,
+            backgroundColor: "transparent",
           },
         ]}
       >
@@ -350,26 +339,7 @@ export default function PerfilScreen({ navigation }) {
         {/* ================================================== */}
 
         <View style={styles.avatarWrap}>
-          <View
-            style={[
-              styles.avatarCircle,
-              {
-                backgroundColor: palette.cardSoft,
-                borderColor: palette.accent,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.avatarText,
-                {
-                  color: palette.text,
-                },
-              ]}
-            >
-              {iniciais}
-            </Text>
-          </View>
+          <ProfilePhoto userId={perfil?.id} initials={iniciais} palette={palette} disabled={carregando} />
         </View>
 
         {/* ================================================== */}
@@ -467,7 +437,7 @@ export default function PerfilScreen({ navigation }) {
         >
           {/* E-MAIL */}
 
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, styles.lastInfoRow]}>
             <Ionicons name="mail-outline" size={18} color={palette.accent} />
 
             <Text
@@ -482,43 +452,6 @@ export default function PerfilScreen({ navigation }) {
             </Text>
           </View>
 
-          {/* TELEFONE */}
-
-          <View style={styles.infoRow}>
-            <Ionicons name="call-outline" size={18} color={palette.accent} />
-
-            <Text
-              style={[
-                styles.infoText,
-                {
-                  color: palette.text,
-                },
-              ]}
-            >
-              {telefone}
-            </Text>
-          </View>
-
-          {/* UNIDADE */}
-
-          <View style={[styles.infoRow, styles.lastInfoRow]}>
-            <Ionicons
-              name="location-outline"
-              size={18}
-              color={palette.accent}
-            />
-
-            <Text
-              style={[
-                styles.infoText,
-                {
-                  color: palette.text,
-                },
-              ]}
-            >
-              {unidade}
-            </Text>
-          </View>
         </View>
 
         {/* ================================================== */}
@@ -701,30 +634,6 @@ export default function PerfilScreen({ navigation }) {
             <Feather name="chevron-right" size={18} color={palette.action} />
           </TouchableOpacity>
 
-          {/* DISPOSITIVOS CONECTADOS */}
-
-          <TouchableOpacity
-            style={styles.linkRow}
-            onPress={() =>
-              informarFuncionalidadeIndisponivel(
-                "A consulta de dispositivos conectados",
-              )
-            }
-            activeOpacity={0.8}
-          >
-            <Text
-              style={[
-                styles.linkText,
-                {
-                  color: palette.text,
-                },
-              ]}
-            >
-              Dispositivos conectados
-            </Text>
-
-            <Feather name="chevron-right" size={18} color={palette.action} />
-          </TouchableOpacity>
         </View>
 
         {/* ================================================== */}
@@ -765,6 +674,7 @@ export default function PerfilScreen({ navigation }) {
         </TouchableOpacity>
       </ScrollView>
     </View>
+    </ScreenBackground>
   );
 }
 

@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, {
   useCallback,
   useMemo,
@@ -32,7 +34,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   red: "#fb7185",
 };
 
@@ -124,7 +126,8 @@ export default function FornecedoresScreen({ navigation, route }) {
   );
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
@@ -155,7 +158,7 @@ export default function FornecedoresScreen({ navigation, route }) {
           <Feather
             name="refresh-cw"
             size={18}
-            color={C.green}
+            color={C.highlight}
           />
         </TouchableOpacity>
       </View>
@@ -187,14 +190,14 @@ export default function FornecedoresScreen({ navigation, route }) {
           {items.length}
         </Text>
         {podeEditar && <TouchableOpacity style={s.icon} onPress={() => abrirFormulario()} accessibilityLabel="Novo registro">
-          <Feather name="plus" size={20} color={C.green} />
+          <Feather name="plus" size={20} color={C.highlight} />
         </TouchableOpacity>}
       </View>
 
       {/* Carregamento */}
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator color={C.green} />
+          <ActivityIndicator color={C.highlight} />
 
           <Text style={s.muted}>
             Carregando registros...
@@ -230,7 +233,7 @@ export default function FornecedoresScreen({ navigation, route }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => carregar(true)}
-              tintColor={C.green}
+              tintColor={C.highlight}
             />
           }
         >
@@ -261,7 +264,7 @@ export default function FornecedoresScreen({ navigation, route }) {
                     <Feather
                       name={categoria ? "tag" : "truck"}
                       size={19}
-                      color={C.green}
+                      color={C.highlight}
                     />
                   </View>
 
@@ -296,7 +299,7 @@ export default function FornecedoresScreen({ navigation, route }) {
                       {
                         backgroundColor: inativo
                           ? "#3a202b"
-                          : "#18332b",
+                          : BRAND_COLORS.soft,
                       },
                     ]}
                   >
@@ -304,7 +307,7 @@ export default function FornecedoresScreen({ navigation, route }) {
                       style={{
                         color: inativo
                           ? C.red
-                          : C.green,
+                          : C.highlight,
                         fontSize: 10,
                         fontWeight: "700",
                       }}
@@ -325,6 +328,7 @@ export default function FornecedoresScreen({ navigation, route }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -354,7 +358,7 @@ const s = StyleSheet.create({
   },
 
   kicker: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.1,
@@ -431,7 +435,7 @@ const s = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 12,
-    backgroundColor: "#18332b",
+    backgroundColor: BRAND_COLORS.soft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -471,7 +475,7 @@ const s = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 10,

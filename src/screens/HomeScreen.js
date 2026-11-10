@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 
 import { useCallback, useMemo, useState } from "react";
 
@@ -11,7 +13,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   StatusBar,
-  Image,
 } from "react-native";
 
 import { useFocusEffect } from "@react-navigation/native";
@@ -37,7 +38,6 @@ import KeepStockBottomNav from "../components/KeepStockBottomNav";
 // IMAGEM DE FUNDO - MESMO MÉTODO DO LOGIN
 // ============================================================
 
-import fundoGeral from "../../assets/fundo-geral.png";
 
 // ============================================================
 // CONFIGURAÇÕES DE STATUS
@@ -56,8 +56,8 @@ const STATUS_CONFIG = {
   },
   normal: {
     label: "NORMAL",
-    bg: "#1D4633",
-    color: "#70EBA4",
+    bg: BRAND_COLORS.soft,
+    color: BRAND_COLORS.highlight,
   },
 };
 
@@ -105,7 +105,7 @@ export default function HomeScreen({ navigation }) {
         card: "rgba(21, 32, 57, 0.94)",
         cardSoft: "rgba(32, 44, 73, 0.95)",
         border: "#354466",
-        accent: "#AAA8FF",
+        accent: BRAND_COLORS.highlight,
       }
     : {
         background: "#F5F7FC",
@@ -114,7 +114,7 @@ export default function HomeScreen({ navigation }) {
         card: "rgba(255, 255, 255, 0.96)",
         cardSoft: "rgba(236, 240, 250, 0.96)",
         border: "#DCE3F0",
-        accent: "#6254E8",
+        accent: BRAND_COLORS.primary,
       };
 
   // ==========================================================
@@ -437,11 +437,12 @@ export default function HomeScreen({ navigation }) {
   // ==========================================================
 
   return (
-    <View
-      style={[
+    <ScreenBackground adaptive>
+<View
+      style={[[
         styles.background,
         { backgroundColor: palette.background },
-      ]}
+      ], { backgroundColor: "transparent" }]}
     >
       <StatusBar
         barStyle={isDarkTheme ? "light-content" : "dark-content"}
@@ -450,16 +451,10 @@ export default function HomeScreen({ navigation }) {
       />
 
       {/* ==================================================== */}
-      {/* IMAGEM DE FUNDO - IGUAL AO LOGIN */}
+
       {/* ==================================================== */}
 
-      <Image
-        source={fundoGeral}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-        pointerEvents="none"
-        accessible={false}
-      />
+
 
       {/* ==================================================== */}
       {/* CONTEÚDO PRINCIPAL - ACIMA DA IMAGEM */}
@@ -528,7 +523,7 @@ export default function HomeScreen({ navigation }) {
               refreshing={atualizando}
               onRefresh={handleAtualizar}
               tintColor={palette.accent}
-              colors={["#7775FF"]}
+              colors={[BRAND_COLORS.primary]}
             />
           }
         >
@@ -612,7 +607,7 @@ export default function HomeScreen({ navigation }) {
             onPress={() => navigation.navigate("ListaProdutos")}
           >
             <LinearGradient
-              colors={["#7464EA", "#5941BC"]}
+              colors={[BRAND_COLORS.primary, BRAND_COLORS.primaryDeep]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.alertCard}
@@ -660,8 +655,8 @@ export default function HomeScreen({ navigation }) {
                 ? "—"
                 : resumo.totalProdutos,
               icone: "archive",
-              cor: "#B19CFF",
-              fundoIcone: "#302551",
+              cor: BRAND_COLORS.highlight,
+              fundoIcone: BRAND_COLORS.soft,
             })}
 
             {renderIndicador({
@@ -670,8 +665,8 @@ export default function HomeScreen({ navigation }) {
                 ? "—"
                 : movimentosCount.toLocaleString("pt-BR"),
               icone: "activity",
-              cor: "#82BBFF",
-              fundoIcone: "#223853",
+              cor: BRAND_COLORS.highlight,
+              fundoIcone: BRAND_COLORS.soft,
             })}
 
             {renderIndicador({
@@ -680,8 +675,8 @@ export default function HomeScreen({ navigation }) {
                 ? "—"
                 : resumo.totalUnidades.toLocaleString("pt-BR"),
               icone: "layers",
-              cor: "#6BE4A2",
-              fundoIcone: "#1D4335",
+              cor: BRAND_COLORS.highlight,
+              fundoIcone: BRAND_COLORS.soft,
             })}
           </View>
 
@@ -810,6 +805,7 @@ export default function HomeScreen({ navigation }) {
         currentScreen="Home"
       />
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -971,7 +967,7 @@ const styles = StyleSheet.create({
   },
 
   alertLabel: {
-    color: "#F1EFFF",
+    color: BRAND_COLORS.onSoft,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 0.6,
@@ -986,7 +982,7 @@ const styles = StyleSheet.create({
   },
 
   alertDescription: {
-    color: "#E7DFFF",
+    color: BRAND_COLORS.onSoft,
     fontSize: 11,
     marginTop: 2,
   },

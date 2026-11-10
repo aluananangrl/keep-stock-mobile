@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import React, {
   useCallback,
   useEffect,
@@ -32,7 +34,7 @@ const C = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  green: "#72e0a4",
+  highlight: BRAND_COLORS.highlight,
   amber: "#fbbf24",
   red: "#fb7185",
 };
@@ -95,7 +97,8 @@ export default function NotificacoesScreen({ navigation }) {
   }, [carregar]);
 
   return (
-    <View style={s.container}>
+    <ScreenBackground>
+<View style={[s.container, { backgroundColor: "transparent" }]}>
       {/* Cabeçalho */}
       <View style={s.header}>
         <TouchableOpacity
@@ -128,7 +131,7 @@ export default function NotificacoesScreen({ navigation }) {
           <Feather
             name="refresh-cw"
             size={18}
-            color={C.green}
+            color={C.highlight}
           />
         </TouchableOpacity>
       </View>
@@ -161,7 +164,7 @@ export default function NotificacoesScreen({ navigation }) {
       {/* Carregamento */}
       {loading ? (
         <View style={s.center}>
-          <ActivityIndicator color={C.green} />
+          <ActivityIndicator color={C.highlight} />
 
           <Text style={s.muted}>
             Verificando alertas...
@@ -197,7 +200,7 @@ export default function NotificacoesScreen({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => carregar(true)}
-              tintColor={C.green}
+              tintColor={C.highlight}
             />
           }
         >
@@ -206,7 +209,7 @@ export default function NotificacoesScreen({ navigation }) {
               <Feather
                 name="check-circle"
                 size={28}
-                color={C.green}
+                color={C.highlight}
               />
 
               <Text style={s.emptyTitle}>
@@ -276,6 +279,7 @@ export default function NotificacoesScreen({ navigation }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -305,7 +309,7 @@ const s = StyleSheet.create({
   },
 
   kicker: {
-    color: C.green,
+    color: C.highlight,
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 1.2,
@@ -409,7 +413,7 @@ const s = StyleSheet.create({
   },
 
   button: {
-    backgroundColor: C.green,
+    backgroundColor: C.highlight,
     borderRadius: 10,
     paddingHorizontal: 18,
     paddingVertical: 12,

@@ -9,6 +9,7 @@ import {
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+import { SCREEN_BACKGROUND } from "./src/components/ScreenBackground";
 import LoginScreen from "./src/screens/LoginScreen";
 import CadastroScreen from "./src/screens/CadastroScreen";
 import HomeScreen from "./src/screens/HomeScreen";
@@ -56,7 +57,19 @@ function AppNavigator() {
     <NavigationContainer ref={navigationRef} theme={theme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack.Navigator
         initialRouteName="Login"
-        screenOptions={{ headerShown: true }}
+        screenOptions={({ route }) => {
+          if (["Login", "Cadastro", "RecuperarSenha", "NovaSenha"].includes(route.name)) {
+            return { headerShown: true };
+          }
+          const light = theme === "light" && ["Home", "Perfil", "Configuracoes"].includes(route.name);
+          return {
+            headerShown: true,
+            contentStyle: { backgroundColor: light ? "#F4F7FC" : SCREEN_BACKGROUND },
+            headerStyle: { backgroundColor: light ? "#E8F0FF" : "#13294B" },
+            headerTintColor: light ? "#20273C" : "#F1F5F9",
+            headerShadowVisible: false,
+          };
+        }}
       >
         <Stack.Screen name="Cadastro" component={CadastroScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />

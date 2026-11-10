@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -32,7 +34,7 @@ const COLORS = {
   border: "#243247",
   text: "#f1f5f9",
   muted: "#94a3b8",
-  accent: "#72e0a4",
+  accent: BRAND_COLORS.highlight,
   danger: "#fb7185",
   warning: "#fbbf24",
 };
@@ -164,7 +166,8 @@ export default function ListaProdutosScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground>
+<View style={[styles.container, { backgroundColor: "transparent" }]}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.iconButton}
@@ -334,6 +337,7 @@ export default function ListaProdutosScreen({ navigation }) {
         </ScrollView>
       )}
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -430,7 +434,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: "#18332b",
+    backgroundColor: BRAND_COLORS.soft,
     alignItems: "center",
     justifyContent: "center",
   },

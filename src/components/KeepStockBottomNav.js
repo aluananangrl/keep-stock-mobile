@@ -1,3 +1,4 @@
+import { BRAND_COLORS } from "../context/colors";
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -19,7 +20,7 @@ export default function KeepStockBottomNav({
         <Feather
           name="home"
           size={20}
-          color={activeTab === "inicio" ? "#ffffff" : "#94a3b8"}
+          color={activeTab === "inicio" ? BRAND_COLORS.highlight : "#94a3b8"}
         />
         <Text
           style={[
@@ -40,7 +41,7 @@ export default function KeepStockBottomNav({
         }}
       >
         <View style={styles.scannerCircle}>
-          <Feather name="camera" size={22} color="#1e1b4b" />
+          <Feather name="camera" size={22} color={BRAND_COLORS.ink} />
         </View>
         <Text
           style={[
@@ -57,13 +58,13 @@ export default function KeepStockBottomNav({
         style={styles.tabItem}
         activeOpacity={0.7}
         onPress={() => {
-          if (navigation) navigation.navigate("DetalhesProduto");
+          if (navigation) navigation.navigate("ListaProdutos");
         }}
       >
         <Feather
           name="eye"
           size={20}
-          color={activeTab === "visualizar" ? "#ffffff" : "#94a3b8"}
+          color={activeTab === "visualizar" ? BRAND_COLORS.highlight : "#94a3b8"}
         />
         <Text
           style={[
@@ -105,10 +106,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#c7d2fe",
+    backgroundColor: BRAND_COLORS.pale,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#818cf8",
+    shadowColor: BRAND_COLORS.highlight,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   tabTextActive: {
-    color: "#ffffff",
+    color: BRAND_COLORS.highlight,
     fontWeight: "700",
   },
 });

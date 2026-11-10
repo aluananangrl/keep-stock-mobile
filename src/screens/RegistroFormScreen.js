@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 import { useState } from "react";
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import api from "../services/api";
@@ -58,7 +60,8 @@ export default function RegistroFormScreen({ navigation, route }) {
       (registro ? "Editar fornecedor" : "Novo fornecedor");
 
   return (
-    <ScrollView style={s.screen} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+    <ScreenBackground>
+<ScrollView style={[s.screen, { backgroundColor: "transparent" }]} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       <Text style={s.title}>{titulo}</Text>
       {campos.map(([chave, label]) => (
         <View key={chave} style={s.field}>
@@ -82,6 +85,7 @@ export default function RegistroFormScreen({ navigation, route }) {
         <Text style={s.label}>Cancelar</Text>
       </TouchableOpacity>
     </ScrollView>
+    </ScreenBackground>
   );
 }
 
@@ -93,7 +97,7 @@ const s = StyleSheet.create({
   label: { color: "#f1f5f9", fontWeight: "600" },
   input: { borderWidth: 1, borderColor: "#243247", borderRadius: 12, color: "#f1f5f9", padding: 12 },
   error: { color: "#fb7185" },
-  save: { backgroundColor: "#72e0a4", alignItems: "center", padding: 14, borderRadius: 12 },
+  save: { backgroundColor: BRAND_COLORS.highlight, alignItems: "center", padding: 14, borderRadius: 12 },
   saveText: { color: "#0b1220", fontWeight: "800" },
   cancel: { alignItems: "center", padding: 12 },
 });

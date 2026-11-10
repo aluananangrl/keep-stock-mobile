@@ -1,3 +1,5 @@
+import { BRAND_COLORS } from "../context/colors";
+import ScreenBackground from "../components/ScreenBackground";
 
 import React, { useState } from "react";
 
@@ -42,7 +44,7 @@ export default function ConfiguracoesScreen({ navigation }) {
         card: "#152039",
         cardSoft: "#202C49",
         border: "#304063",
-        accent: "#AAA8FF",
+        accent: BRAND_COLORS.highlight,
       }
     : {
         background: "#F5F7FC",
@@ -52,7 +54,7 @@ export default function ConfiguracoesScreen({ navigation }) {
         card: "#FFFFFF",
         cardSoft: "#ECF0FA",
         border: "#DCE3F0",
-        accent: "#6254E8",
+        accent: BRAND_COLORS.primary,
       };
 
   // ==========================================================
@@ -60,11 +62,12 @@ export default function ConfiguracoesScreen({ navigation }) {
   // ==========================================================
 
   return (
-    <View
-      style={[
+    <ScreenBackground adaptive>
+<View
+      style={[[
         styles.container,
         { backgroundColor: palette.background },
-      ]}
+      ], { backgroundColor: "transparent" }]}
     >
       {/* ====================================================== */}
       {/* CABEÇALHO */}
@@ -73,7 +76,7 @@ export default function ConfiguracoesScreen({ navigation }) {
       <View
         style={[
           styles.header,
-          { backgroundColor: palette.headerBackground },
+          { backgroundColor: "transparent" },
         ]}
       >
         <TouchableOpacity
@@ -161,7 +164,7 @@ export default function ConfiguracoesScreen({ navigation }) {
                 <Feather
                   name="shield"
                   size={17}
-                  color="#8FE5C4"
+                  color={BRAND_COLORS.highlight}
                 />
               </View>
 
@@ -240,7 +243,7 @@ export default function ConfiguracoesScreen({ navigation }) {
               onValueChange={setSeguranca}
               trackColor={{
                 false: "#495670",
-                true: "#7775FF",
+                true: BRAND_COLORS.primary,
               }}
               thumbColor={
                 seguranca ? "#FFFFFF" : "#D9E6FF"
@@ -310,7 +313,7 @@ export default function ConfiguracoesScreen({ navigation }) {
               onValueChange={setNotificacoes}
               trackColor={{
                 false: "#495670",
-                true: "#7775FF",
+                true: BRAND_COLORS.primary,
               }}
               thumbColor={
                 notificacoes ? "#FFFFFF" : "#D9E6FF"
@@ -340,7 +343,7 @@ export default function ConfiguracoesScreen({ navigation }) {
               onValueChange={setAlertas}
               trackColor={{
                 false: "#495670",
-                true: "#7775FF",
+                true: BRAND_COLORS.primary,
               }}
               thumbColor={
                 alertas ? "#FFFFFF" : "#D9E6FF"
@@ -373,7 +376,7 @@ export default function ConfiguracoesScreen({ navigation }) {
                 <Feather
                   name="globe"
                   size={17}
-                  color="#95D9FF"
+                  color={BRAND_COLORS.highlight}
                 />
               </View>
 
@@ -412,6 +415,7 @@ export default function ConfiguracoesScreen({ navigation }) {
         </View>
       </ScrollView>
     </View>
+    </ScreenBackground>
   );
 }
 

@@ -33,7 +33,15 @@
           "cameraPermission": "O KeepStock precisa de acesso à câmera para escanear códigos e capturar produtos."
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O KeepStock precisa acessar suas fotos para escolher uma foto de perfil.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

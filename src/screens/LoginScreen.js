@@ -1,3 +1,4 @@
+import { BRAND_COLORS } from "../context/colors";
 // ============================================================
 // IMPORTAÇÕES
 // ============================================================
@@ -57,7 +58,7 @@ export default function LoginScreen({ navigation }) {
         muted: "#60708a",
         input: "rgba(243, 246, 255, 0.90)",
         placeholder: "#7a88a8",
-        button: "#8d8df5",
+        button: BRAND_COLORS.primary,
         buttonText: "#ffffff",
         footer: "#69758d",
       };
@@ -239,7 +240,7 @@ export default function LoginScreen({ navigation }) {
             {/* LOGO */}
 
             <View style={styles.logo}>
-              <Ionicons name="cube-outline" size={32} color="#7665ff" />
+              <Ionicons name="cube-outline" size={32} color={BRAND_COLORS.primary} />
 
               <Text
                 style={[
@@ -364,7 +365,7 @@ export default function LoginScreen({ navigation }) {
                   style={[
                     styles.forgot,
                     {
-                      color: isDarkTheme ? "#aaa8ff" : "#4b5de0",
+                      color: isDarkTheme ? BRAND_COLORS.highlight : BRAND_COLORS.primary,
                     },
                   ]}
                 >
@@ -408,7 +409,7 @@ export default function LoginScreen({ navigation }) {
               style={[
                 styles.registerButton,
                 {
-                  borderColor: isDarkTheme ? "#6554ff" : "#4b5de0",
+                  borderColor: isDarkTheme ? BRAND_COLORS.primary : BRAND_COLORS.primary,
                 },
               ]}
               onPress={() => navigation.navigate("Cadastro")}
@@ -417,14 +418,14 @@ export default function LoginScreen({ navigation }) {
               <Ionicons
                 name="person-add-outline"
                 size={22}
-                color={isDarkTheme ? "#a99fff" : "#4b5de0"}
+                color={isDarkTheme ? BRAND_COLORS.highlight : BRAND_COLORS.primary}
               />
 
               <Text
                 style={[
                   styles.registerLink,
                   {
-                    color: isDarkTheme ? "#7665ff" : "#4b5de0",
+                    color: isDarkTheme ? BRAND_COLORS.primary : BRAND_COLORS.primary,
                   },
                 ]}
               >
@@ -496,7 +497,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: "#6554ff",
+    backgroundColor: BRAND_COLORS.primary,
   },
 
   // LOGO
@@ -509,7 +510,7 @@ const styles = StyleSheet.create({
   },
 
   logoText: {
-    color: "#d7d8ff",
+    color: BRAND_COLORS.pale,
     fontSize: 28,
     fontWeight: "700",
     marginLeft: 9,
@@ -584,8 +585,8 @@ const styles = StyleSheet.create({
   },
 
   checkboxChecked: {
-    backgroundColor: "#6554ff",
-    borderColor: "#7775ff",
+    backgroundColor: BRAND_COLORS.primary,
+    borderColor: BRAND_COLORS.primary,
   },
 
   rememberText: {
@@ -594,7 +595,7 @@ const styles = StyleSheet.create({
   },
 
   forgot: {
-    color: "#aaa8ff",
+    color: BRAND_COLORS.highlight,
     fontSize: 13,
   },
 
@@ -604,7 +605,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 62,
     borderRadius: 31,
-    backgroundColor: "#aaa8ff",
+    backgroundColor: BRAND_COLORS.highlight,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -614,7 +615,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    color: "#29258a",
+    color: BRAND_COLORS.ink,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -668,7 +669,7 @@ const styles = StyleSheet.create({
   // SUPORTE
 
   support: {
-    color: "#aaa8ff",
+    color: BRAND_COLORS.highlight,
     fontSize: 11,
     textAlign: "center",
     marginBottom: 20,
@@ -688,7 +689,7 @@ const styles = StyleSheet.create({
   },
 
   registerLink: {
-    color: "#7665ff",
+    color: BRAND_COLORS.primary,
     fontSize: 16,
     fontWeight: "600",
   },

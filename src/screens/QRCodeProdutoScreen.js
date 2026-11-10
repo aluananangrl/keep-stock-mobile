@@ -1,3 +1,4 @@
+import ScreenBackground from "../components/ScreenBackground";
 
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
@@ -12,7 +13,8 @@ export default function QRCodeProdutoScreen({ route }) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScreenBackground>
+<View style={[styles.container, { backgroundColor: "transparent" }]}>
       <Text style={styles.titulo}>QR Code do produto</Text>
 
       <Text style={styles.nome}>{produto.nome}</Text>
@@ -41,6 +43,7 @@ export default function QRCodeProdutoScreen({ route }) {
         o produto no estoque.
       </Text>
     </View>
+    </ScreenBackground>
   );
 }
 
@@ -56,9 +59,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 24,
-    color: "#172033",
+    color: "#F1F5F9",
   },
   nome: {
+    color: "#F1F5F9",
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 8,
@@ -66,7 +70,7 @@ const styles = StyleSheet.create({
   },
   info: {
     fontSize: 15,
-    color: "#5B6472",
+    color: "#94A3B8",
     marginBottom: 5,
   },
   qrContainer: {
@@ -76,12 +80,13 @@ const styles = StyleSheet.create({
     marginVertical: 24,
   },
   codigo: {
+    color: "#F1F5F9",
     fontSize: 15,
     fontWeight: "600",
   },
   instrucao: {
     textAlign: "center",
-    color: "#5B6472",
+    color: "#94A3B8",
     marginTop: 12,
   },
 });
