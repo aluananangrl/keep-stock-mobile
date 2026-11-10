@@ -61,7 +61,11 @@ function AppNavigator() {
         <Stack.Screen name="Cadastro" component={CadastroScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="CameraScanner" component={CameraScannerScreen} />
+        <Stack.Screen
+          name="CameraScanner"
+          component={CameraScannerScreen}
+          options={{ headerShown: false, animation: "none" }}
+        />
         <Stack.Screen name="Perfil" component={PerfilScreen} />
         <Stack.Screen
           name="DetalhesProduto"

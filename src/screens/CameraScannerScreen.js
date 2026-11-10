@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 import {
   View,
@@ -14,6 +14,9 @@ import {
   StatusBar,
   Platform,
   Linking,
+  AppState,
+  PanResponder,
+  useWindowDimensions,
 } from "react-native";
 
 import { Feather, MaterialIcons } from "@expo/vector-icons";
@@ -47,6 +50,37 @@ const C = {
 // ============================================================
 
 export default function CameraScannerScreen({ navigation, route }) {
+  const { height: windowHeight } = useWindowDimensions();
+  const maxSheetHeight = Math.round(windowHeight * 0.72);
+  const minSheetHeight = Math.min(210, Math.round(windowHeight * 0.3));
+  const [sheetHeight, setSheetHeight] = useState(() =>
+    Math.min(210, Math.round(windowHeight * 0.3)),
+  );
+  const visibleSheetHeight = Math.max(minSheetHeight, Math.min(maxSheetHeight, sheetHeight));
+  const sheetHeightRef = useRef(visibleSheetHeight);
+  sheetHeightRef.current = visibleSheetHeight;
+  const dragStartHeight = useRef(visibleSheetHeight);
+  const sheetPanResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
+    onPanResponderGrant: () => {
+      dragStartHeight.current = sheetHeightRef.current;
+    },
+    onPanResponderMove: (_, gesture) => {
+      setSheetHeight(Math.max(minSheetHeight, Math.min(maxSheetHeight, dragStartHeight.current - gesture.dy)));
+    },
+    onPanResponderRelease: (_, gesture) => {
+      if (Math.abs(gesture.dy) < 6) {
+        setSheetHeight(sheetHeightRef.current > (minSheetHeight + maxSheetHeight) / 2
+          ? minSheetHeight : maxSheetHeight);
+      } else {
+        setSheetHeight(gesture.vy < -0.4 ? maxSheetHeight
+          : gesture.vy > 0.4 ? minSheetHeight
+          : sheetHeightRef.current > (minSheetHeight + maxSheetHeight) / 2
+            ? maxSheetHeight : minSheetHeight);
+      }
+    },
+  }), [minSheetHeight, maxSheetHeight]);
   // ==========================================================
   // PERMISSÕES E FOCO
   // ==========================================================
@@ -54,6 +88,18 @@ export default function CameraScannerScreen({ navigation, route }) {
   const [permission, requestPermission] = useCameraPermissions();
 
   const isFocused = useIsFocused();
+  const [appState, setAppState] = useState(AppState.currentState);
+  const [previewSize, setPreviewSize] = useState(null);
+  const cameraRef = useRef(null);
+  const cameraAtiva = isFocused && appState === "active";
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      setAppState(nextState);
+      setCameraReady(false);
+    });
+    return () => subscription.remove();
+  }, []);
 
   // ==========================================================
   // ESTADOS
@@ -76,6 +122,10 @@ export default function CameraScannerScreen({ navigation, route }) {
   );
 
   const [notificacaoSucesso, setNotificacaoSucesso] = useState(null);
+
+  useEffect(() => {
+    if (produtoDetectado) setSheetHeight(maxSheetHeight);
+  }, [produtoDetectado, maxSheetHeight]);
 
   const scanLock = useRef(false);
   const searchingRef = useRef(false);
@@ -376,15 +426,30 @@ export default function CameraScannerScreen({ navigation, route }) {
       {/* ÁREA DA CÂMERA */}
       {/* ================================================== */}
 
-      <View style={styles.cameraArea}>
+      <View
+        style={styles.cameraArea}
+        collapsable={false}
+        onLayout={({ nativeEvent: { layout } }) => {
+          if (layout.width > 0 && layout.height > 0) {
+            setPreviewSize((current) =>
+              current?.width === layout.width && current?.height === layout.height
+                ? current
+                : { width: layout.width, height: layout.height },
+            );
+          }
+        }}
+      >
         {/* CÂMERA NATIVA */}
 
-        {cameraPermitida && isFocused && !cameraError && (
+        {cameraPermitida && cameraAtiva && previewSize && !cameraError && (
           <CameraView
+            ref={cameraRef}
             key={`${facing}-${cameraKey}`}
-            style={styles.cameraPreview}
+            style={[styles.cameraPreview, previewSize]}
+            mode="picture"
+            autofocus="on"
             facing={facing}
-            active={isFocused}
+            active={cameraAtiva}
             enableTorch={torch && facing === "back"}
             barcodeScannerSettings={{
               barcodeTypes: [
@@ -403,6 +468,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 
               setCameraReady(true);
               setCameraError(null);
+              cameraRef.current?.resumePreview().catch(handleCameraError);
             }}
             onMountError={handleCameraError}
             onBarcodeScanned={
@@ -511,8 +577,18 @@ export default function CameraScannerScreen({ navigation, route }) {
         {/* ================================================== */}
 
         {cameraPermitida && isFocused && !cameraError && (
-          <View style={styles.scannerCenter} pointerEvents="none">
-            <View style={[styles.reticleBox, scanned && { opacity: 0.6 }]}>
+          <View
+            style={[styles.scannerCenter, {
+              top: Platform.OS === "ios" ? 110 : (StatusBar.currentHeight || 24) + 70,
+              bottom: visibleSheetHeight,
+            }]}
+            pointerEvents="none"
+          >
+            <View style={[styles.reticleBox, {
+              width: Math.min((previewSize?.width || 360) * 0.66, 280),
+              height: Math.max(80, Math.min(230,
+                ((previewSize?.height || windowHeight) - visibleSheetHeight - 210) * 0.6)),
+            }, scanned && { opacity: 0.6 }]}>
               <View style={[styles.corner, styles.cornerTL]} />
 
               <View style={[styles.corner, styles.cornerTR]} />
@@ -557,10 +633,25 @@ export default function CameraScannerScreen({ navigation, route }) {
       {/* PAINEL INFERIOR */}
       {/* ================================================== */}
 
-      <View style={styles.bottomSheet}>
-        <View style={styles.dragHandle} />
+      <View style={[styles.bottomSheet, { height: visibleSheetHeight }]}>
+        <View
+          style={styles.sheetHandleArea}
+          {...sheetPanResponder.panHandlers}
+          accessible
+          accessibilityRole="adjustable"
+          accessibilityLabel="Altura do painel"
+          accessibilityHint="Arraste para cima para ampliar ou para baixo para recolher"
+          accessibilityActions={[{ name: "increment", label: "Ampliar" }, { name: "decrement", label: "Recolher" }]}
+          onAccessibilityAction={({ nativeEvent }) => {
+            setSheetHeight((current) => Math.max(minSheetHeight, Math.min(maxSheetHeight,
+              current + (nativeEvent.actionName === "increment" ? 80 : -80))));
+          }}
+        >
+          <View style={styles.dragHandle} />
+        </View>
 
         <ScrollView
+          style={styles.sheetScroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.bottomContent}
@@ -576,7 +667,7 @@ export default function CameraScannerScreen({ navigation, route }) {
               <Text style={styles.manualTitle}>Digitar código manualmente</Text>
 
               <Text style={styles.manualSubtitle}>
-                QR Code ou código de barras
+                Toque ou arraste a barra para ampliar
               </Text>
             </View>
           </View>
@@ -612,6 +703,8 @@ export default function CameraScannerScreen({ navigation, route }) {
 
             <TouchableOpacity
               style={styles.manualSearchButton}
+              accessibilityLabel="Buscar produto pelo código"
+              accessibilityRole="button"
               onPress={handleBuscarManual}
               disabled={isSearching}
             >
@@ -625,7 +718,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 
           {/* BOTÃO BUSCAR */}
 
-          <TouchableOpacity
+          {visibleSheetHeight > minSheetHeight + 60 && <TouchableOpacity
             style={[styles.searchButton, isSearching && { opacity: 0.6 }]}
             onPress={handleBuscarManual}
             disabled={isSearching}
@@ -639,7 +732,7 @@ export default function CameraScannerScreen({ navigation, route }) {
                 <Text style={styles.searchButtonText}>Buscar produto</Text>
               </>
             )}
-          </TouchableOpacity>
+          </TouchableOpacity>}
 
           {/* NOTIFICAÇÃO */}
 
@@ -797,15 +890,18 @@ const styles = StyleSheet.create({
   },
 
   cameraArea: {
-    flex: 1,
-    minHeight: 260,
-    overflow: "hidden",
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     backgroundColor: "transparent",
   },
 
   cameraPreview: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "transparent",
+    position: "absolute",
+    top: 0,
+    left: 0,
   },
 
   cameraUnavailable: {
@@ -878,6 +974,9 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "800",
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: 8,
   },
 
   headerActions: {
@@ -901,17 +1000,16 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   scannerCenter: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    left: 0,
+    right: 0,
     backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
-    paddingTop: 70,
   },
 
   reticleBox: {
     backgroundColor: "transparent",
-    width: 210,
-    height: 150,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -958,16 +1056,20 @@ const styles = StyleSheet.create({
 
   scanInstruction: {
     marginTop: 17,
-    backgroundColor: "rgba(6,13,30,0.78)",
+    backgroundColor: "transparent",
     paddingVertical: 11,
     paddingHorizontal: 17,
     borderRadius: 14,
     alignItems: "center",
-    maxWidth: "90%",
+    width: "100%",
+    alignSelf: "center",
   },
 
   scanInstructionTitle: {
     color: "#FFFFFF",
+    textShadowColor: "rgba(0,0,0,0.9)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
     fontSize: 12,
     fontWeight: "800",
     textAlign: "center",
@@ -975,6 +1077,9 @@ const styles = StyleSheet.create({
 
   scanInstructionSubtitle: {
     color: "#C3BAFF",
+    textShadowColor: "rgba(0,0,0,0.9)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
     fontSize: 11,
     marginTop: 4,
     textAlign: "center",
@@ -1010,20 +1115,32 @@ const styles = StyleSheet.create({
   // ==========================================================
 
   bottomSheet: {
-    backgroundColor: C.panel,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(9,15,32,0.88)",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderTopWidth: 1,
-    borderColor: C.border,
-    maxHeight: "62%",
-    minHeight: 220,
-    paddingTop: 12,
+    borderColor: "rgba(255,255,255,0.15)",
+    paddingTop: 0,
     paddingHorizontal: 18,
-    paddingBottom: 14,
+    paddingBottom: Platform.OS === "ios" ? 28 : 14,
   },
 
   bottomContent: {
     paddingBottom: 14,
+  },
+
+  sheetScroll: {
+    flex: 1,
+  },
+
+  sheetHandleArea: {
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   dragHandle: {
@@ -1032,7 +1149,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#52617C",
     borderRadius: 5,
     alignSelf: "center",
-    marginBottom: 16,
   },
 
   manualHeader: {
@@ -1080,7 +1196,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 14,
-    backgroundColor: C.surface,
+    backgroundColor: "rgba(9,15,32,0.35)",
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 13,
@@ -1187,7 +1303,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 12,
     borderRadius: 15,
-    backgroundColor: C.surface,
+    backgroundColor: "rgba(9,15,32,0.35)",
     borderWidth: 1,
     borderColor: C.border,
     marginBottom: 12,

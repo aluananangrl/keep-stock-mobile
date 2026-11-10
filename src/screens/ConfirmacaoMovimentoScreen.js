@@ -6,6 +6,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Keyboard,
+  ScrollView,
+  InputAccessoryView,
+  Platform,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 
@@ -57,6 +62,7 @@ export default function ConfirmacaoMovimentoScreen({
     : COLORS.green;
 
   async function registrarMovimentacao() {
+    Keyboard.dismiss();
     if (salvando || concluido) {
       return;
     }
@@ -165,7 +171,16 @@ export default function ConfirmacaoMovimentoScreen({
   }
 
   return (
-    <View style={styles.container}>
+    <>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={styles.container}
+      automaticallyAdjustKeyboardInsets
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+    <View>
       {/* Cabeçalho */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -257,6 +272,9 @@ export default function ConfirmacaoMovimentoScreen({
                   if (erro) setErro("");
                 }}
                 keyboardType="number-pad"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+                inputAccessoryViewID={Platform.OS === "ios" ? "quantidade-movimento" : undefined}
                 editable={!salvando}
                 style={styles.input}
                 placeholder="Ex.: 10"
@@ -352,15 +370,54 @@ export default function ConfirmacaoMovimentoScreen({
         </TouchableOpacity>
       </View>
     </View>
+    </TouchableWithoutFeedback>
+    </ScrollView>
+    {Platform.OS === "ios" && (
+      <InputAccessoryView nativeID="quantidade-movimento">
+        <View style={styles.keyboardToolbar}>
+          <TouchableOpacity
+            onPress={Keyboard.dismiss}
+            style={styles.keyboardDone}
+            accessibilityRole="button"
+            accessibilityLabel="Concluir digitação da quantidade e fechar teclado"
+          >
+            <Text style={styles.keyboardDoneText}>Concluir</Text>
+          </TouchableOpacity>
+        </View>
+      </InputAccessoryView>
+    )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  keyboardToolbar: {
+    backgroundColor: COLORS.panel,
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "flex-end",
+    paddingHorizontal: 12,
+  },
+  keyboardDone: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  keyboardDoneText: {
+    color: COLORS.green,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  container: {
+    flexGrow: 1,
     backgroundColor: COLORS.bg,
     paddingTop: 52,
     paddingHorizontal: 20,
+    paddingBottom: 32,
   },
 
   header: {
