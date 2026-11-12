@@ -6,9 +6,12 @@ import * as SecureStore from "expo-secure-store";
 // CONFIGURAÇÃO DA API
 // ============================================================
 
-const API_BASE_URL =
+// A URL base não deve terminar com /auth,
+// pois as rotas de autenticação já possuem esse prefixo.
+const API_BASE_URL = (
   process.env.EXPO_PUBLIC_API_URL ||
-  "http://10.89.240.51:3000/api/v1/auth";
+  "https://kstock-api-1.onrender.com/api/v1"
+).replace(/\/+$/, "");
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
@@ -16,7 +19,7 @@ export const http = axios.create({
     Accept: "application/json",
     "Content-Type": "application/json",
   },
-  timeout: 15000,
+  timeout: 30000,
 });
 
 // ============================================================
@@ -41,7 +44,7 @@ const isPublicRoute = (url = "") => {
 };
 
 // ============================================================
-// LIMPAR SESSÃO
+// GERENCIAMENTO DE SESSÃO
 // ============================================================
 
 let onSessaoExpirada;
@@ -68,6 +71,12 @@ http.interceptors.request.use(
   async (config) => {
     config.headers = config.headers || {};
 
+    console.log(
+      "REQUISIÇÃO:",
+      config.method?.toUpperCase(),
+      http.getUri(config)
+    );
+
     if (isPublicRoute(config.url)) {
       delete config.headers.Authorization;
     } else {
@@ -75,6 +84,8 @@ http.interceptors.request.use(
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        delete config.headers.Authorization;
       }
     }
 
@@ -92,25 +103,51 @@ http.interceptors.response.use(
 
   async (error) => {
     const config = error?.config;
+    const status = error?.response?.status;
+
+    console.warn("ERRO NA API:", {
+      url: config ? http.getUri(config) : undefined,
+      status,
+      mensagem:
+        error?.response?.data?.message ||
+        error?.message,
+      dados: error?.response?.data,
+    });
 
     if (
-      error?.response?.status === 401 &&
+      status === 401 &&
       config &&
       !isPublicRoute(config.url)
     ) {
       if (!sessaoSendoLimpa) {
         sessaoSendoLimpa = (async () => {
-          try {
-            const tokenAtual = await SecureStore.getItemAsync("token");
-            const autorizacaoAtual = tokenAtual ? `Bearer ${tokenAtual}` : undefined;
-            if (config.headers?.Authorization !== autorizacaoAtual) return;
-            await limparSessao();
-          } catch (storageError) {
-            console.warn("Não foi possível limpar a sessão:", storageError);
+          const tokenAtual = await SecureStore.getItemAsync("token");
+
+          const autorizacaoAtual = tokenAtual
+            ? `Bearer ${tokenAtual}`
+            : undefined;
+
+          if (
+            config.headers?.Authorization !==
+            autorizacaoAtual
+          ) {
+            return;
           }
-          onSessaoExpirada?.();
-        })().finally(() => { sessaoSendoLimpa = undefined; });
+
+          try {
+            await limparSessao();
+            onSessaoExpirada?.();
+          } catch (storageError) {
+            console.warn(
+              "Erro ao limpar sessão:",
+              storageError
+            );
+          }
+        })().finally(() => {
+          sessaoSendoLimpa = undefined;
+        });
       }
+
       await sessaoSendoLimpa;
     }
 
@@ -123,6 +160,7 @@ http.interceptors.response.use(
 // ============================================================
 
 const apiService = {
+
   // ==========================================================
   // AUTENTICAÇÃO
   // ==========================================================
@@ -277,7 +315,7 @@ const apiService = {
       formData,
       {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": undefined,
         },
       }
     );
