@@ -351,6 +351,7 @@ export default function CameraScannerScreen({ navigation, route }) {
     //bloqueia novas leituras temporariamente
 
     pesquisarProduto(codigo);
+    //ira ver se existe um produto cadastrado
   }
 
   // ==========================================================
