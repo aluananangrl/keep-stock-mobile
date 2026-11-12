@@ -341,7 +341,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 
     const codigo = String(resultado?.data || "").trim();
     // tex | |texto vazio
-
+    
     if (!codigo) return;
     //se nao tiver código, a funcao sera interrompida
 
