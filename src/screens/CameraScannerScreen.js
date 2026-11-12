@@ -244,25 +244,31 @@ export default function CameraScannerScreen({ navigation, route }) {
 
   async function pesquisarProduto(codigoInformado) {
     const codigo = String(codigoInformado || "").trim();
+    //pega o código informado, ou vazio se não houver
 
     if (!codigo) {
       Alert.alert("Código obrigatório", "Digite ou escaneie um código.");
+      
       return;
     }
 
     if (searchingRef.current) return;
 
     searchingRef.current = true;
+    //bloqueia novas buscas enquanto a atual não termina
     scanLock.current = true;
+    //bloqueia novas leituras enquanto a busca não termina
 
     Keyboard.dismiss();
 
     setScanned(true);
     setIsSearching(true);
     setNotificacaoSucesso(null);
+    //ativa o estado de busca e bloqueia novas leituras
 
     try {
       const produtoEncontrado = await buscarProdutoPorCodigo(codigo);
+      //faz a requisição para buscar o produto pelo código
 
       if (!produtoEncontrado) {
         Alert.alert(
@@ -280,8 +286,10 @@ export default function CameraScannerScreen({ navigation, route }) {
         produtoEncontrado.nome ||
         produtoEncontrado.name ||
         "Produto identificado";
+        //pega o nome do produto encontrado, ou um texto padrão se não houver
 
       setNotificacaoSucesso(nome);
+      //exibe uma notificação de sucesso com o nome do produto encontrado
 
       navigation.navigate("ResultadoLeitura", {
         codigo:
@@ -292,6 +300,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 
         produto: produtoEncontrado,
       });
+      //navega para a tela de resultado da leitura, passando o código e o produto encontrado
     } catch (error) {
       console.log(
         "ERRO BUSCA PRODUTO:",
@@ -309,6 +318,7 @@ export default function CameraScannerScreen({ navigation, route }) {
       setScanned(false);
 
       scanLock.current = !isFocused;
+      //desbloqueia novas leituras se a tela estiver em foco
     }
   }
 
@@ -318,16 +328,20 @@ export default function CameraScannerScreen({ navigation, route }) {
 
   function handleBarCodeScanned(resultado) {
     if (scanLock.current || searchingRef.current || !isFocused) {
+      //se já estiver processando uma leitura, não faz nada
       return;
     }
 
     const codigo = String(resultado?.data || "").trim();
+    //pega o código lido do QR Code ou código de barras
 
     if (!codigo) return;
+    //se receber um código vazio, não faz nada
 
     console.log("CODIGO ESCANEADO:", codigo);
 
     scanLock.current = true;
+    //bloqueia novas leituras temporariamente
 
     pesquisarProduto(codigo);
   }
