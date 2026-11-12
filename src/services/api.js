@@ -6,21 +6,26 @@ import * as SecureStore from "expo-secure-store";
 // CONFIGURAÇÃO DA API
 // ============================================================
 
-// A URL base não deve terminar com /auth,
-// pois as rotas de autenticação já possuem esse prefixo.
+const API_URL_PADRAO =
+  "https://kstock-api-1.onrender.com/api/v1";
+
 const API_BASE_URL = (
-  process.env.EXPO_PUBLIC_API_URL ||
-  "https://kstock-api-1.onrender.com/api/v1"
-).replace(/\/+$/, "");
+  process.env.EXPO_PUBLIC_API_URL || API_URL_PADRAO
+)
+  .trim()
+  .replace(/\/+$/, "")
+  .replace(/\/auth$/, "");
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 60000,
   headers: {
     Accept: "application/json",
     "Content-Type": "application/json",
   },
-  timeout: 30000,
 });
+
+console.log("API CONFIGURADA:", API_BASE_URL);
 
 // ============================================================
 // ROTAS PÚBLICAS
@@ -36,10 +41,14 @@ const PUBLIC_ROUTES = [
 ];
 
 const isPublicRoute = (url = "") => {
-  const path = url.split("?")[0].replace(/\/+$/, "");
+  const path = String(url)
+    .split("?")[0]
+    .replace(/\/+$/, "");
 
   return PUBLIC_ROUTES.some(
-    (route) => path === route || path.endsWith(route)
+    (route) =>
+      path === route ||
+      path.endsWith(route)
   );
 };
 
@@ -47,20 +56,36 @@ const isPublicRoute = (url = "") => {
 // GERENCIAMENTO DE SESSÃO
 // ============================================================
 
-let onSessaoExpirada;
-let sessaoSendoLimpa;
+let onSessaoExpirada = null;
+let sessaoSendoLimpa = null;
 
 export function setOnSessaoExpirada(handler) {
-  onSessaoExpirada = handler;
+  onSessaoExpirada =
+    typeof handler === "function" ? handler : null;
 }
 
 const limparSessao = async () => {
-  await Promise.all([
-    SecureStore.deleteItemAsync("token"),
-    SecureStore.deleteItemAsync("user"),
-    SecureStore.deleteItemAsync("nome"),
-    SecureStore.deleteItemAsync("email"),
-  ]);
+  const chaves = [
+    "token",
+    "user",
+    "nome",
+    "email",
+  ];
+
+  const resultados = await Promise.allSettled(
+    chaves.map((chave) =>
+      SecureStore.deleteItemAsync(chave)
+    )
+  );
+
+  resultados.forEach((resultado, index) => {
+    if (resultado.status === "rejected") {
+      console.warn(
+        `Erro ao limpar ${chaves[index]}:`,
+        resultado.reason
+      );
+    }
+  });
 };
 
 // ============================================================
@@ -71,26 +96,46 @@ http.interceptors.request.use(
   async (config) => {
     config.headers = config.headers || {};
 
-    console.log(
-      "REQUISIÇÃO:",
-      config.method?.toUpperCase(),
-      http.getUri(config)
-    );
+    const urlCompleta = http.getUri(config);
 
+    console.log("================================");
+    console.log("REQUISIÇÃO API");
+    console.log(
+      "Método:",
+      config.method?.toUpperCase()
+    );
+    console.log("URL:", urlCompleta);
+    console.log("================================");
+
+    // Rotas públicas não precisam de token.
     if (isPublicRoute(config.url)) {
       delete config.headers.Authorization;
-    } else {
-      const token = await SecureStore.getItemAsync("token");
+
+      return config;
+    }
+
+    try {
+      const token =
+        await SecureStore.getItemAsync("token");
 
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers.Authorization =
+          `Bearer ${token}`;
       } else {
         delete config.headers.Authorization;
       }
+    } catch (error) {
+      console.warn(
+        "Erro ao buscar token:",
+        error.message
+      );
+
+      delete config.headers.Authorization;
     }
 
     return config;
   },
+
   (error) => Promise.reject(error)
 );
 
@@ -99,20 +144,64 @@ http.interceptors.request.use(
 // ============================================================
 
 http.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(
+      "API SUCESSO:",
+      response.status,
+      http.getUri(response.config)
+    );
+
+    return response;
+  },
 
   async (error) => {
     const config = error?.config;
-    const status = error?.response?.status;
+    const response = error?.response;
+    const status = response?.status;
 
-    console.warn("ERRO NA API:", {
-      url: config ? http.getUri(config) : undefined,
-      status,
-      mensagem:
-        error?.response?.data?.message ||
-        error?.message,
-      dados: error?.response?.data,
-    });
+    const url = config
+      ? http.getUri(config)
+      : "URL desconhecida";
+
+    const mensagem =
+      response?.data?.message ||
+      response?.data?.mensagem ||
+      error?.message ||
+      "Erro desconhecido";
+
+    console.warn("================================");
+    console.warn("ERRO NA API");
+    console.warn("URL:", url);
+    console.warn("Status:", status || "Sem resposta");
+    console.warn("Mensagem:", mensagem);
+    console.warn("Código:", error?.code);
+    console.warn("Dados:", response?.data);
+    console.warn("================================");
+
+    // --------------------------------------------------------
+    // ERRO DE REDE
+    // --------------------------------------------------------
+
+    if (!response) {
+      if (error?.code === "ECONNABORTED") {
+        console.warn(
+          "A API demorou demais para responder."
+        );
+      } else {
+        console.warn(
+          "Não foi possível receber uma resposta da API."
+        );
+
+        console.warn(
+          "Verifique a internet, o servidor Render, " +
+          "a configuração HTTPS e a URL utilizada."
+        );
+      }
+    }
+
+    // --------------------------------------------------------
+    // SESSÃO EXPIRADA
+    // --------------------------------------------------------
 
     if (
       status === 401 &&
@@ -121,35 +210,49 @@ http.interceptors.response.use(
     ) {
       if (!sessaoSendoLimpa) {
         sessaoSendoLimpa = (async () => {
-          const tokenAtual = await SecureStore.getItemAsync("token");
-
-          const autorizacaoAtual = tokenAtual
-            ? `Bearer ${tokenAtual}`
-            : undefined;
-
-          if (
-            config.headers?.Authorization !==
-            autorizacaoAtual
-          ) {
-            return;
-          }
-
           try {
+            const tokenAtual =
+              await SecureStore.getItemAsync("token");
+
+            const autorizacaoAtual = tokenAtual
+              ? `Bearer ${tokenAtual}`
+              : undefined;
+
+            const tokenDaRequisicao =
+              config.headers?.Authorization;
+
+            // Evita encerrar uma sessão nova por causa
+            // de uma requisição antiga.
+            if (
+              !tokenAtual ||
+              !tokenDaRequisicao ||
+              tokenDaRequisicao !== autorizacaoAtual
+            ) {
+              return;
+            }
+
             await limparSessao();
-            onSessaoExpirada?.();
+
+            if (onSessaoExpirada) {
+              onSessaoExpirada();
+            }
           } catch (storageError) {
             console.warn(
-              "Erro ao limpar sessão:",
+              "Erro ao encerrar sessão:",
               storageError
             );
           }
         })().finally(() => {
-          sessaoSendoLimpa = undefined;
+          sessaoSendoLimpa = null;
         });
       }
 
       await sessaoSendoLimpa;
     }
+
+    // --------------------------------------------------------
+    // MANTER ERRO ORIGINAL PARA A TELA
+    // --------------------------------------------------------
 
     return Promise.reject(error);
   }
@@ -160,7 +263,6 @@ http.interceptors.response.use(
 // ============================================================
 
 const apiService = {
-
   // ==========================================================
   // AUTENTICAÇÃO
   // ==========================================================
@@ -182,23 +284,57 @@ const apiService = {
   // RECUPERAÇÃO DE SENHA
   // ==========================================================
 
-  solicitarRecuperacao: (email) =>
-    http.post("/auth/forgot-password", {
-      email,
-    }),
+  solicitarRecuperacao: async (email) => {
+    const emailFormatado = String(email || "")
+      .trim()
+      .toLowerCase();
 
-  verificarCodigo: (email, codigo) =>
-    http.post("/auth/verify-reset-code", {
-      email,
-      codigo,
-    }),
+    if (!emailFormatado) {
+      throw new Error("Informe um e-mail válido.");
+    }
 
-  redefinirSenha: (email, codigo, novaSenha) =>
-    http.post("/auth/reset-password", {
-      email,
-      codigo,
-      novaSenha,
-    }),
+    console.log(
+      "Solicitando recuperação de senha..."
+    );
+
+    const response = await http.post(
+      "/auth/forgot-password",
+      {
+        email: emailFormatado,
+      }
+    );
+
+    return response.data;
+  },
+
+  verificarCodigo: async (email, codigo) => {
+    const response = await http.post(
+      "/auth/verify-reset-code",
+      {
+        email: String(email).trim().toLowerCase(),
+        codigo: String(codigo).trim(),
+      }
+    );
+
+    return response.data;
+  },
+
+  redefinirSenha: async (
+    email,
+    codigo,
+    novaSenha
+  ) => {
+    const response = await http.post(
+      "/auth/reset-password",
+      {
+        email: String(email).trim().toLowerCase(),
+        codigo: String(codigo).trim(),
+        novaSenha,
+      }
+    );
+
+    return response.data;
+  },
 
   // ==========================================================
   // USUÁRIOS
@@ -217,7 +353,10 @@ const apiService = {
     http.put(`/usuarios/${id}`, dados),
 
   atualizarPerfilUsuario: (id, dados) =>
-    http.patch(`/usuarios/${id}/perfil`, dados),
+    http.patch(
+      `/usuarios/${id}/perfil`,
+      dados
+    ),
 
   excluirUsuario: (id) =>
     http.delete(`/usuarios/${id}`),
@@ -239,7 +378,10 @@ const apiService = {
     http.post("/assinaturas", dados),
 
   atualizarStatusAssinatura: (id, dados) =>
-    http.patch(`/assinaturas/${id}/status`, dados),
+    http.patch(
+      `/assinaturas/${id}/status`,
+      dados
+    ),
 
   // ==========================================================
   // CATEGORIAS
@@ -299,7 +441,10 @@ const apiService = {
     http.delete(`/produtos/${id}`),
 
   listarAlertasEstoque: (params = {}) =>
-    http.get("/produtos/alerta-estoque", { params }),
+    http.get(
+      "/produtos/alerta-estoque",
+      { params }
+    ),
 
   enviarFotoProduto: (id, arquivo) => {
     const formData = new FormData();
@@ -344,5 +489,9 @@ const apiService = {
   obterRegistroHistorico: (id) =>
     http.get(`/historico/${id}`),
 };
+
+// ============================================================
+// EXPORTAÇÃO
+// ============================================================
 
 export default apiService;

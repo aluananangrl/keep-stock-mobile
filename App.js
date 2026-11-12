@@ -59,11 +59,11 @@ function AppNavigator() {
         initialRouteName="Login"
         screenOptions={({ route }) => {
           if (["Login", "Cadastro", "RecuperarSenha", "NovaSenha"].includes(route.name)) {
-            return { headerShown: true };
+            return { headerShown: false };
           }
           const light = theme === "light" && ["Home", "Perfil", "Configuracoes"].includes(route.name);
           return {
-            headerShown: true,
+            headerShown: false,
             contentStyle: { backgroundColor: light ? "#F4F7FC" : SCREEN_BACKGROUND },
             headerStyle: { backgroundColor: light ? "#E8F0FF" : "#13294B" },
             headerTintColor: light ? "#20273C" : "#F1F5F9",

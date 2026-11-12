@@ -53,13 +53,19 @@ const C = {
 
 export default function CameraScannerScreen({ navigation, route }) {
   const { height: windowHeight } = useWindowDimensions();
+  // Altura da tela do dispositivo, usada para calcular a altura do painel inferior
   const maxSheetHeight = Math.round(windowHeight * 0.72);
+  // Altura máxima do painel inferior, baseada na altura da tela
   const minSheetHeight = Math.min(210, Math.round(windowHeight * 0.3));
+  // Altura máxima e mínima do painel inferior, baseada na altura da tela
   const [sheetHeight, setSheetHeight] = useState(() =>
     Math.min(210, Math.round(windowHeight * 0.3)),
   );
+  // Estado que controla a altura do painel inferior, inicializado com a altura mínima
   const visibleSheetHeight = Math.max(minSheetHeight, Math.min(maxSheetHeight, sheetHeight));
+  // Altura visível do painel inferior, limitada entre a altura mínima e máxima
   const sheetHeightRef = useRef(visibleSheetHeight);
+  // Referência que armazena a altura visível do painel inferior, usada para calcular a altura durante o arraste
   sheetHeightRef.current = visibleSheetHeight;
   const dragStartHeight = useRef(visibleSheetHeight);
   const sheetPanResponder = useMemo(() => PanResponder.create({
@@ -253,6 +259,7 @@ export default function CameraScannerScreen({ navigation, route }) {
     }
 
     if (searchingRef.current) return;
+    //se já estiver processando uma busca, não faz nada
 
     searchingRef.current = true;
     //bloqueia novas buscas enquanto a atual não termina

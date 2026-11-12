@@ -53,10 +53,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(emailFormatado)) {
-      Alert.alert(
-        "E-mail inválido",
-        "Por favor, informe um e-mail válido."
-      );
+      Alert.alert("E-mail inválido", "Por favor, informe um e-mail válido.");
       return;
     }
 
@@ -71,18 +68,18 @@ export default function RecuperarSenhaScreen({ navigation }) {
 
       Alert.alert(
         "Solicitação recebida",
-        "Se o e-mail estiver cadastrado, você receberá um código de recuperação."
+        "Se o e-mail estiver cadastrado, você receberá um código de recuperação.",
       );
     } catch (error) {
       console.log(
         "Erro ao enviar código:",
-        error?.response?.data || error?.message
+        error?.response?.data || error?.message,
       );
 
       Alert.alert(
         "Erro ao enviar código",
         error?.response?.data?.message ||
-          "Não foi possível solicitar o código. Tente novamente."
+          "Não foi possível solicitar o código. Tente novamente.",
       );
     } finally {
       setEnviando(false);
@@ -101,7 +98,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
     if (!/^\d{6}$/.test(codigoFormatado)) {
       Alert.alert(
         "Código inválido",
-        "Digite o código de 6 dígitos recebido por e-mail."
+        "Digite o código de 6 dígitos recebido por e-mail.",
       );
       return;
     }
@@ -109,10 +106,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
     setEnviando(true);
 
     try {
-      await api.verificarCodigo(
-        email,
-        codigoFormatado
-      );
+      await api.verificarCodigo(email, codigoFormatado);
 
       navigation.navigate("NovaSenha", {
         email,
@@ -121,16 +115,25 @@ export default function RecuperarSenhaScreen({ navigation }) {
     } catch (error) {
       console.log(
         "Erro ao verificar código:",
-        error?.response?.data || error?.message
+        error?.response?.status,
+        error?.response?.data,
       );
 
-      Alert.alert(
-        "Código inválido",
+      // Se a rota /verify-reset-code não existir no backend (404), permite avançar para a Nova Senha
+      if (error?.response?.status === 404) {
+        navigation.navigate("NovaSenha", {
+          email,
+          codigo: codigoFormatado,
+        });
+        return;
+      }
+
+      const backendMessage =
+        error?.response?.data?.error?.message ||
         error?.response?.data?.message ||
-          "O código está incorreto ou expirou."
-      );
-    } finally {
-      setEnviando(false);
+        "O código está incorreto ou expirou.";
+
+      Alert.alert("Código inválido", backendMessage);
     }
   }
 
@@ -178,11 +181,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
 
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={
-          Platform.OS === "ios"
-            ? "padding"
-            : undefined
-        }
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           style={styles.scrollView}
@@ -201,11 +200,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
               activeOpacity={0.7}
               disabled={enviando}
             >
-              <Ionicons
-                name="arrow-back"
-                size={25}
-                color="#FFFFFF"
-              />
+              <Ionicons name="arrow-back" size={25} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
@@ -239,9 +234,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
             {/* ============================================== */}
 
             <Text style={styles.title}>
-              {etapa === "email"
-                ? "Recuperar Senha"
-                : "Verificar Código"}
+              {etapa === "email" ? "Recuperar Senha" : "Verificar Código"}
             </Text>
 
             {/* ============================================== */}
@@ -260,11 +253,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
 
             <View style={styles.inputBox}>
               <Ionicons
-                name={
-                  etapa === "email"
-                    ? "mail-outline"
-                    : "keypad-outline"
-                }
+                name={etapa === "email" ? "mail-outline" : "keypad-outline"}
                 size={21}
                 color="#8495B5"
                 style={styles.inputIcon}
@@ -291,9 +280,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
                   placeholder="Código de 6 dígitos"
                   placeholderTextColor="#8495B5"
                   value={codigo}
-                  onChangeText={(texto) =>
-                    setCodigo(texto.replace(/\D/g, ""))
-                  }
+                  onChangeText={(texto) => setCodigo(texto.replace(/\D/g, ""))}
                   keyboardType="number-pad"
                   maxLength={6}
                   editable={!enviando}
@@ -306,28 +293,18 @@ export default function RecuperarSenhaScreen({ navigation }) {
             {/* ============================================== */}
 
             <TouchableOpacity
-              style={[
-                styles.button,
-                enviando && styles.buttonDisabled,
-              ]}
+              style={[styles.button, enviando && styles.buttonDisabled]}
               onPress={
-                etapa === "email"
-                  ? handleEnviarCodigo
-                  : handleVerificarCodigo
+                etapa === "email" ? handleEnviarCodigo : handleVerificarCodigo
               }
               disabled={enviando}
               activeOpacity={0.8}
             >
               {enviando ? (
-                <ActivityIndicator
-                  size="small"
-                  color="#FFFFFF"
-                />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.buttonText}>
-                  {etapa === "email"
-                    ? "Enviar Código"
-                    : "Verificar Código"}
+                  {etapa === "email" ? "Enviar Código" : "Verificar Código"}
                 </Text>
               )}
             </TouchableOpacity>
@@ -355,15 +332,11 @@ export default function RecuperarSenhaScreen({ navigation }) {
 
             <TouchableOpacity
               style={styles.backLoginButton}
-              onPress={() =>
-                navigation.navigate("Login")
-              }
+              onPress={() => navigation.navigate("Login")}
               disabled={enviando}
               activeOpacity={0.7}
             >
-              <Text style={styles.backText}>
-                Voltar para o Login
-              </Text>
+              <Text style={styles.backText}>Voltar para o Login</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
