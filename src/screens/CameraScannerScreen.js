@@ -335,13 +335,13 @@ export default function CameraScannerScreen({ navigation, route }) {
 
   function handleBarCodeScanned(resultado) {
     if (scanLock.current || searchingRef.current || !isFocused) {
-      // bloqueadas | andamento | foco  se acontecer vai parar a leitura
+      //leitura | nv bloqueadas | andamento | foco  se acontecer vai parar a leitura
       return;
     }
 
     const codigo = String(resultado?.data || "").trim();
     // tex | |texto vazio
-    
+
     if (!codigo) return;
     //se nao tiver código, a funcao sera interrompida
 
