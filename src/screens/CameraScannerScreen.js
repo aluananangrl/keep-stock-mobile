@@ -335,15 +335,15 @@ export default function CameraScannerScreen({ navigation, route }) {
 
   function handleBarCodeScanned(resultado) {
     if (scanLock.current || searchingRef.current || !isFocused) {
-      //se já estiver processando uma leitura, não faz nada
+      // bloqueadas | andamento | foco  se acontecer vai parar a leitura
       return;
     }
 
     const codigo = String(resultado?.data || "").trim();
-    //pega o código lido do QR Code ou código de barras
+    // tex | |texto vazio
 
     if (!codigo) return;
-    //se receber um código vazio, não faz nada
+    //se nao tiver código, a funcao sera interrompida
 
     console.log("CODIGO ESCANEADO:", codigo);
 
