@@ -38,7 +38,6 @@ import KeepStockBottomNav from "../components/KeepStockBottomNav";
 // IMAGEM DE FUNDO - MESMO MÉTODO DO LOGIN
 // ============================================================
 
-
 // ============================================================
 // CONFIGURAÇÕES DE STATUS
 // ============================================================
@@ -74,11 +73,7 @@ function obterIdProduto(produto) {
     produto?._id ??
     produto?.ID;
 
-  if (
-    id === undefined ||
-    id === null ||
-    String(id).trim() === ""
-  ) {
+  if (id === undefined || id === null || String(id).trim() === "") {
     return null;
   }
 
@@ -148,7 +143,7 @@ export default function HomeScreen({ navigation }) {
     } catch (error) {
       console.log(
         "ERRO AO BUSCAR USUÁRIO:",
-        error?.response?.data ?? error?.message
+        error?.response?.data ?? error?.message,
       );
     }
   }, []);
@@ -182,7 +177,7 @@ export default function HomeScreen({ navigation }) {
     } catch (error) {
       console.log(
         "ERRO AO BUSCAR ESTOQUE:",
-        error?.response?.data ?? error?.message
+        error?.response?.data ?? error?.message,
       );
 
       setErroEstoque(true);
@@ -199,7 +194,7 @@ export default function HomeScreen({ navigation }) {
     useCallback(() => {
       carregarUsuario();
       carregarResumoEstoque();
-    }, [carregarUsuario, carregarResumoEstoque])
+    }, [carregarUsuario, carregarResumoEstoque]),
   );
 
   // ==========================================================
@@ -210,10 +205,7 @@ export default function HomeScreen({ navigation }) {
     setAtualizando(true);
 
     try {
-      await Promise.all([
-        carregarUsuario(),
-        carregarResumoEstoque(),
-      ]);
+      await Promise.all([carregarUsuario(), carregarResumoEstoque()]);
     } finally {
       setAtualizando(false);
     }
@@ -225,6 +217,8 @@ export default function HomeScreen({ navigation }) {
 
   const resumo = useMemo(() => {
     let totalAlertas = 0;
+    let totalCriticos = 0;
+    let totalBaixos = 0;
     let totalUnidades = 0;
 
     produtos.forEach((produto) => {
@@ -235,12 +229,16 @@ export default function HomeScreen({ navigation }) {
 
       if (minimo > 0 && estoque <= minimo) {
         totalAlertas++;
+        if (estoque === 0) totalCriticos++;
+        else totalBaixos++;
       }
     });
 
     return {
       totalProdutos: produtos.length,
       totalAlertas,
+      totalCriticos,
+      totalBaixos,
       totalUnidades,
     };
   }, [produtos]);
@@ -259,9 +257,7 @@ export default function HomeScreen({ navigation }) {
 
         return (
           !termo ||
-          `${nome} ${codigo}`
-            .toLocaleLowerCase("pt-BR")
-            .includes(termo)
+          `${nome} ${codigo}`.toLocaleLowerCase("pt-BR").includes(termo)
         );
       })
       .slice(0, 5)
@@ -311,13 +307,7 @@ export default function HomeScreen({ navigation }) {
   // COMPONENTE DE INDICADOR
   // ==========================================================
 
-  function renderIndicador({
-    titulo,
-    valor,
-    icone,
-    cor,
-    fundoIcone,
-  }) {
+  function renderIndicador({ titulo, valor, icone, cor, fundoIcone }) {
     return (
       <View
         style={[
@@ -328,12 +318,7 @@ export default function HomeScreen({ navigation }) {
           },
         ]}
       >
-        <View
-          style={[
-            styles.statIconBox,
-            { backgroundColor: fundoIcone },
-          ]}
-        >
+        <View style={[styles.statIconBox, { backgroundColor: fundoIcone }]}>
           <Feather name={icone} size={20} color={cor} />
         </View>
 
@@ -361,14 +346,11 @@ export default function HomeScreen({ navigation }) {
   // ==========================================================
 
   function renderProduto(produto) {
-    const status =
-      STATUS_CONFIG[produto.status] || STATUS_CONFIG.normal;
+    const status = STATUS_CONFIG[produto.status] || STATUS_CONFIG.normal;
 
     return (
       <TouchableOpacity
-        key={String(
-          produto.id ?? produto.codigo ?? produto.nome
-        )}
+        key={String(produto.id ?? produto.codigo ?? produto.nome)}
         style={[
           styles.productRow,
           {
@@ -380,51 +362,26 @@ export default function HomeScreen({ navigation }) {
         onPress={() => abrirProduto(produto)}
       >
         <View
-          style={[
-            styles.productIconBox,
-            { backgroundColor: palette.cardSoft },
-          ]}
+          style={[styles.productIconBox, { backgroundColor: palette.cardSoft }]}
         >
-          <Feather
-            name="package"
-            size={22}
-            color={palette.accent}
-          />
+          <Feather name="package" size={22} color={palette.accent} />
         </View>
 
         <View style={styles.productInfo}>
           <Text
-            style={[
-              styles.productName,
-              { color: palette.text },
-            ]}
+            style={[styles.productName, { color: palette.text }]}
             numberOfLines={1}
           >
             {produto.nome}
           </Text>
 
-          <Text
-            style={[
-              styles.productStock,
-              { color: palette.muted },
-            ]}
-          >
+          <Text style={[styles.productStock, { color: palette.muted }]}>
             Estoque: {produto.estoque} un.
           </Text>
         </View>
 
-        <View
-          style={[
-            styles.badge,
-            { backgroundColor: status.bg },
-          ]}
-        >
-          <Text
-            style={[
-              styles.badgeText,
-              { color: status.color },
-            ]}
-          >
+        <View style={[styles.badge, { backgroundColor: status.bg }]}>
+          <Text style={[styles.badgeText, { color: status.color }]}>
             {status.label}
           </Text>
         </View>
@@ -438,373 +395,253 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <ScreenBackground adaptive>
-<View
-      style={[[
-        styles.background,
-        { backgroundColor: palette.background },
-      ], { backgroundColor: "transparent" }]}
-    >
-      <StatusBar
-        barStyle={isDarkTheme ? "light-content" : "dark-content"}
-        backgroundColor={palette.background}
-        translucent={false}
-      />
+      <View
+        style={[
+          [styles.background, { backgroundColor: palette.background }],
+          { backgroundColor: "transparent" },
+        ]}
+      >
+        <StatusBar
+          barStyle={isDarkTheme ? "light-content" : "dark-content"}
+          backgroundColor={palette.background}
+          translucent={false}
+        />
 
-      {/* ==================================================== */}
+        {/* ==================================================== */}
 
-      {/* ==================================================== */}
+        {/* ==================================================== */}
 
+        {/* ==================================================== */}
+        {/* CONTEÚDO PRINCIPAL - ACIMA DA IMAGEM */}
+        {/* ==================================================== */}
 
-
-      {/* ==================================================== */}
-      {/* CONTEÚDO PRINCIPAL - ACIMA DA IMAGEM */}
-      {/* ==================================================== */}
-
-      <View style={styles.container}>
-        {/* ================================================ */}
-        {/* CABEÇALHO */}
-        {/* ================================================ */}
-
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: isDarkTheme
-                ? "rgba(9, 15, 32, 0.15)"
-                : "rgba(255, 255, 255, 0.50)",
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.headerIcon}
-            onPress={() => setSidebarVisible(true)}
-            accessibilityLabel="Abrir menu"
-          >
-            <Feather
-              name="menu"
-              size={25}
-              color={palette.text}
-            />
-          </TouchableOpacity>
-
-          <Text
-            style={[
-              styles.headerTitle,
-              { color: palette.text },
-            ]}
-          >
-            KeepStock
-          </Text>
-
-          <TouchableOpacity
-            style={styles.headerIcon}
-            onPress={() => navigation.navigate("Notificacoes")}
-            accessibilityLabel="Abrir notificações"
-          >
-            <Feather
-              name="bell"
-              size={23}
-              color={palette.text}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* ================================================ */}
-        {/* CONTEÚDO ROLÁVEL */}
-        {/* ================================================ */}
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          refreshControl={
-            <RefreshControl
-              refreshing={atualizando}
-              onRefresh={handleAtualizar}
-              tintColor={palette.accent}
-              colors={[BRAND_COLORS.primary]}
-            />
-          }
-        >
-          {/* ============================================== */}
-          {/* SAUDAÇÃO */}
-          {/* ============================================== */}
-
-          <View style={styles.welcomeSection}>
-            <Text
-              style={[
-                styles.greeting,
-                { color: palette.text },
-              ]}
-            >
-              Olá, {usuario?.nome || usuario?.name || "Usuário"}!
-            </Text>
-
-            <Text
-              style={[
-                styles.subtitle,
-                { color: palette.muted },
-              ]}
-            >
-              Aqui está o resumo do seu estoque.
-            </Text>
-          </View>
-
-          {/* ============================================== */}
-          {/* BUSCA */}
-          {/* ============================================== */}
+        <View style={styles.container}>
+          {/* ================================================ */}
+          {/* CABEÇALHO */}
+          {/* ================================================ */}
 
           <View
             style={[
-              styles.searchBox,
+              styles.header,
               {
-                backgroundColor: palette.cardSoft,
-                borderColor: palette.border,
+                backgroundColor: isDarkTheme
+                  ? "rgba(9, 15, 32, 0.15)"
+                  : "rgba(255, 255, 255, 0.50)",
               },
             ]}
           >
-            <Feather
-              name="search"
-              size={20}
-              color={palette.muted}
-              style={styles.searchIcon}
-            />
-
-            <TextInput
-              style={[
-                styles.searchInput,
-                { color: palette.text },
-              ]}
-              placeholder="Buscar produtos ou códigos..."
-              placeholderTextColor={palette.muted}
-              value={busca}
-              onChangeText={setBusca}
-              returnKeyType="search"
-              autoCorrect={false}
-            />
-
-            {busca.length > 0 && (
-              <TouchableOpacity
-                onPress={() => setBusca("")}
-                accessibilityLabel="Limpar busca"
-              >
-                <Feather
-                  name="x"
-                  size={19}
-                  color={palette.muted}
-                />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* ============================================== */}
-          {/* ALERTAS DO ESTOQUE */}
-          {/* ============================================== */}
-
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate("ListaProdutos")}
-          >
-            <LinearGradient
-              colors={[BRAND_COLORS.primary, BRAND_COLORS.primaryDeep]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.alertCard}
+            <TouchableOpacity
+              style={styles.headerIcon}
+              onPress={() => setSidebarVisible(true)}
+              accessibilityLabel="Abrir menu"
             >
-              <View style={styles.alertIconBox}>
-                <Feather
-                  name="alert-triangle"
-                  size={27}
-                  color="#FFFFFF"
-                />
-              </View>
+              <Feather name="menu" size={25} color={palette.text} />
+            </TouchableOpacity>
 
-              <View style={styles.alertDivider} />
-
-              <View style={styles.alertContent}>
-                <Text style={styles.alertLabel}>
-                  PRODUTOS EM ALERTA
-                </Text>
-
-                <Text style={styles.alertNumber}>
-                  {erroEstoque ? "—" : resumo.totalAlertas}
-                </Text>
-
-                <Text style={styles.alertDescription}>
-                  Estoque baixo ou crítico
-                </Text>
-              </View>
-
-              <Feather
-                name="chevron-right"
-                size={24}
-                color="#FFFFFF"
-              />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* ============================================== */}
-          {/* INDICADORES */}
-          {/* ============================================== */}
-
-          <View style={styles.statsRow}>
-            {renderIndicador({
-              titulo: "PRODUTOS",
-              valor: erroEstoque
-                ? "—"
-                : resumo.totalProdutos,
-              icone: "archive",
-              cor: BRAND_COLORS.highlight,
-              fundoIcone: BRAND_COLORS.soft,
-            })}
-
-            {renderIndicador({
-              titulo: "MOVIMENTOS",
-              valor: erroEstoque
-                ? "—"
-                : movimentosCount.toLocaleString("pt-BR"),
-              icone: "activity",
-              cor: BRAND_COLORS.highlight,
-              fundoIcone: BRAND_COLORS.soft,
-            })}
-
-            {renderIndicador({
-              titulo: "UNIDADES",
-              valor: erroEstoque
-                ? "—"
-                : resumo.totalUnidades.toLocaleString("pt-BR"),
-              icone: "layers",
-              cor: BRAND_COLORS.highlight,
-              fundoIcone: BRAND_COLORS.soft,
-            })}
-          </View>
-
-          {/* ============================================== */}
-          {/* PRODUTOS EM DESTAQUE */}
-          {/* ============================================== */}
-
-          <View style={styles.sectionHeader}>
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: palette.text },
-              ]}
-            >
-              Produtos em destaque
+            <Text style={[styles.headerTitle, { color: palette.text }]}>
+              Olá, {usuario?.nome?.split(" ")?.[0] || "Usuário"} 👋
             </Text>
 
             <TouchableOpacity
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate("ListaProdutos")}
+              style={styles.headerIcon}
+              onPress={() => navigation.navigate("Notificacoes")}
+              accessibilityLabel="Abrir notificações"
             >
-              <Text
-                style={[
-                  styles.sectionLink,
-                  { color: palette.accent },
-                ]}
-              >
-                Ver todos
-              </Text>
-
-              <Feather
-                name="chevron-right"
-                size={16}
-                color={palette.accent}
-              />
+              <Feather name="bell" size={23} color={palette.text} />
             </TouchableOpacity>
           </View>
 
-          {/* ============================================== */}
-          {/* LISTA DE PRODUTOS */}
-          {/* ============================================== */}
+          {/* ================================================ */}
+          {/* CONTEÚDO ROLÁVEL */}
+          {/* ================================================ */}
 
-          <View style={styles.productList}>
-            {!erroEstoque &&
-              produtosFiltrados.map(renderProduto)}
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={atualizando}
+                onRefresh={handleAtualizar}
+                tintColor={palette.accent}
+                colors={[BRAND_COLORS.primary]}
+              />
+            }
+          >
+            {/* ============================================== */}
+            {/* SAUDAÇÃO */}
+            {/* ============================================== */}
 
-            {carregando && (
-              <View style={styles.emptyContainer}>
-                <ActivityIndicator
-                  size="small"
+            <View style={styles.welcomeSection}>
+              <Text style={[styles.greeting, { color: palette.text }]}>
+                Olá, {usuario?.nome || usuario?.name || "Usuário"}!
+              </Text>
+
+              <Text style={[styles.subtitle, { color: palette.muted }]}>
+                Bem-vindo ao Keep Stock
+              </Text>
+            </View>
+
+            {/* INDICADORES: layout em quatro cartões */}
+            <View style={styles.statsGrid}>
+              {renderIndicador({
+                titulo: "Produtos",
+                valor: erroEstoque ? "—" : resumo.totalProdutos,
+                icone: "box",
+                cor: "#a4a1ff",
+                fundoIcone: "#242870",
+              })}
+              {renderIndicador({
+                titulo: "Movimentações",
+                valor: erroEstoque
+                  ? "—"
+                  : movimentosCount.toLocaleString("pt-BR"),
+                icone: "repeat",
+                cor: "#fbbf24",
+                fundoIcone: "#3b302a",
+              })}
+              {renderIndicador({
+                titulo: "Estoque crítico",
+                valor: erroEstoque ? "—" : resumo.totalCriticos,
+                icone: "alert-triangle",
+                cor: "#fb7185",
+                fundoIcone: "#43213a",
+              })}
+              {renderIndicador({
+                titulo: "Estoque baixo",
+                valor: erroEstoque ? "—" : resumo.totalBaixos,
+                icone: "alert-circle",
+                cor: "#fbbf24",
+                fundoIcone: "#463821",
+              })}
+            </View>
+
+            {/* ============================================== */}
+            {/* BUSCA */}
+            {/* ============================================== */}
+
+            <View
+              style={[
+                styles.searchBox,
+                {
+                  backgroundColor: palette.cardSoft,
+                  borderColor: palette.border,
+                },
+              ]}
+            >
+              <Feather
+                name="search"
+                size={20}
+                color={palette.muted}
+                style={styles.searchIcon}
+              />
+
+              <TextInput
+                style={[styles.searchInput, { color: palette.text }]}
+                placeholder="Buscar produtos ou códigos..."
+                placeholderTextColor={palette.muted}
+                value={busca}
+                onChangeText={setBusca}
+                returnKeyType="search"
+                autoCorrect={false}
+              />
+
+              {busca.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setBusca("")}
+                  accessibilityLabel="Limpar busca"
+                >
+                  <Feather name="x" size={19} color={palette.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* ============================================== */}
+            {/* PRODUTOS EM DESTAQUE */}
+            {/* ============================================== */}
+
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: palette.text }]}>
+                Produtos em destaque
+              </Text>
+
+              <TouchableOpacity
+                style={styles.viewAllButton}
+                onPress={() => navigation.navigate("ListaProdutos")}
+              >
+                <Text style={[styles.sectionLink, { color: palette.accent }]}>
+                  Ver todos
+                </Text>
+
+                <Feather
+                  name="chevron-right"
+                  size={16}
                   color={palette.accent}
                 />
+              </TouchableOpacity>
+            </View>
 
-                <Text
-                  style={[
-                    styles.emptyText,
-                    { color: palette.muted },
-                  ]}
-                >
-                  Carregando estoque...
-                </Text>
-              </View>
-            )}
+            {/* ============================================== */}
+            {/* LISTA DE PRODUTOS */}
+            {/* ============================================== */}
 
-            {!carregando &&
-              !erroEstoque &&
-              produtosFiltrados.length === 0 && (
+            <View style={styles.productList}>
+              {!erroEstoque && produtosFiltrados.map(renderProduto)}
+
+              {carregando && (
                 <View style={styles.emptyContainer}>
-                  <Feather
-                    name="package"
-                    size={27}
-                    color={palette.muted}
-                  />
+                  <ActivityIndicator size="small" color={palette.accent} />
 
-                  <Text
-                    style={[
-                      styles.emptyText,
-                      { color: palette.muted },
-                    ]}
-                  >
-                    Nenhum produto encontrado.
+                  <Text style={[styles.emptyText, { color: palette.muted }]}>
+                    Carregando estoque...
                   </Text>
                 </View>
               )}
 
-            {!carregando && erroEstoque && (
-              <View style={styles.emptyContainer}>
-                <Feather
-                  name="wifi-off"
-                  size={25}
-                  color={palette.muted}
-                />
+              {!carregando &&
+                !erroEstoque &&
+                produtosFiltrados.length === 0 && (
+                  <View style={styles.emptyContainer}>
+                    <Feather name="package" size={27} color={palette.muted} />
 
-                <Text
-                  style={[
-                    styles.emptyText,
-                    { color: palette.muted },
-                  ]}
-                >
-                  Não foi possível atualizar o estoque.
-                  Puxe para baixo para tentar novamente.
-                </Text>
-              </View>
-            )}
-          </View>
-        </ScrollView>
+                    <Text style={[styles.emptyText, { color: palette.muted }]}>
+                      Nenhum produto encontrado.
+                    </Text>
+                  </View>
+                )}
 
-        {/* ================================================ */}
-        {/* BARRA DE NAVEGAÇÃO INFERIOR */}
-        {/* ================================================ */}
+              {!carregando && erroEstoque && (
+                <View style={styles.emptyContainer}>
+                  <Feather name="wifi-off" size={25} color={palette.muted} />
 
-        <KeepStockBottomNav
-          activeTab="inicio"
+                  <Text style={[styles.emptyText, { color: palette.muted }]}>
+                    Não foi possível atualizar o estoque. Puxe para baixo para
+                    tentar novamente.
+                  </Text>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+
+          {/* ================================================ */}
+          {/* BARRA DE NAVEGAÇÃO INFERIOR */}
+          {/* ================================================ */}
+
+          <KeepStockBottomNav activeTab="inicio" navigation={navigation} />
+        </View>
+
+        {/* ==================================================== */}
+        {/* MENU LATERAL */}
+        {/* ==================================================== */}
+
+        <SidebarModal
+          visible={sidebarVisible}
+          onClose={() => setSidebarVisible(false)}
           navigation={navigation}
+          currentScreen="Home"
         />
       </View>
-
-      {/* ==================================================== */}
-      {/* MENU LATERAL */}
-      {/* ==================================================== */}
-
-      <SidebarModal
-        visible={sidebarVisible}
-        onClose={() => setSidebarVisible(false)}
-        navigation={navigation}
-        currentScreen="Home"
-      />
-    </View>
     </ScreenBackground>
   );
 }
@@ -814,13 +651,21 @@ export default function HomeScreen({ navigation }) {
 // ============================================================
 
 const styles = StyleSheet.create({
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 18,
+    rowGap: 10,
+  },
+
   // ==========================================================
   // CONTAINER PRINCIPAL - IGUAL AO LOGIN
   // ==========================================================
 
   background: {
     flex: 1,
-    backgroundColor: "#090F20",
+    backgroundColor: "#0a1030",
   },
 
   // ==========================================================
@@ -998,9 +843,9 @@ const styles = StyleSheet.create({
   },
 
   statCard: {
-    flex: 1,
+    width: "48%",
     minWidth: 0,
-    minHeight: 122,
+    minHeight: 112,
     borderWidth: 1,
     borderRadius: 18,
     paddingVertical: 15,

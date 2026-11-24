@@ -11,6 +11,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
 import { SCREEN_BACKGROUND } from "./src/components/ScreenBackground";
 import LoginScreen from "./src/screens/LoginScreen";
+import AberturaScreen from "./src/screens/AberturaScreen";
 import CadastroScreen from "./src/screens/CadastroScreen";
 import HomeScreen from "./src/screens/HomeScreen";
 import CameraScannerScreen from "./src/screens/CameraScannerScreen";
@@ -45,7 +46,8 @@ function AppNavigator() {
     setOnSessaoExpirada(() => {
       if (!navigationRef.isReady()) return;
       const tela = navigationRef.getCurrentRoute()?.name;
-      if (["Login", "Cadastro", "RecuperarSenha", "NovaSenha"].includes(tela)) return;
+      if (["Login", "Cadastro", "RecuperarSenha", "NovaSenha"].includes(tela))
+        return;
 
       navigationRef.resetRoot({ index: 0, routes: [{ name: "Login" }] });
       Alert.alert("Sessão expirada", "Entre novamente para continuar.");
@@ -54,23 +56,39 @@ function AppNavigator() {
   }, []);
 
   return (
-    <NavigationContainer ref={navigationRef} theme={theme === "dark" ? DarkTheme : DefaultTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={theme === "dark" ? DarkTheme : DefaultTheme}
+    >
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName="Abertura"
         screenOptions={({ route }) => {
-          if (["Login", "Cadastro", "RecuperarSenha", "NovaSenha"].includes(route.name)) {
-            return { headerShown: false };
+          if (
+            [
+              "Abertura",
+              "Login",
+              "Cadastro",
+              "RecuperarSenha",
+              "NovaSenha",
+            ].includes(route.name)
+          ) {
+            return { headerShown: true };
           }
-          const light = theme === "light" && ["Home", "Perfil", "Configuracoes"].includes(route.name);
+          const light =
+            theme === "light" &&
+            ["Home", "Perfil", "Configuracoes"].includes(route.name);
           return {
             headerShown: false,
-            contentStyle: { backgroundColor: light ? "#F4F7FC" : SCREEN_BACKGROUND },
+            contentStyle: {
+              backgroundColor: light ? "#F4F7FC" : SCREEN_BACKGROUND,
+            },
             headerStyle: { backgroundColor: light ? "#E8F0FF" : "#13294B" },
             headerTintColor: light ? "#20273C" : "#F1F5F9",
             headerShadowVisible: false,
           };
         }}
       >
+        <Stack.Screen name="Abertura" component={AberturaScreen} />
         <Stack.Screen name="Cadastro" component={CadastroScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
@@ -100,16 +118,26 @@ function AppNavigator() {
         <Stack.Screen name="ListaProdutos" component={ListaProdutosScreen} />
         <Stack.Screen name="Fornecedores" component={FornecedoresScreen} />
         <Stack.Screen name="Categorias" component={FornecedoresScreen} />
-        <Stack.Screen name="RegistroForm" component={RegistroFormScreen} options={{ headerShown: false }} />
+        <Stack.Screen
+          name="RegistroForm"
+          component={RegistroFormScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="Configuracoes" component={ConfiguracoesScreen} />
         <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
         <Stack.Screen name="RecuperarSenha" component={RecuperarSenhaScreen} />
-        <Stack.Screen name="QRCodeProduto" component={QRCodeProdutoScreen}
-          options={{ title: "QR Code do produto" }}/>
-        <Stack.Screen name="CadastroProduto" component={CadastroProdutoScreen} />
-          <Stack.Screen name="NovaSenha" component={NovaSenhaScreen} />
-        </Stack.Navigator>
-      </NavigationContainer>
+        <Stack.Screen
+          name="QRCodeProduto"
+          component={QRCodeProdutoScreen}
+          options={{ title: "QR Code do produto" }}
+        />
+        <Stack.Screen
+          name="CadastroProduto"
+          component={CadastroProdutoScreen}
+        />
+        <Stack.Screen name="NovaSenha" component={NovaSenhaScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 

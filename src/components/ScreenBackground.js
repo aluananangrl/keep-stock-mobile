@@ -11,11 +11,20 @@ export default function ScreenBackground({ children, adaptive = false }) {
   const light = adaptive && theme === "light";
 
   return (
-    <View style={[styles.container, { backgroundColor: light ? "#F4F7FC" : SCREEN_BACKGROUND }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: light ? "#F4F7FC" : SCREEN_BACKGROUND },
+      ]}
+    >
       <LinearGradient
         pointerEvents="none"
         accessible={false}
-        colors={light ? ["#E8F0FF", "#F4F7FC", "#EFF6FF"] : ["#13294B", "#101B2D", SCREEN_BACKGROUND]}
+        colors={
+          light
+            ? ["#E8F0FF", "#F4F7FC", "#EFF6FF"]
+            : ["#101B4B", "#0A1538", SCREEN_BACKGROUND]
+        }
         locations={[0, 0.42, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

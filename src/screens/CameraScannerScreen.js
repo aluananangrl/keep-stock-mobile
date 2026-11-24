@@ -335,7 +335,7 @@ export default function CameraScannerScreen({ navigation, route }) {
 
   function handleBarCodeScanned(resultado) {
     if (scanLock.current || searchingRef.current || !isFocused) {
-      //leitura | nv bloqueadas | andamento | foco  se acontecer vai parar a leitura
+      //vrf| leitura | nv bloqueadas | andamento | foco  se acontecer vai parar a leitura
       return;
     }
 

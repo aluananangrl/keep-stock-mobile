@@ -69,9 +69,7 @@ const getId = (produto) => {
 
   const id = candidatos.find(
     (valor) =>
-      valor !== undefined &&
-      valor !== null &&
-      String(valor).trim() !== ""
+      valor !== undefined && valor !== null && String(valor).trim() !== "",
   );
 
   return id ?? null;
@@ -103,12 +101,12 @@ const getInitialProduct = (params) => {
   }
 
   const produto =
-    recebido.produto ??
-    recebido.data?.produto ??
-    recebido.data ??
-    recebido;
+    recebido.produto ?? recebido.data?.produto ?? recebido.data ?? recebido;
 
-  return produto && typeof produto === "object" && !Array.isArray(produto) && Object.keys(produto).length > 0
+  return produto &&
+    typeof produto === "object" &&
+    !Array.isArray(produto) &&
+    Object.keys(produto).length > 0
     ? produto
     : null;
 };
@@ -176,10 +174,10 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
     setErro("");
 
     if (
-        produtoId === undefined ||
-        produtoId === null ||
-        String(produtoId).trim() === ""
-      ) {
+      produtoId === undefined ||
+      produtoId === null ||
+      String(produtoId).trim() === ""
+    ) {
       setProduto(null);
       setMovimentacoes([]);
       setErro("Selecione um produto na lista para visualizar os detalhes.");
@@ -194,10 +192,7 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
       const data = produtoResponse?.data;
 
       const atualizado =
-        data?.produto ??
-        data?.data?.produto ??
-        data?.data ??
-        data;
+        data?.produto ?? data?.data?.produto ?? data?.data ?? data;
 
       if (
         !atualizado ||
@@ -227,21 +222,20 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
 
         setMovimentacoes(
           lista.filter((movimentacao) => {
-            const idMovimentacao =
-              getMovementProductId(movimentacao);
+            const idMovimentacao = getMovementProductId(movimentacao);
 
             return (
               idMovimentacao == null ||
               String(idMovimentacao) === String(produtoId)
             );
-          })
+          }),
         );
       } catch (erroMovimentos) {
         console.log(
           "ERRO AO CARREGAR MOVIMENTAÇÕES:",
           erroMovimentos?.response?.data ??
             erroMovimentos?.message ??
-            erroMovimentos
+            erroMovimentos,
         );
 
         setMovimentacoes([]);
@@ -249,14 +243,11 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
     } catch (e) {
       console.log(
         "ERRO AO CARREGAR PRODUTO:",
-        e?.response?.data ?? e?.message ?? e
+        e?.response?.data ?? e?.message ?? e,
       );
 
       setErro(
-        getErrorMessage(
-          e,
-          "Não foi possível carregar os detalhes do produto."
-        )
+        getErrorMessage(e, "Não foi possível carregar os detalhes do produto."),
       );
     } finally {
       setLoading(false);
@@ -267,24 +258,30 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
   // CARREGAR AO ABRIR A TELA
   // ==========================================================
 
-  useFocusEffect(useCallback(() => {
-    carregar();
-  }, [carregar]));
+  useFocusEffect(
+    useCallback(() => {
+      carregar();
+    }, [carregar]),
+  );
 
   function confirmarExclusao() {
     Alert.alert("Excluir produto?", "Esta ação não pode ser desfeita.", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Excluir", style: "destructive", onPress: async () => {
-        setLoading(true);
-        try {
-          await api.excluirProduto(produtoId);
-          navigation.goBack();
-        } catch (error) {
-          Alert.alert("Erro ao excluir", getErrorMessage(error));
-        } finally {
-          setLoading(false);
-        }
-      } },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: async () => {
+          setLoading(true);
+          try {
+            await api.excluirProduto(produtoId);
+            navigation.goBack();
+          } catch (error) {
+            Alert.alert("Erro ao excluir", getErrorMessage(error));
+          } finally {
+            setLoading(false);
+          }
+        },
+      },
     ]);
   }
 
@@ -301,17 +298,13 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
 
   const categoria =
     typeof produto?.categoria === "object"
-      ? produto?.categoria?.nome ?? "Não informada"
-      : produto?.categoria ??
-        produto?.categoria_nome ??
-        "Não informada";
+      ? (produto?.categoria?.nome ?? "Não informada")
+      : (produto?.categoria ?? produto?.categoria_nome ?? "Não informada");
 
   const fornecedor =
     typeof produto?.fornecedor === "object"
-      ? produto?.fornecedor?.nome ?? "Não informado"
-      : produto?.fornecedor ??
-        produto?.fornecedor_nome ??
-        "Não informado";
+      ? (produto?.fornecedor?.nome ?? "Não informado")
+      : (produto?.fornecedor ?? produto?.fornecedor_nome ?? "Não informado");
 
   const preco = produto?.preco ?? produto?.preco_unitario;
 
@@ -322,13 +315,9 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
   const iniciarMovimento = (tipo) => {
     const id = getId(produto) ?? produtoId;
 
-    if (
-      id === undefined ||
-      id === null ||
-      String(id).trim() === ""
-    ) {
+    if (id === undefined || id === null || String(id).trim() === "") {
       setErro(
-        "Não foi possível identificar o produto para registrar a movimentação."
+        "Não foi possível identificar o produto para registrar a movimentação.",
       );
       return;
     }
@@ -354,384 +343,348 @@ export default function DetalhesProdutoScreen({ navigation, route }) {
 
   return (
     <ScreenBackground>
-<View style={[s.container, { backgroundColor: "transparent" }]}>
-      {/* CABEÇALHO */}
+      <View style={[s.container, { backgroundColor: "transparent" }]}>
+        {/* CABEÇALHO */}
 
-      <View style={s.header}>
-        <TouchableOpacity
-          style={s.iconButton}
-          onPress={() => navigation.goBack()}
-          accessibilityLabel="Voltar"
-        >
-          <Feather
-            name="arrow-left"
-            size={20}
-            color={C.text}
-          />
-        </TouchableOpacity>
-
-        <View style={{ flex: 1 }}>
-          <Text style={s.kicker}>CADASTRO DE ESTOQUE</Text>
-          <Text style={s.title}>Detalhes do produto</Text>
-        </View>
-
-        <TouchableOpacity
-          style={s.iconButton}
-          onPress={carregar}
-          accessibilityLabel="Atualizar"
-        >
-          <Feather
-            name="refresh-cw"
-            size={18}
-            color={C.highlight}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* CARREGAMENTO */}
-
-      {loading && !produto ? (
-        <View style={s.center}>
-          <ActivityIndicator
-            color={C.highlight}
-            size="large"
-          />
-          <Text style={s.muted}>
-            Carregando dados do produto...
-          </Text>
-        </View>
-      ) : erro && !produto ? (
-        <View style={s.center}>
-          <Feather
-            name="alert-circle"
-            size={30}
-            color={C.red}
-          />
-
-          <Text style={s.errorText}>{erro}</Text>
-
+        <View style={s.header}>
           <TouchableOpacity
-            style={s.primary}
-            onPress={() => produtoId == null || String(produtoId).trim() === ""
-              ? navigation.navigate("ListaProdutos")
-              : carregar()}
+            style={s.iconButton}
+            onPress={() => navigation.goBack()}
+            accessibilityLabel="Voltar"
           >
-            <Text style={s.primaryText}>
-              {produtoId == null || String(produtoId).trim() === "" ? "Selecionar produto" : "Tentar novamente"}
-            </Text>
+            <Feather name="arrow-left" size={20} color={C.text} />
           </TouchableOpacity>
 
+          <View style={{ flex: 1 }}>
+            <Text style={s.kicker}>CADASTRO DE ESTOQUE</Text>
+            <Text style={s.title}>Detalhes do produto</Text>
+          </View>
+
           <TouchableOpacity
-            style={s.secondary}
-            onPress={() => navigation.navigate("ListaProdutos")}
+            style={s.iconButton}
+            onPress={carregar}
+            accessibilityLabel="Atualizar"
           >
-            <Text style={s.secondaryText}>
-              Voltar à lista
-            </Text>
+            <Feather name="refresh-cw" size={18} color={C.highlight} />
           </TouchableOpacity>
         </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={s.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={carregar}
-              tintColor={C.highlight}
-            />
-          }
-        >
-          {/* MENSAGEM DE ERRO */}
 
-          {erro ? (
-            <View style={s.warning}>
-              <Feather
-                name="alert-triangle"
-                size={17}
-                color={C.amber}
-              />
-              <Text style={s.warningText}>{erro}</Text>
-            </View>
-          ) : null}
+        {/* CARREGAMENTO */}
 
-          {/* CARTÃO DO PRODUTO */}
+        {loading && !produto ? (
+          <View style={s.center}>
+            <ActivityIndicator color={C.highlight} size="large" />
+            <Text style={s.muted}>Carregando dados do produto...</Text>
+          </View>
+        ) : erro && !produto ? (
+          <View style={s.center}>
+            <Feather name="alert-circle" size={30} color={C.red} />
 
-          <View style={s.productCard}>
-            <View style={s.productIcon}>
-              <Feather
-                name="package"
-                size={27}
-                color={C.highlight}
-              />
-            </View>
+            <Text style={s.errorText}>{erro}</Text>
 
-            <View style={{ flex: 1 }}>
-              <Text style={s.productName}>
-                {nome || "Produto sem nome"}
+            <TouchableOpacity
+              style={s.primary}
+              onPress={() =>
+                produtoId == null || String(produtoId).trim() === ""
+                  ? navigation.navigate("ListaProdutos")
+                  : carregar()
+              }
+            >
+              <Text style={s.primaryText}>
+                {produtoId == null || String(produtoId).trim() === ""
+                  ? "Selecionar produto"
+                  : "Tentar novamente"}
               </Text>
+            </TouchableOpacity>
 
-              <Text style={s.muted}>
-                Código: {codigo || "Não informado"}
-              </Text>
+            <TouchableOpacity
+              style={s.secondary}
+              onPress={() => navigation.navigate("ListaProdutos")}
+            >
+              <Text style={s.secondaryText}>Voltar à lista</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={s.content}
+            refreshControl={
+              <RefreshControl
+                refreshing={loading}
+                onRefresh={carregar}
+                tintColor={C.highlight}
+              />
+            }
+          >
+            {/* MENSAGEM DE ERRO */}
 
-              <View
-                style={[
-                  s.badge,
-                  {
-                    backgroundColor: estoqueBaixo
-                      ? "#3a2d18"
-                      : BRAND_COLORS.soft,
-                  },
-                ]}
-              >
-                <Text
-                  style={{
-                    color: estoqueBaixo ? C.amber : C.highlight,
-                    fontSize: 11,
-                    fontWeight: "700",
-                  }}
-                >
-                  {estoqueBaixo
-                    ? "Estoque baixo ou no mínimo"
-                    : "Estoque normal"}
-                </Text>
+            {erro ? (
+              <View style={s.warning}>
+                <Feather name="alert-triangle" size={17} color={C.amber} />
+                <Text style={s.warningText}>{erro}</Text>
               </View>
-            </View>
-          </View>
+            ) : null}
 
-          {/* INDICADORES DE ESTOQUE */}
+            {/* CARTÃO DO PRODUTO */}
 
-          <View style={s.metrics}>
-            <View style={s.metric}>
-              <Text style={s.metricLabel}>Saldo atual</Text>
-              <Text style={s.metricValue}>{estoque}</Text>
-              <Text style={s.metricUnit}>unidades</Text>
-            </View>
+            <View style={s.productCard}>
+              <View style={s.productIcon}>
+                <Feather name="package" size={27} color={C.highlight} />
+              </View>
 
-            <View style={s.metric}>
-              <Text style={s.metricLabel}>Estoque mínimo</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.productName}>{nome || "Produto sem nome"}</Text>
 
-              <Text
-                style={[
-                  s.metricValue,
-                  {
-                    color: estoqueBaixo ? C.amber : C.text,
-                  },
-                ]}
-              >
-                {minimo}
-              </Text>
+                <Text style={s.muted}>Código: {codigo || "Não informado"}</Text>
 
-              <Text style={s.metricUnit}>unidades</Text>
-            </View>
-          </View>
-
-          {/* AÇÕES DE ESTOQUE */}
-
-          {podeEditar && <View style={s.actions}>
-            <TouchableOpacity style={s.iconButton} accessibilityLabel="Editar produto"
-              onPress={() => navigation.navigate("CadastroProduto", { produto })}>
-              <Feather name="edit-2" size={20} color={C.text} />
-            </TouchableOpacity>
-            {podeExcluir && <TouchableOpacity style={s.iconButton} accessibilityLabel="Excluir produto"
-              onPress={confirmarExclusao}>
-              <Feather name="trash-2" size={20} color={C.red} />
-            </TouchableOpacity>}
-          </View>}
-
-          <View style={s.actions}>
-            <TouchableOpacity
-              style={s.entryButton}
-              onPress={() => iniciarMovimento("ENTRADA")}
-            >
-              <Feather
-                name="plus-circle"
-                size={17}
-                color="#082016"
-              />
-              <Text style={s.actionText}>
-                Registrar entrada
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={s.exitButton}
-              onPress={() => iniciarMovimento("SAIDA")}
-            >
-              <Feather
-                name="minus-circle"
-                size={17}
-                color={C.red}
-              />
-              <Text style={s.exitText}>
-                Registrar saída
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* ABAS */}
-
-          <View style={s.tabs}>
-            {["Resumo", "Histórico"].map((item) => (
-              <TouchableOpacity
-                key={item}
-                onPress={() => setAba(item)}
-                style={[
-                  s.tab,
-                  aba === item && s.activeTab,
-                ]}
-              >
-                <Text
+                <View
                   style={[
-                    s.tabText,
-                    aba === item && s.activeTabText,
+                    s.badge,
+                    {
+                      backgroundColor: estoqueBaixo
+                        ? "#3a2d18"
+                        : BRAND_COLORS.soft,
+                    },
                   ]}
                 >
-                  {item}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* ABA RESUMO */}
-
-          {aba === "Resumo" ? (
-            <View style={s.infoCard}>
-              <Info
-                label="Categoria"
-                value={categoria}
-              />
-
-              <Info
-                label="Fornecedor"
-                value={fornecedor}
-              />
-
-              <Info
-                label="Preço unitário"
-                value={
-                  preco != null && Number.isFinite(Number(preco))
-                    ? Number(preco).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })
-                    : "Não informado"
-                }
-              />
-
-              <Info
-                label="Descrição"
-                value={
-                  produto?.descricao ||
-                  "Sem descrição cadastrada"
-                }
-              />
-
-              <Info
-                label="ID do produto"
-                value={String(getId(produto) ?? produtoId)}
-              />
-            </View>
-          ) : (
-            /* ABA HISTÓRICO */
-
-            <View style={s.infoCard}>
-              {movimentacoes.length === 0 ? (
-                <View style={s.empty}>
-                  <Feather
-                    name="clock"
-                    size={24}
-                    color={C.muted}
-                  />
-
-                  <Text style={s.muted}>
-                    Nenhuma movimentação encontrada para este produto.
+                  <Text
+                    style={{
+                      color: estoqueBaixo ? C.amber : C.highlight,
+                      fontSize: 11,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {estoqueBaixo
+                      ? "Estoque baixo ou no mínimo"
+                      : "Estoque normal"}
                   </Text>
                 </View>
-              ) : (
-                movimentacoes.map((movimentacao, index) => {
-                  const tipo = String(
-                    movimentacao?.tipo ??
-                      movimentacao?.tipo_movimentacao ??
-                      "Movimentação"
-                  );
-
-                  const quantidade = Number(
-                    movimentacao?.quantidade ?? 0
-                  );
-
-                  const entrada =
-                    tipo.toUpperCase() === "ENTRADA";
-
-                  return (
-                    <View
-                      key={String(
-                        movimentacao?.id ??
-                          movimentacao?._id ??
-                          index
-                      )}
-                      style={[
-                        s.movement,
-                        index < movimentacoes.length - 1 &&
-                          s.movementBorder,
-                      ]}
-                    >
-                      <View
-                        style={[
-                          s.movementIcon,
-                          {
-                            backgroundColor: entrada
-                              ? BRAND_COLORS.soft
-                              : "#3a2029",
-                          },
-                        ]}
-                      >
-                        <Feather
-                          name={
-                            entrada
-                              ? "arrow-down-left"
-                              : "arrow-up-right"
-                          }
-                          size={17}
-                          color={entrada ? C.highlight : C.red}
-                        />
-                      </View>
-
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.movementTitle}>
-                          {tipo}
-                        </Text>
-
-                        <Text style={s.muted}>
-                          {dateText(
-                            movimentacao?.data_hora ??
-                              movimentacao?.data ??
-                              movimentacao?.created_at ??
-                              movimentacao?.createdAt
-                          )}
-                        </Text>
-                      </View>
-
-                      <Text
-                        style={[
-                          s.movementQty,
-                          {
-                            color: entrada ? C.highlight : C.red,
-                          },
-                        ]}
-                      >
-                        {entrada ? "+" : "−"}
-                        {Math.abs(quantidade)}
-                      </Text>
-                    </View>
-                  );
-                })
-              )}
+              </View>
             </View>
-          )}
-        </ScrollView>
-      )}
-    </View>
+
+            {/* IDENTIFICAÇÃO: O MESMO CÓDIGO GERA QR E BARRAS */}
+            <TouchableOpacity
+              style={{
+                marginTop: 14,
+                padding: 16,
+                borderRadius: 16,
+                backgroundColor: "#25255f",
+                borderWidth: 1,
+                borderColor: "#6754f5",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+              onPress={() => navigation.navigate("QRCodeProduto", { produto })}
+            >
+              <Feather name="grid" size={21} color="#d6d4ff" />
+              <Text style={{ color: "#fff", fontWeight: "700", flex: 1 }}>
+                Ver QR Code e código de barras
+              </Text>
+              <Feather name="chevron-right" size={19} color="#d6d4ff" />
+            </TouchableOpacity>
+
+            {/* INDICADORES DE ESTOQUE */}
+
+            <View style={s.metrics}>
+              <View style={s.metric}>
+                <Text style={s.metricLabel}>Saldo atual</Text>
+                <Text style={s.metricValue}>{estoque}</Text>
+                <Text style={s.metricUnit}>unidades</Text>
+              </View>
+
+              <View style={s.metric}>
+                <Text style={s.metricLabel}>Estoque mínimo</Text>
+
+                <Text
+                  style={[
+                    s.metricValue,
+                    {
+                      color: estoqueBaixo ? C.amber : C.text,
+                    },
+                  ]}
+                >
+                  {minimo}
+                </Text>
+
+                <Text style={s.metricUnit}>unidades</Text>
+              </View>
+            </View>
+
+            {/* AÇÕES DE ESTOQUE */}
+
+            {podeEditar && (
+              <View style={s.actions}>
+                <TouchableOpacity
+                  style={s.iconButton}
+                  accessibilityLabel="Editar produto"
+                  onPress={() =>
+                    navigation.navigate("CadastroProduto", { produto })
+                  }
+                >
+                  <Feather name="edit-2" size={20} color={C.text} />
+                </TouchableOpacity>
+                {podeExcluir && (
+                  <TouchableOpacity
+                    style={s.iconButton}
+                    accessibilityLabel="Excluir produto"
+                    onPress={confirmarExclusao}
+                  >
+                    <Feather name="trash-2" size={20} color={C.red} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            <View style={s.actions}>
+              <TouchableOpacity
+                style={s.entryButton}
+                onPress={() => iniciarMovimento("ENTRADA")}
+              >
+                <Feather name="plus-circle" size={17} color="#082016" />
+                <Text style={s.actionText}>Registrar entrada</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={s.exitButton}
+                onPress={() => iniciarMovimento("SAIDA")}
+              >
+                <Feather name="minus-circle" size={17} color={C.red} />
+                <Text style={s.exitText}>Registrar saída</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* ABAS */}
+
+            <View style={s.tabs}>
+              {["Resumo", "Histórico"].map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  onPress={() => setAba(item)}
+                  style={[s.tab, aba === item && s.activeTab]}
+                >
+                  <Text style={[s.tabText, aba === item && s.activeTabText]}>
+                    {item}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* ABA RESUMO */}
+
+            {aba === "Resumo" ? (
+              <View style={s.infoCard}>
+                <Info label="Categoria" value={categoria} />
+
+                <Info label="Fornecedor" value={fornecedor} />
+
+                <Info
+                  label="Preço unitário"
+                  value={
+                    preco != null && Number.isFinite(Number(preco))
+                      ? Number(preco).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })
+                      : "Não informado"
+                  }
+                />
+
+                <Info
+                  label="Descrição"
+                  value={produto?.descricao || "Sem descrição cadastrada"}
+                />
+
+                <Info
+                  label="ID do produto"
+                  value={String(getId(produto) ?? produtoId)}
+                />
+              </View>
+            ) : (
+              /* ABA HISTÓRICO */
+
+              <View style={s.infoCard}>
+                {movimentacoes.length === 0 ? (
+                  <View style={s.empty}>
+                    <Feather name="clock" size={24} color={C.muted} />
+
+                    <Text style={s.muted}>
+                      Nenhuma movimentação encontrada para este produto.
+                    </Text>
+                  </View>
+                ) : (
+                  movimentacoes.map((movimentacao, index) => {
+                    const tipo = String(
+                      movimentacao?.tipo ??
+                        movimentacao?.tipo_movimentacao ??
+                        "Movimentação",
+                    );
+
+                    const quantidade = Number(movimentacao?.quantidade ?? 0);
+
+                    const entrada = tipo.toUpperCase() === "ENTRADA";
+
+                    return (
+                      <View
+                        key={String(
+                          movimentacao?.id ?? movimentacao?._id ?? index,
+                        )}
+                        style={[
+                          s.movement,
+                          index < movimentacoes.length - 1 && s.movementBorder,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            s.movementIcon,
+                            {
+                              backgroundColor: entrada
+                                ? BRAND_COLORS.soft
+                                : "#3a2029",
+                            },
+                          ]}
+                        >
+                          <Feather
+                            name={
+                              entrada ? "arrow-down-left" : "arrow-up-right"
+                            }
+                            size={17}
+                            color={entrada ? C.highlight : C.red}
+                          />
+                        </View>
+
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.movementTitle}>{tipo}</Text>
+
+                          <Text style={s.muted}>
+                            {dateText(
+                              movimentacao?.data_hora ??
+                                movimentacao?.data ??
+                                movimentacao?.created_at ??
+                                movimentacao?.createdAt,
+                            )}
+                          </Text>
+                        </View>
+
+                        <Text
+                          style={[
+                            s.movementQty,
+                            {
+                              color: entrada ? C.highlight : C.red,
+                            },
+                          ]}
+                        >
+                          {entrada ? "+" : "−"}
+                          {Math.abs(quantidade)}
+                        </Text>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            )}
+          </ScrollView>
+        )}
+      </View>
     </ScreenBackground>
   );
 }
@@ -744,9 +697,7 @@ function Info({ label, value }) {
   return (
     <View style={s.infoRow}>
       <Text style={s.infoLabel}>{label}</Text>
-      <Text style={s.infoValue}>
-        {String(value ?? "Não informado")}
-      </Text>
+      <Text style={s.infoValue}>{String(value ?? "Não informado")}</Text>
     </View>
   );
 }

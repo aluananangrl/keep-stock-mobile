@@ -19,14 +19,13 @@ import { Ionicons } from "@expo/vector-icons";
 import api from "../services/api";
 
 // MESMO FUNDO DA TELA DE LOGIN
-import fundoLogin from "../../assets/fundo-login.png";
+import fundoLogin from "../../assets/cadastro-keepstock.png";
 
 // ============================================================
 // COMPONENTE PRINCIPAL
 // ============================================================
 
 export default function Cadastro({ navigation }) {
-
   // ==========================================================
   // ESTADOS
   // ==========================================================
@@ -43,8 +42,7 @@ export default function Cadastro({ navigation }) {
 
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
-  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] =
-    useState(false);
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
 
   const [carregando, setCarregando] = useState(false);
 
@@ -64,7 +62,6 @@ export default function Cadastro({ navigation }) {
   // ==========================================================
 
   async function cadastrar() {
-
     if (!user.nome.trim()) {
       Alert.alert("Erro", "Digite seu nome.");
       return;
@@ -75,10 +72,7 @@ export default function Cadastro({ navigation }) {
       return;
     }
 
-    const emailValido =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        user.email.trim()
-      );
+    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email.trim());
 
     if (!emailValido) {
       Alert.alert("E-mail inválido", "Digite um e-mail válido.");
@@ -93,7 +87,7 @@ export default function Cadastro({ navigation }) {
     if (user.senha.length < 6) {
       Alert.alert(
         "Senha inválida",
-        "A senha deve possuir pelo menos 6 caracteres."
+        "A senha deve possuir pelo menos 6 caracteres.",
       );
       return;
     }
@@ -104,10 +98,7 @@ export default function Cadastro({ navigation }) {
     }
 
     if (!aceitouTermos) {
-      Alert.alert(
-        "Atenção",
-        "Aceite os Termos e Condições para continuar."
-      );
+      Alert.alert("Atenção", "Aceite os Termos e Condições para continuar.");
       return;
     }
 
@@ -128,18 +119,15 @@ export default function Cadastro({ navigation }) {
 
       Alert.alert(
         "Cadastro realizado!",
-        response.data?.message ||
-          "Usuário cadastrado com sucesso.",
+        response.data?.message || "Usuário cadastrado com sucesso.",
         [
           {
             text: "OK",
             onPress: () => navigation.navigate("Login"),
           },
-        ]
+        ],
       );
-
     } catch (error) {
-
       const status = error?.response?.status;
       console.warn("Erro no cadastro", {
         code: error?.code,
@@ -152,17 +140,14 @@ export default function Cadastro({ navigation }) {
 
       const code = errorData?.code;
 
-      const message =
-        errorData?.message ||
-        error?.response?.data?.message;
+      const message = errorData?.message || error?.response?.data?.message;
 
       // E-MAIL JÁ CADASTRADO
 
       if (status === 409 && code === "DUPLICATE_EMAIL") {
         Alert.alert(
           "E-mail já cadastrado",
-          message ||
-            "Já existe um usuário cadastrado com este e-mail.",
+          message || "Já existe um usuário cadastrado com este e-mail.",
           [
             {
               text: "Ir para Login",
@@ -172,7 +157,7 @@ export default function Cadastro({ navigation }) {
               text: "OK",
               style: "cancel",
             },
-          ]
+          ],
         );
 
         return;
@@ -194,7 +179,7 @@ export default function Cadastro({ navigation }) {
           "Erro de conexão",
           tempoEsgotado
             ? "O servidor demorou para responder. Tente entrar com o e-mail informado antes de repetir o cadastro."
-            : "O app não recebeu resposta do servidor. Verifique se o endereço da API abre no navegador deste dispositivo."
+            : "O app não recebeu resposta do servidor. Verifique se o endereço da API abre no navegador deste dispositivo.",
         );
 
         return;
@@ -204,9 +189,8 @@ export default function Cadastro({ navigation }) {
 
       Alert.alert(
         "Erro no cadastro",
-        "Não foi possível realizar o cadastro. Tente novamente."
+        "Não foi possível realizar o cadastro. Tente novamente.",
       );
-
     } finally {
       setCarregando(false);
     }
@@ -218,7 +202,6 @@ export default function Cadastro({ navigation }) {
 
   return (
     <View style={styles.background}>
-
       {/* IMAGEM DE FUNDO */}
 
       <Image
@@ -235,13 +218,11 @@ export default function Cadastro({ navigation }) {
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-
         <ScrollView
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-
           {/* BOTÃO VOLTAR */}
 
           <TouchableOpacity
@@ -249,11 +230,7 @@ export default function Cadastro({ navigation }) {
             onPress={() => navigation.navigate("Login")}
             activeOpacity={0.8}
           >
-            <Ionicons
-              name="arrow-back"
-              size={23}
-              color="#ffffff"
-            />
+            <Ionicons name="arrow-back" size={23} color="#ffffff" />
           </TouchableOpacity>
 
           {/* ==================================================
@@ -261,7 +238,6 @@ export default function Cadastro({ navigation }) {
           ================================================== */}
 
           <View style={styles.header}>
-
             <View style={styles.logo}>
               <Ionicons
                 name="cube-outline"
@@ -281,7 +257,6 @@ export default function Cadastro({ navigation }) {
             <Text style={styles.subtitle}>
               gestão de estoque mais inteligente.
             </Text>
-
           </View>
 
           {/* ==================================================
@@ -289,11 +264,9 @@ export default function Cadastro({ navigation }) {
           ================================================== */}
 
           <View style={styles.card}>
-
             {/* TÍTULO DO CARD */}
 
             <View style={styles.cardHeader}>
-
               <View style={styles.cardIcon}>
                 <Ionicons
                   name="person-add-outline"
@@ -302,22 +275,16 @@ export default function Cadastro({ navigation }) {
                 />
               </View>
 
-              <Text style={styles.title}>
-                Criar Conta
-              </Text>
-
+              <Text style={styles.title}>Criar Conta</Text>
             </View>
 
             {/* ==================================================
                 NOME
             ================================================== */}
 
-            <Text style={styles.label}>
-              Nome Completo
-            </Text>
+            <Text style={styles.label}>Nome Completo</Text>
 
             <View style={styles.inputBox}>
-
               <Ionicons
                 name="person-outline"
                 size={22}
@@ -330,25 +297,19 @@ export default function Cadastro({ navigation }) {
                 placeholder="Digite seu nome"
                 placeholderTextColor="#858db5"
                 value={user.nome}
-                onChangeText={(value) =>
-                  onChange("nome", value)
-                }
+                onChangeText={(value) => onChange("nome", value)}
                 autoCapitalize="words"
                 editable={!carregando}
               />
-
             </View>
 
             {/* ==================================================
                 EMAIL
             ================================================== */}
 
-            <Text style={styles.label}>
-              Email
-            </Text>
+            <Text style={styles.label}>Email</Text>
 
             <View style={styles.inputBox}>
-
               <Ionicons
                 name="mail-outline"
                 size={22}
@@ -361,27 +322,21 @@ export default function Cadastro({ navigation }) {
                 placeholder="nome@empresa.com"
                 placeholderTextColor="#858db5"
                 value={user.email}
-                onChangeText={(value) =>
-                  onChange("email", value)
-                }
+                onChangeText={(value) => onChange("email", value)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!carregando}
               />
-
             </View>
 
             {/* ==================================================
                 SENHA
             ================================================== */}
 
-            <Text style={styles.label}>
-              Senha
-            </Text>
+            <Text style={styles.label}>Senha</Text>
 
             <View style={styles.inputBox}>
-
               <Ionicons
                 name="lock-closed-outline"
                 size={22}
@@ -394,44 +349,32 @@ export default function Cadastro({ navigation }) {
                 placeholder="Crie uma senha"
                 placeholderTextColor="#858db5"
                 value={user.senha}
-                onChangeText={(value) =>
-                  onChange("senha", value)
-                }
+                onChangeText={(value) => onChange("senha", value)}
                 secureTextEntry={!mostrarSenha}
                 autoCapitalize="none"
                 editable={!carregando}
               />
 
               <TouchableOpacity
-                onPress={() =>
-                  setMostrarSenha(!mostrarSenha)
-                }
+                onPress={() => setMostrarSenha(!mostrarSenha)}
                 disabled={carregando}
               >
                 <Ionicons
-                  name={
-                    mostrarSenha
-                      ? "eye-outline"
-                      : "eye-off-outline"
-                  }
+                  name={mostrarSenha ? "eye-outline" : "eye-off-outline"}
                   size={22}
                   color="#a4a9d8"
                   style={styles.eye}
                 />
               </TouchableOpacity>
-
             </View>
 
             {/* ==================================================
                 CONFIRMAR SENHA
             ================================================== */}
 
-            <Text style={styles.label}>
-              Confirmar Senha
-            </Text>
+            <Text style={styles.label}>Confirmar Senha</Text>
 
             <View style={styles.inputBox}>
-
               <Ionicons
                 name="lock-closed-outline"
                 size={22}
@@ -451,25 +394,18 @@ export default function Cadastro({ navigation }) {
               />
 
               <TouchableOpacity
-                onPress={() =>
-                  setMostrarConfirmarSenha(
-                    !mostrarConfirmarSenha
-                  )
-                }
+                onPress={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)}
                 disabled={carregando}
               >
                 <Ionicons
                   name={
-                    mostrarConfirmarSenha
-                      ? "eye-outline"
-                      : "eye-off-outline"
+                    mostrarConfirmarSenha ? "eye-outline" : "eye-off-outline"
                   }
                   size={22}
                   color="#a4a9d8"
                   style={styles.eye}
                 />
               </TouchableOpacity>
-
             </View>
 
             {/* ==================================================
@@ -478,12 +414,9 @@ export default function Cadastro({ navigation }) {
 
             <TouchableOpacity
               style={styles.terms}
-              onPress={() =>
-                setAceitouTermos(!aceitouTermos)
-              }
+              onPress={() => setAceitouTermos(!aceitouTermos)}
               activeOpacity={0.8}
             >
-
               <View
                 style={[
                   styles.checkbox,
@@ -491,21 +424,14 @@ export default function Cadastro({ navigation }) {
                 ]}
               >
                 {aceitouTermos && (
-                  <Ionicons
-                    name="checkmark"
-                    size={15}
-                    color="#ffffff"
-                  />
+                  <Ionicons name="checkmark" size={15} color="#ffffff" />
                 )}
               </View>
 
               <Text style={styles.termsText}>
                 Eu concordo com os{" "}
-                <Text style={styles.termsHighlight}>
-                  Termos e Condições
-                </Text>
+                <Text style={styles.termsHighlight}>Termos e Condições</Text>
               </Text>
-
             </TouchableOpacity>
 
             {/* ==================================================
@@ -513,27 +439,18 @@ export default function Cadastro({ navigation }) {
             ================================================== */}
 
             <TouchableOpacity
-              style={[
-                styles.button,
-                carregando && styles.buttonDisabled,
-              ]}
+              style={[styles.button, carregando && styles.buttonDisabled]}
               onPress={cadastrar}
               activeOpacity={0.8}
               disabled={carregando}
             >
-
               <Text style={styles.buttonText}>
                 {carregando ? "Cadastrando..." : "Cadastrar"}
               </Text>
 
               {!carregando && (
-                <Ionicons
-                  name="arrow-forward"
-                  size={25}
-                  color="#ffffff"
-                />
+                <Ionicons name="arrow-forward" size={25} color="#ffffff" />
               )}
-
             </TouchableOpacity>
 
             {/* ==================================================
@@ -547,37 +464,21 @@ export default function Cadastro({ navigation }) {
             ================================================== */}
 
             <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>Já possui uma conta?</Text>
 
-              <Text style={styles.loginText}>
-                Já possui uma conta?
-              </Text>
-
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("Login")
-                }
-              >
-                <Text style={styles.loginLink}>
-                  Fazer Login
-                </Text>
+              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+                <Text style={styles.loginLink}>Fazer Login</Text>
               </TouchableOpacity>
-
             </View>
-
           </View>
 
           {/* ==================================================
               RODAPÉ
           ================================================== */}
 
-          <Text style={styles.footer}>
-            © 2026 keepStock.
-          </Text>
-
+          <Text style={styles.footer}>© 2026 keepStock.</Text>
         </ScrollView>
-
       </KeyboardAvoidingView>
-
     </View>
   );
 }
@@ -587,7 +488,6 @@ export default function Cadastro({ navigation }) {
 // ============================================================
 
 const styles = StyleSheet.create({
-
   // FUNDO
 
   background: {
@@ -677,9 +577,9 @@ const styles = StyleSheet.create({
   card: {
     width: "92%",
     alignSelf: "center",
-    backgroundColor: "rgba(12, 17, 43, 0.78)",
+    backgroundColor: "rgba(12, 17, 43, 0.30)",
     borderWidth: 1.3,
-    borderColor: "rgba(117, 101, 255, 0.32)",
+    borderColor: "rgba(117, 101, 255, 0.12)",
     borderRadius: 32,
     paddingHorizontal: 22,
     paddingTop: 26,
@@ -851,5 +751,4 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 15,
   },
-
 });

@@ -23,7 +23,7 @@ import { Ionicons } from "@expo/vector-icons";
 import api from "../services/api";
 import { useTheme } from "../context/ThemeContext";
 
-import fundoLogin from "../../assets/fundo-login.png";
+import fundoLogin from "../../assets/login-keepstock.png";
 
 // ============================================================
 // COMPONENTE PRINCIPAL
@@ -40,7 +40,7 @@ export default function LoginScreen({ navigation }) {
   const palette = isDarkTheme
     ? {
         background: "#0b1224",
-        card: "rgba(8, 15, 31, 0.35)",
+        card: "transparent",
         border: "#34415b",
         text: "#f4f5ff",
         muted: "#9aa9c9",
@@ -240,7 +240,11 @@ export default function LoginScreen({ navigation }) {
             {/* LOGO */}
 
             <View style={styles.logo}>
-              <Ionicons name="cube-outline" size={32} color={BRAND_COLORS.primary} />
+              <Ionicons
+                name="cube-outline"
+                size={32}
+                color={BRAND_COLORS.primary}
+              />
 
               <Text
                 style={[
@@ -250,15 +254,17 @@ export default function LoginScreen({ navigation }) {
                   },
                 ]}
               >
-                KeepStock
+                Keep Stock
               </Text>
             </View>
 
             {/* TÍTULO */}
 
             <Text style={[styles.title, { color: palette.text }]}>
-              Gestão de Estoque Inteligente
+              Acesse sua conta e gerencie o seu estoque
             </Text>
+
+            <View style={{ height: 205 }} />
 
             {/* E-MAIL */}
 
@@ -365,7 +371,9 @@ export default function LoginScreen({ navigation }) {
                   style={[
                     styles.forgot,
                     {
-                      color: isDarkTheme ? BRAND_COLORS.highlight : BRAND_COLORS.primary,
+                      color: isDarkTheme
+                        ? BRAND_COLORS.highlight
+                        : BRAND_COLORS.primary,
                     },
                   ]}
                 >
@@ -409,7 +417,9 @@ export default function LoginScreen({ navigation }) {
               style={[
                 styles.registerButton,
                 {
-                  borderColor: isDarkTheme ? BRAND_COLORS.primary : BRAND_COLORS.primary,
+                  borderColor: isDarkTheme
+                    ? BRAND_COLORS.primary
+                    : BRAND_COLORS.primary,
                 },
               ]}
               onPress={() => navigation.navigate("Cadastro")}
@@ -418,14 +428,18 @@ export default function LoginScreen({ navigation }) {
               <Ionicons
                 name="person-add-outline"
                 size={22}
-                color={isDarkTheme ? BRAND_COLORS.highlight : BRAND_COLORS.primary}
+                color={
+                  isDarkTheme ? BRAND_COLORS.highlight : BRAND_COLORS.primary
+                }
               />
 
               <Text
                 style={[
                   styles.registerLink,
                   {
-                    color: isDarkTheme ? BRAND_COLORS.primary : BRAND_COLORS.primary,
+                    color: isDarkTheme
+                      ? BRAND_COLORS.primary
+                      : BRAND_COLORS.primary,
                   },
                 ]}
               >
@@ -483,10 +497,10 @@ const styles = StyleSheet.create({
     width: "100%",
     flexGrow: 1,
     paddingHorizontal: 26,
-    paddingTop: 42,
-    paddingBottom: 28,
-    justifyContent: "center",
-    backgroundColor: "rgba(8, 15, 31, 0.35)",
+    paddingTop: 68,
+    paddingBottom: 35,
+    justifyContent: "flex-start",
+    backgroundColor: "transparent",
   },
 
   // LINHA SUPERIOR
@@ -496,8 +510,8 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 3,
-    backgroundColor: BRAND_COLORS.primary,
+    height: 0,
+    backgroundColor: "transparent",
   },
 
   // LOGO
