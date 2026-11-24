@@ -12,7 +12,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import QRCode from "react-native-qrcode-svg";
 import { captureRef } from "react-native-view-shot";
-import { Assets } from "expo-media-library";
+import { Asset } from "expo-media-library";
 import ScreenBackground from "../components/ScreenBackground";
 import Barcode128 from "../components/Barcode128";
 
