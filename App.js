@@ -72,7 +72,7 @@ function AppNavigator() {
               "NovaSenha",
             ].includes(route.name)
           ) {
-            return { headerShown: true };
+            return { headerShown: false };
           }
           const light =
             theme === "light" &&
