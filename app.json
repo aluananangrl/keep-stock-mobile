@@ -23,11 +23,11 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
-        "android.permission.CAMERA"
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED"
       ],
       "package": "com.aluanan.keepstockmobile"
     },
@@ -37,20 +37,21 @@
     "plugins": [
       "expo-secure-store",
       [
-        "expo-camera",
-        {
-          "cameraPermission": "O KeepStock precisa de acesso à câmera para escanear códigos e capturar produtos."
-        }
-      ],
-      "expo-status-bar",
-      [
         "expo-image-picker",
         {
-          "photosPermission": "O KeepStock precisa acessar suas fotos para escolher uma foto de perfil.",
-          "cameraPermission": false,
+          "photosPermission": "O Keep Stock precisa acessar suas fotos para escolher uma foto de perfil.",
+          "cameraPermission": "Permita ao Keep Stock acessar a câmera.",
           "microphonePermission": false
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Keep Stock precisa acessar a câmera para escanear códigos.",
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-status-bar",
       [
         "expo-media-library",
         {
